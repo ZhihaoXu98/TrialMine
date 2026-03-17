@@ -10,7 +10,7 @@ index:
 	python scripts/build_index.py
 
 serve:
-	uvicorn src.TrialMine.api.app:app --reload
+	uvicorn TrialMine.api.app:app --reload
 
 ui:
 	streamlit run src/TrialMine/ui/app.py
