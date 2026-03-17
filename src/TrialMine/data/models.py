@@ -1,62 +1,40 @@
-"""Pydantic models mirroring the ClinicalTrials.gov API v2 response structure.
+"""Pydantic models for clinical trial data.
 
-These are the canonical data structures used throughout the pipeline.
-Downstream consumers (parse.py, DB layer, retrieval) should all use these types.
+These are the canonical types used throughout the pipeline.
+parse.py → these models → store.py → SQLite → retrieval layer.
 """
 
-from typing import Optional
 from pydantic import BaseModel, Field
 
 
-class Intervention(BaseModel):
-    """A single intervention from armsInterventionsModule."""
-
-    type: Optional[str] = None
-    name: Optional[str] = None
-    description: Optional[str] = None
-
-
 class Location(BaseModel):
-    """A trial site location from contactsLocationsModule."""
+    """A single trial site."""
 
-    facility: Optional[str] = None
-    city: Optional[str] = None
-    state: Optional[str] = None
-    country: Optional[str] = None
-    status: Optional[str] = None
-
-
-class EligibilityCriteria(BaseModel):
-    """Parsed eligibility from eligibilityModule."""
-
-    raw_text: str = ""
-    min_age: Optional[str] = None
-    max_age: Optional[str] = None
-    sex: Optional[str] = None
-    # TODO: add structured inclusion/exclusion lists after NLP parsing
+    facility: str | None = None
+    city: str | None = None
+    state: str | None = None
+    country: str | None = None
+    zip_code: str | None = None
 
 
-class ClinicalTrial(BaseModel):
-    """Canonical representation of a single clinical trial."""
+class Trial(BaseModel):
+    """Canonical representation of one clinical trial."""
 
-    nct_id: str = Field(..., description="Unique ClinicalTrials.gov identifier")
-    title: Optional[str] = None
-    brief_summary: Optional[str] = None
+    nct_id: str = Field(..., description="ClinicalTrials.gov unique identifier")
+    title: str = Field(default="")
+    brief_summary: str | None = None
+    detailed_description: str | None = None
     conditions: list[str] = Field(default_factory=list)
-    interventions: list[Intervention] = Field(default_factory=list)
-    eligibility: EligibilityCriteria = Field(default_factory=EligibilityCriteria)
-    phases: list[str] = Field(default_factory=list)
-    overall_status: Optional[str] = None
-    enrollment_count: Optional[int] = None
+    interventions: list[str] = Field(default_factory=list)  # intervention names only
+    eligibility_criteria: str | None = None
+    min_age: str | None = None   # raw string, e.g. "18 Years"
+    max_age: str | None = None
+    sex: str | None = None       # "ALL", "FEMALE", "MALE"
+    phase: str | None = None     # e.g. "Phase 1", "Phase 1/Phase 2"
+    status: str | None = None    # e.g. "RECRUITING", "COMPLETED"
+    enrollment: int | None = None
+    start_date: str | None = None
+    completion_date: str | None = None
+    sponsor: str | None = None
     locations: list[Location] = Field(default_factory=list)
-    lead_sponsor: Optional[str] = None
-
-    # TODO: add computed fields (age_min_years, age_max_years) after parsing
-
-
-class TrialPage(BaseModel):
-    """A single page of results from the ClinicalTrials.gov API v2."""
-
-    trials: list[ClinicalTrial]
-    next_page_token: Optional[str] = None
-    total_count: Optional[int] = None
+    url: str | None = None
