@@ -1,0 +1,15 @@
+data/raw/
+data/processed/
+models/
+*.faiss
+.env
+mlruns/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+.venv/
