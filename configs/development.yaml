@@ -1,0 +1,25 @@
+database:
+  path: data/processed/trialmine.db
+
+elasticsearch:
+  host: http://localhost:9200
+  index_name: clinical_trials
+
+faiss:
+  index_path: data/processed/faiss.index
+  embedding_dim: 768
+
+models:
+  embedder: allenai/scibert_scivocab_uncased  # swap for BioLinkBERT after fine-tuning
+  cross_encoder: cross-encoder/ms-marco-MiniLM-L-6-v2
+  ranker: models/ranker/v1/ranker.lgbm
+
+retrieval:
+  bm25_top_k: 100
+  semantic_top_k: 100
+  rerank_top_k: 20
+  final_top_k: 10
+
+mlflow:
+  tracking_uri: mlruns/
+  experiment_name: trialmine-dev
