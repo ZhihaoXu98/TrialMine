@@ -60,7 +60,7 @@ See README.md for overview. Key directories:
 ## Current State
 Last updated: 2026-03-25
 
-Phase: 2 (Retrieval) — BM25 + semantic + hybrid search working, full stack running end-to-end
+Phase: 3 (Fine-tuning data ready) — BM25 + semantic + hybrid search working, training data generated
 
 ### What's working
 - **Data pipeline**: downloads oncology trials from ClinicalTrials.gov API v2, parses, stores in SQLite
@@ -87,6 +87,14 @@ Phase: 2 (Retrieval) — BM25 + semantic + hybrid search working, full stack run
   - Tracking URI: `sqlite:///mlflow.db`
   - UI: `make mlflow` → http://localhost:5001
   - `src/TrialMine/evaluation/metrics.py` — precision@k, recall@k, NDCG@k, MRR (ready for labelled data)
+- **Training data generation**: `scripts/generate_training_data.py` — 3-source pipeline for BioLinkBERT fine-tuning
+  - Source 1: 242K metadata-derived (query, trial) pairs from conditions, interventions, phases
+  - Source 2: 1,500 synthetic patient queries via Claude Haiku API (resumable, checkpointed)
+  - Source 3: 730K hard negative triplets (same condition, different intervention preferred)
+  - Stratified sampling across 23 cancer types, capped at 2000 trials/group
+  - Config: `configs/training_data.yaml` (cancer type taxonomy, sampling caps, API settings)
+  - Output: `data/training/train_pairs.jsonl` (586K triplets), `data/training/val_pairs.jsonl` (145K triplets)
+  - Run: `make training-data` or `python scripts/generate_training_data.py [--skip-synthetic] [--dry-run] [--resume]`
 
 ### Key evaluation findings
 - BM25∩Semantic top-3 overlap: 0% across all 20 queries (completely disjoint results)
@@ -100,10 +108,14 @@ Phase: 2 (Retrieval) — BM25 + semantic + hybrid search working, full stack run
 - `data/trials.db` — SQLite with 140K parsed trials (912 MB)
 - `data/trial_embeddings.faiss` — FAISS index (412 MB, rebuild with `scripts/build_index.py --skip-bm25`)
 - `data/evaluation/method_comparison.csv` — comparison results from scripts/compare_methods.py
+- `data/training/train_pairs.jsonl` — 586K training triplets (1.0 GB)
+- `data/training/val_pairs.jsonl` — 145K validation triplets (260 MB)
+- `data/training/synthetic_queries.jsonl` — 1,500 Claude-generated patient queries (1.5 MB)
 - `mlflow.db` — MLflow tracking database
 - Elasticsearch `trials` index — requires `docker start es`
+- `.env` — API keys (ANTHROPIC_API_KEY) — NEVER commit
 
 ### What's next
-- Phase 3: Cross-encoder re-ranking + LightGBM metadata blending (highest leverage — rescues noisy semantic results)
-- Phase 4: LangGraph agents (query parsing, search orchestration)
-- Phase 5: Fine-tune BioLinkBERT on patient-to-trial query pairs (fixes embedding collapse at source)
+- Fine-tune BioLinkBERT with contrastive learning on the 730K training triplets (fixes embedding anisotropy at source)
+- Cross-encoder re-ranking + LightGBM metadata blending (highest leverage — rescues noisy semantic results)
+- LangGraph agents (query parsing, search orchestration)
