@@ -131,7 +131,44 @@ Relevant trials ARE in the semantic candidate pool — they're just buried at ra
 
 ## Week 3
 
-(Add decisions 10-12 after completing Week 3)
+### Decision 10: Three-Source Training Data Pipeline
+**Context:** Need training data for contrastive fine-tuning of BioLinkBERT to fix embedding anisotropy (cosine range 0.047, 3 hub trials monopolising 33% of slots). No existing labelled query-trial relevance data.
+**Options:** Manual annotation (gold standard), metadata-derived pairs only (free but robotic), LLM-generated queries only (natural but expensive), hybrid approach.
+**Choice:** Three complementary sources in a single script (`scripts/generate_training_data.py`):
+1. Metadata-derived pairs (242K) — conditions, interventions, phases extracted from trial fields
+2. Synthetic patient queries (1,500) — Claude Haiku API generates natural patient language
+3. Hard negatives (730K triplets) — same condition, different intervention/trial
+**Why:** Each source addresses a different weakness. Metadata pairs teach the model basic concept-trial associations at scale. Synthetic queries bridge the clinical-to-patient language gap that BM25 can't handle (our evaluation showed 0% overlap on patient-language queries). Hard negatives force the model to distinguish confusingly similar trials — without them, contrastive loss only learns from random in-batch negatives which are too easy.
+**Trade-off:** Metadata queries are repetitive ("breast cancer", "pembrolizumab for breast cancer") — the model sees many near-duplicate training signals. Synthetic queries are limited to 1,500 by API budget. Hard negative mining uses simple keyword overlap, not semantic similarity.
+**At scale:** Replace keyword-based hard negative mining with embedding-based mining (encode all trials, find nearest neighbours that aren't relevant). Generate 10K+ synthetic queries using Claude. Add human relevance judgements for a gold evaluation set.
+**Interview answer:** "Three sources because each teaches a different skill: metadata pairs teach concept association, synthetic queries bridge the vocabulary gap between patients and clinicians, and hard negatives force fine-grained discrimination between similar trials."
+
+### Decision 11: Stratified Sampling by Cancer Type
+**Context:** 140K trials are heavily skewed — breast cancer has 15K trials, mesothelioma has 292. Need balanced training data.
+**Options:** Random sampling (simple but biased), stratified sampling with caps, upsampling rare types.
+**Choice:** Stratified sampling with 2000-trial cap per cancer group. 23 cancer type groups defined by keyword matching on `trial.conditions`, plus an "other" catch-all.
+**Why:** Without caps, breast cancer (15K) and lung cancer (11K) would dominate training — the model learns "breast cancer" embeddings well but fails on neuroblastoma (361 trials). A 2000-trial cap means rare cancer groups keep all their trials while common groups are downsampled. This produces 40K sampled trials across 23 groups.
+**Trade-off:** The "other" bucket (47K trials) includes basket trials, supportive care, and non-oncology studies that leaked through. Capping it at 2000 loses some diversity. The keyword-based taxonomy misclassifies trials with unusual condition strings.
+**At scale:** Use MeSH terms or a medical NER model for cancer type classification instead of keyword matching. Consider curriculum learning: start training on easy (cross-cancer) negatives, then switch to hard (within-cancer) negatives.
+**Interview answer:** "Stratified sampling with caps because training data distribution directly controls what the model learns. A model trained on 90% breast cancer trials won't help a mesothelioma patient."
+
+### Decision 12: Claude Haiku for Synthetic Patient Queries
+**Context:** Need patient-language queries to bridge the vocabulary gap (our evaluation showed BM25 and semantic have 0% overlap on patient-language queries like "glioblastoma that has come back"). Template-based generation is free but robotic.
+**Options:** Templates only (free, robotic), local LLM via Ollama (free, medium quality), Claude Haiku API (~$1-2 for 1,500 queries).
+**Choice:** Claude Haiku API (`claude-haiku-4-5-20251001`) for 1,500 queries.
+**Why:** Quality gap is large — Claude produces queries like "My daughter has a benign ovarian tumor and needs surgery — are there any new treatment options?" vs templates producing "I was diagnosed with ovarian cancer and looking for treatment options." The personal context, emotional tone, and natural phrasing from Claude better represent how real patients search. At $0.001 per query ($1.50 total), the cost is negligible compared to the quality improvement. The script supports `--skip-synthetic` for free-only generation and `--resume` for interrupted API calls.
+**Trade-off:** Only 1,500 queries (0.6% of training data) — limited impact on overall training. Requires API key. Non-reproducible (different outputs each run due to temperature).
+**At scale:** Generate 10K-50K synthetic queries using Claude. Add few-shot examples from real patient forum posts (Reddit r/cancer, HealthUnlocked) to improve prompt quality. Consider fine-tuning a smaller model on the Claude outputs for cost-free generation.
+**Interview answer:** "Claude Haiku because the cost ($1.50) is trivial and the quality gap over templates is dramatic for patient-language queries — and that's exactly the vocabulary gap our embedding model needs to learn."
+
+### Decision 13: Hard Negatives via Condition Keyword Overlap
+**Context:** Contrastive learning needs hard negatives — trials that are similar enough to confuse the model but are not the correct match. In-batch negatives (random trials from other queries in the same batch) are too easy.
+**Options:** Random negatives (easy), BM25-retrieved negatives (requires Elasticsearch), embedding-based negatives (requires encoding all trials), keyword overlap (simple, in-memory).
+**Choice:** Keyword overlap on condition strings, preferring trials with different interventions. Build an in-memory condition-word → NCT ID index, find trials sharing keywords, partition into hard (different intervention) and easy (same intervention) candidates, sample 3 negatives per positive.
+**Why:** Simple and effective. A breast cancer trial about pembrolizumab vs a breast cancer trial about tamoxifen is the exact kind of distinction the model needs to learn. No external dependencies (no Elasticsearch, no GPU for encoding). The condition index builds in seconds over 40K sampled trials. 730K triplets generated in ~12 minutes.
+**Trade-off:** Only uses condition text, not semantic similarity — misses some hard negatives that share interventions but different conditions. The keyword tokenisation is naive (split on spaces, skip <3 chars). 180 pairs (0.07%) found no candidates at all.
+**At scale:** Mine negatives using the current model's embeddings — encode all trials, for each positive find the k nearest neighbours that aren't relevant. This produces the hardest possible negatives. Update the negative set every training epoch (dynamic hard negative mining).
+**Interview answer:** "Keyword overlap because it's simple, fast, and targets exactly what we need: same cancer, different drug. The 730K triplets generated in 12 minutes with no external dependencies — embedding-based mining would be better but requires encoding 140K trials first."
 
 ---
 
