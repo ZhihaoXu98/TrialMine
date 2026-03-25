@@ -82,15 +82,28 @@ Phase: 2 (Retrieval) — BM25 + semantic + hybrid search working, full stack run
   - `src/TrialMine/api/schemas.py` — Pydantic models (SearchRequest with method field, SearchResponse with search_method, TrialResult with source/ranks)
 - **Streamlit UI** (port 8501): search bar, 3 example query buttons, result cards with status/phase badges, sidebar (method selector, status, phase, top_k), source tags per result
   - `src/TrialMine/ui/app.py` — communicates with FastAPI via httpx
-- **Method comparison**: `scripts/compare_methods.py` — runs 20 oncology queries across all 3 methods, prints side-by-side top 3, overlap stats, saves CSV
+- **Method comparison**: `scripts/compare_methods.py` — runs 20 oncology queries across all 3 methods, logs to MLflow, prints side-by-side top 3, overlap stats, saves CSV
+- **MLflow tracking**: experiment `trialmind-retrieval` with baseline runs (bm25, semantic, hybrid)
+  - Tracking URI: `sqlite:///mlflow.db`
+  - UI: `make mlflow` → http://localhost:5001
+  - `src/TrialMine/evaluation/metrics.py` — precision@k, recall@k, NDCG@k, MRR (ready for labelled data)
+
+### Key evaluation findings
+- BM25∩Semantic top-3 overlap: 0% across all 20 queries (completely disjoint results)
+- Top-200 overlap: 1-16% depending on query type — signal is buried, not absent
+- Semantic search has severe anisotropy: cosine range of only 0.047 across 1000 results
+- 3 hub trials monopolize 33% of semantic result slots (embedding space collapse)
+- The model understands paraphrase (30% overlap between patient/clinical phrasings) but can't rank
+- Diagnosis: architecture sound, fixable via cross-encoder re-ranking (Phase 3) and contrastive fine-tuning (Phase 5)
 
 ### Key files/data (not in git)
 - `data/trials.db` — SQLite with 140K parsed trials (912 MB)
 - `data/trial_embeddings.faiss` — FAISS index (412 MB, rebuild with `scripts/build_index.py --skip-bm25`)
 - `data/evaluation/method_comparison.csv` — comparison results from scripts/compare_methods.py
+- `mlflow.db` — MLflow tracking database
 - Elasticsearch `trials` index — requires `docker start es`
 
 ### What's next
-- Phase 3: Cross-encoder re-ranking + LightGBM metadata blending
+- Phase 3: Cross-encoder re-ranking + LightGBM metadata blending (highest leverage — rescues noisy semantic results)
 - Phase 4: LangGraph agents (query parsing, search orchestration)
-- Phase 5: Fine-tune BioLinkBERT on patient-to-trial query pairs (patient-language queries underperform)
+- Phase 5: Fine-tune BioLinkBERT on patient-to-trial query pairs (fixes embedding collapse at source)

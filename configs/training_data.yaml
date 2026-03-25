@@ -1,0 +1,46 @@
+sampling:
+  max_trials_per_cancer_group: 2000
+  random_seed: 42
+
+synthetic:
+  model: "claude-haiku-4-5-20251001"
+  sample_count: 1500
+  max_requests_per_second: 5
+  checkpoint_interval: 100
+
+hard_negatives:
+  negatives_per_positive: 3
+
+split:
+  val_fraction: 0.20
+
+output:
+  dir: data/training
+  train_file: train_pairs.jsonl
+  val_file: val_pairs.jsonl
+  synthetic_file: synthetic_queries.jsonl
+  checkpoint_file: synthetic_checkpoint.jsonl
+
+cancer_types:
+  breast: ["breast"]
+  lung: ["lung", "NSCLC", "SCLC", "non-small cell", "small cell lung"]
+  prostate: ["prostate"]
+  colorectal: ["colorectal", "colon", "rectal"]
+  melanoma: ["melanoma"]
+  leukemia: ["leukemia", "leukaemia"]
+  lymphoma: ["lymphoma"]
+  myeloma: ["myeloma"]
+  pancreatic: ["pancrea"]
+  brain: ["glioblastoma", "glioma", "brain", "GBM", "meningioma"]
+  ovarian: ["ovari"]
+  kidney: ["kidney", "renal"]
+  bladder: ["bladder", "urothelial"]
+  liver: ["hepatocellular", "liver", "HCC"]
+  sarcoma: ["sarcoma"]
+  head_neck: ["head and neck", "nasophary", "orophary", "laryn", "oral cavity"]
+  gastric: ["gastric", "stomach", "esophag"]
+  cervical: ["cervic"]
+  endometrial: ["endometri", "uterine"]
+  thyroid: ["thyroid"]
+  mesothelioma: ["mesothelioma"]
+  neuroblastoma: ["neuroblastoma"]

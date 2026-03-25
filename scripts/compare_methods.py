@@ -1,13 +1,14 @@
 """Compare BM25, semantic, and hybrid search methods side-by-side.
 
-Runs 20 oncology test queries across all three methods,
-prints top-3 results for each, computes overlap, and saves
-full results to data/evaluation/method_comparison.csv.
+Runs 20 oncology test queries across all three methods, prints top-3
+results for each, computes overlap, logs each method as an MLflow run,
+and saves full results to data/evaluation/method_comparison.csv.
 
 Requirements:
 - Elasticsearch running with `trials` index
 - FAISS index at data/trial_embeddings.faiss
 - BioLinkBERT model available
+- mlflow installed
 
 Usage:
     python scripts/compare_methods.py
@@ -18,6 +19,8 @@ import logging
 import sys
 import time
 from pathlib import Path
+
+import mlflow
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
@@ -65,6 +68,9 @@ FAISS_MAPPING_PATH = "data/trial_embeddings.json"
 OUTPUT_DIR = Path("data/evaluation")
 OUTPUT_CSV = OUTPUT_DIR / "method_comparison.csv"
 
+MLFLOW_TRACKING_URI = "sqlite:///mlflow.db"
+MLFLOW_EXPERIMENT = "trialmind-retrieval"
+
 
 def truncate(text: str, max_len: int = 60) -> str:
     """Truncate text with ellipsis."""
@@ -100,10 +106,15 @@ def run_semantic(
 
 
 def main() -> None:
-    """Run comparison across all methods and queries."""
+    """Run comparison across all methods and queries, logging to MLflow."""
+    # ── MLflow setup ─────────────────────────────────────────────────────────
+    mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+    mlflow.set_experiment(MLFLOW_EXPERIMENT)
+    logger.info("MLflow tracking URI: %s, experiment: %s", MLFLOW_TRACKING_URI, MLFLOW_EXPERIMENT)
+
     # ── Load components ──────────────────────────────────────────────────────
     print("=" * 80)
-    print("TrialMine — Search Method Comparison")
+    print("TrialMine — Search Method Comparison (with MLflow logging)")
     print("=" * 80)
 
     print("\nLoading Elasticsearch index...")
@@ -120,7 +131,17 @@ def main() -> None:
 
     print(f"\nRunning {len(QUERIES)} queries across 3 methods...\n")
 
-    # ── Collect results ──────────────────────────────────────────────────────
+    # ── Collect results per method ───────────────────────────────────────────
+    all_results: dict[str, list[list[dict]]] = {
+        "bm25": [],
+        "semantic": [],
+        "hybrid": [],
+    }
+    all_timings: dict[str, list[float]] = {
+        "bm25": [],
+        "semantic": [],
+        "hybrid": [],
+    }
     csv_rows: list[dict] = []
     overlap_scores: list[float] = []
 
@@ -133,16 +154,22 @@ def main() -> None:
         t0 = time.perf_counter()
         bm25_results = run_bm25(es_index, query, top_k=TOP_N)
         bm25_ms = (time.perf_counter() - t0) * 1000
+        all_results["bm25"].append(bm25_results)
+        all_timings["bm25"].append(bm25_ms)
 
         # Semantic
         t0 = time.perf_counter()
         semantic_results = run_semantic(faiss_index, embedder, es_index, query, top_k=TOP_N)
         semantic_ms = (time.perf_counter() - t0) * 1000
+        all_results["semantic"].append(semantic_results)
+        all_timings["semantic"].append(semantic_ms)
 
         # Hybrid
         t0 = time.perf_counter()
         hybrid_results = hybrid.search(query=query, top_k=TOP_N)
         hybrid_ms = (time.perf_counter() - t0) * 1000
+        all_results["hybrid"].append(hybrid_results)
+        all_timings["hybrid"].append(hybrid_ms)
 
         # Print side-by-side top 3
         print(f"\n  BM25 top {TOP_N} ({bm25_ms:.0f} ms):")
@@ -189,22 +216,6 @@ def main() -> None:
                     }
                 )
 
-    # ── Summary ──────────────────────────────────────────────────────────────
-    avg_overlap = sum(overlap_scores) / len(overlap_scores) if overlap_scores else 0
-    print("=" * 80)
-    print("SUMMARY")
-    print("=" * 80)
-    print(f"Queries evaluated: {len(QUERIES)}")
-    print(f"Average BM25∩Semantic overlap (top {TOP_N}): {avg_overlap:.2f} ({avg_overlap * TOP_N:.1f}/{TOP_N})")
-    print()
-
-    # Per-query overlap table
-    print(f"{'Query':<55} {'Overlap':>10}")
-    print("-" * 67)
-    for query, score in zip(QUERIES, overlap_scores):
-        overlap_count = int(score * TOP_N)
-        print(f"{truncate(query, 53):<55} {overlap_count}/{TOP_N}")
-
     # ── Save CSV ─────────────────────────────────────────────────────────────
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     with open(OUTPUT_CSV, "w", newline="") as f:
@@ -226,7 +237,75 @@ def main() -> None:
         writer.writeheader()
         writer.writerows(csv_rows)
 
+    # ── Summary ──────────────────────────────────────────────────────────────
+    avg_overlap = sum(overlap_scores) / len(overlap_scores) if overlap_scores else 0
+    print("=" * 80)
+    print("SUMMARY")
+    print("=" * 80)
+    print(f"Queries evaluated: {len(QUERIES)}")
+    print(f"Average BM25∩Semantic overlap (top {TOP_N}): {avg_overlap:.2f} ({avg_overlap * TOP_N:.1f}/{TOP_N})")
+    print()
+
+    # Per-query overlap table
+    print(f"{'Query':<55} {'Overlap':>10}")
+    print("-" * 67)
+    for query, score in zip(QUERIES, overlap_scores):
+        overlap_count = int(score * TOP_N)
+        print(f"{truncate(query, 53):<55} {overlap_count}/{TOP_N}")
+
     print(f"\nResults saved to {OUTPUT_CSV} ({len(csv_rows)} rows)")
+
+    # ── MLflow logging: one run per method ───────────────────────────────────
+    print("\n" + "=" * 80)
+    print("Logging to MLflow...")
+    print("=" * 80)
+
+    for method in ("bm25", "semantic", "hybrid"):
+        method_results = all_results[method]
+        method_timings = all_timings[method]
+
+        # Unique trials found across all queries
+        unique_trials = set()
+        for query_results in method_results:
+            for r in query_results:
+                unique_trials.add(r["nct_id"])
+
+        avg_results = sum(len(qr) for qr in method_results) / len(method_results)
+        avg_latency = sum(method_timings) / len(method_timings)
+
+        with mlflow.start_run(run_name=f"{method}_baseline") as run:
+            # Tags
+            mlflow.set_tag("method", method)
+            mlflow.set_tag("stage", "baseline")
+            mlflow.set_tag("model", "BioLinkBERT-base" if method != "bm25" else "elasticsearch-bm25")
+
+            # Parameters
+            mlflow.log_param("method", method)
+            mlflow.log_param("top_k", TOP_N)
+            mlflow.log_param("num_queries", len(QUERIES))
+            mlflow.log_param("embedder", "michiyasunaga/BioLinkBERT-base")
+            mlflow.log_param("rrf_k", 60 if method == "hybrid" else "n/a")
+            mlflow.log_param("candidate_k", 200 if method == "hybrid" else TOP_N)
+
+            # Metrics
+            mlflow.log_metric("avg_results_per_query", avg_results)
+            mlflow.log_metric("unique_trials_found", len(unique_trials))
+            mlflow.log_metric("avg_latency_ms", round(avg_latency, 2))
+            mlflow.log_metric("avg_bm25_semantic_overlap", avg_overlap)
+
+            # Per-query latencies
+            for i, (query, latency) in enumerate(zip(QUERIES, method_timings)):
+                mlflow.log_metric("latency_ms", round(latency, 2), step=i)
+
+            # Artifact: the comparison CSV
+            mlflow.log_artifact(str(OUTPUT_CSV), artifact_path="evaluation")
+
+            print(f"  Logged run '{method}_baseline' (ID: {run.info.run_id})")
+            print(f"    avg_results_per_query={avg_results:.1f}, "
+                  f"unique_trials={len(unique_trials)}, "
+                  f"avg_latency={avg_latency:.0f}ms")
+
+    print(f"\nDone. View results: make mlflow → http://localhost:5001")
 
 
 if __name__ == "__main__":
