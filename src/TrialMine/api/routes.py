@@ -1,7 +1,7 @@
 """FastAPI route definitions.
 
 Endpoints:
-- POST /api/v1/search       — BM25 trial search
+- POST /api/v1/search       — BM25, semantic, or hybrid trial search
 - GET  /api/v1/trial/{nct_id} — single trial details
 - GET  /health               — liveness probe
 """
@@ -32,38 +32,58 @@ async def health_check() -> dict:
 
 @router.post("/api/v1/search", response_model=SearchResponse)
 async def search_trials(request: SearchRequest, req: Request) -> SearchResponse:
-    """Run a BM25 search over indexed trials.
+    """Run a search over indexed trials using the specified method.
 
     Args:
-        request: SearchRequest with query, top_k, and optional filters.
+        request: SearchRequest with query, top_k, filters, and method.
         req: FastAPI Request (carries app state).
 
     Returns:
-        SearchResponse with ranked results and timing.
+        SearchResponse with ranked results, timing, and method used.
     """
-    es_index = req.app.state.es_index
+    method = request.method
+
+    # Validate that required components are loaded
+    if method in ("semantic", "hybrid"):
+        if req.app.state.faiss_index is None or req.app.state.embedder is None:
+            raise HTTPException(
+                status_code=503,
+                detail=f"Semantic search unavailable — FAISS index not loaded. Use method='bm25'.",
+            )
 
     try:
         t0 = time.perf_counter()
-        raw_results = es_index.search(
-            query=request.query,
-            filters=request.filters,
-            top_k=request.top_k,
-        )
+
+        if method == "bm25":
+            raw_results = _search_bm25(request, req)
+        elif method == "semantic":
+            raw_results = _search_semantic(request, req)
+        else:
+            raw_results = _search_hybrid(request, req)
+
         elapsed_ms = (time.perf_counter() - t0) * 1000
+    except HTTPException:
+        raise
     except Exception as exc:
-        logger.exception("Search failed")
+        logger.exception("Search failed (method=%s)", method)
         raise HTTPException(status_code=500, detail=str(exc))
 
     results = [
         TrialResult(
             nct_id=r["nct_id"],
-            title=r["title"],
-            conditions=[c.strip() for c in (r.get("conditions") or "").split(";") if c.strip()],
+            title=r.get("title", ""),
+            conditions=[
+                c.strip()
+                for c in (r.get("conditions") or "").split(";")
+                if c.strip()
+            ],
             phase=r.get("phase"),
             status=r.get("status"),
-            score=r["score"],
+            score=r.get("score", 0.0),
             url=f"https://clinicaltrials.gov/study/{r['nct_id']}",
+            source=r.get("source"),
+            bm25_rank=r.get("bm25_rank"),
+            semantic_rank=r.get("semantic_rank"),
         )
         for r in raw_results
     ]
@@ -73,6 +93,60 @@ async def search_trials(request: SearchRequest, req: Request) -> SearchResponse:
         total=len(results),
         query=request.query,
         search_time_ms=round(elapsed_ms, 2),
+        search_method=method,
+    )
+
+
+def _search_bm25(request: SearchRequest, req: Request) -> list[dict]:
+    """Run BM25 search via Elasticsearch."""
+    es_index = req.app.state.es_index
+    return es_index.search(
+        query=request.query,
+        filters=request.filters,
+        top_k=request.top_k,
+    )
+
+
+def _search_semantic(request: SearchRequest, req: Request) -> list[dict]:
+    """Run semantic search via FAISS."""
+    embedder = req.app.state.embedder
+    faiss_index = req.app.state.faiss_index
+    es_index = req.app.state.es_index
+
+    query_embedding = embedder.embed_text(request.query)
+    raw = faiss_index.search(query_embedding=query_embedding, top_k=request.top_k)
+
+    # Enrich with metadata from Elasticsearch
+    results = []
+    for nct_id, score in raw:
+        doc = es_index.get_trial(nct_id) or {}
+        results.append(
+            {
+                "nct_id": nct_id,
+                "title": doc.get("title", ""),
+                "conditions": doc.get("conditions", ""),
+                "phase": doc.get("phase"),
+                "status": doc.get("status"),
+                "enrollment": doc.get("enrollment"),
+                "score": score,
+            }
+        )
+
+    return results
+
+
+def _search_hybrid(request: SearchRequest, req: Request) -> list[dict]:
+    """Run hybrid search via HybridRetriever."""
+    hybrid = req.app.state.hybrid_retriever
+    if hybrid is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Hybrid retriever not initialised.",
+        )
+    return hybrid.search(
+        query=request.query,
+        top_k=request.top_k,
+        filters=request.filters,
     )
 
 

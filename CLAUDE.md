@@ -50,7 +50,7 @@ LightGBM, MLflow, Optuna, SciSpacy, Docker, Prometheus + GitHub Actions
 
 ## File Structure
 See README.md for overview. Key directories:
-- src/trialmine/ — all source code
+- src/TrialMine/ — all source code
 - scripts/ — training, indexing, evaluation scripts
 - configs/ — YAML configs
 - data/ — raw + processed data (gitignored except evaluation/)
@@ -58,7 +58,39 @@ See README.md for overview. Key directories:
 - docs/ — architecture, design decisions, model cards
 
 ## Current State
-[UPDATE THIS AFTER EVERY SESSION]
-Phase: Not started
-Last completed: N/A
-Next task: Phase 1 — project skeleton + data pipeline
+Last updated: 2026-03-25
+
+Phase: 2 (Retrieval) — BM25 + semantic + hybrid search working, full stack running end-to-end
+
+### What's working
+- **Data pipeline**: downloads oncology trials from ClinicalTrials.gov API v2, parses, stores in SQLite
+  - `scripts/download_data.py` → `data/trials.db` (140,723 trials)
+- **BM25 search**: Elasticsearch index with 140,723 trials (596 MB), searchable via API
+  - `scripts/build_index.py` → Elasticsearch `trials` index (requires Docker)
+  - `src/TrialMine/retrieval/bm25.py` (ElasticsearchIndex — create, bulk index, search with field boosting, get_trial)
+- **Semantic search**: BioLinkBERT-base embeddings + FAISS index
+  - `scripts/build_index.py --skip-bm25` or `scripts/build_faiss.py` → `data/trial_embeddings.faiss` (412 MB) + `data/trial_embeddings.json`
+  - `src/TrialMine/models/embeddings.py` (TrialEmbedder — mean-pooled BioLinkBERT)
+  - `src/TrialMine/retrieval/semantic.py` (FAISSIndex — cosine similarity via IndexFlatIP)
+  - Tested: clinical-language queries score ~0.90 cosine; patient-language queries ~0.87-0.89
+- **Hybrid search**: Reciprocal Rank Fusion (RRF, k=60) combining BM25 + semantic
+  - `src/TrialMine/retrieval/hybrid.py` (HybridRetriever — 200 candidates per method, RRF fusion, metadata enrichment)
+  - Each result tagged with source: "bm25_only", "semantic_only", or "both"
+- **FastAPI backend** (port 8000): POST /api/v1/search (method: bm25|semantic|hybrid), GET /api/v1/trial/{nct_id}, GET /health
+  - `src/TrialMine/api/app.py` — FastAPI with CORS, ES + FAISS + embedder lifespan
+  - `src/TrialMine/api/routes.py` — endpoint handlers with multi-method routing
+  - `src/TrialMine/api/schemas.py` — Pydantic models (SearchRequest with method field, SearchResponse with search_method, TrialResult with source/ranks)
+- **Streamlit UI** (port 8501): search bar, 3 example query buttons, result cards with status/phase badges, sidebar (method selector, status, phase, top_k), source tags per result
+  - `src/TrialMine/ui/app.py` — communicates with FastAPI via httpx
+- **Method comparison**: `scripts/compare_methods.py` — runs 20 oncology queries across all 3 methods, prints side-by-side top 3, overlap stats, saves CSV
+
+### Key files/data (not in git)
+- `data/trials.db` — SQLite with 140K parsed trials (912 MB)
+- `data/trial_embeddings.faiss` — FAISS index (412 MB, rebuild with `scripts/build_index.py --skip-bm25`)
+- `data/evaluation/method_comparison.csv` — comparison results from scripts/compare_methods.py
+- Elasticsearch `trials` index — requires `docker start es`
+
+### What's next
+- Phase 3: Cross-encoder re-ranking + LightGBM metadata blending
+- Phase 4: LangGraph agents (query parsing, search orchestration)
+- Phase 5: Fine-tune BioLinkBERT on patient-to-trial query pairs (patient-language queries underperform)

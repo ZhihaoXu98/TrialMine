@@ -4,6 +4,8 @@ These are API-boundary types — keep them separate from data/models.py
 so the internal representation can evolve independently of the API contract.
 """
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -13,6 +15,7 @@ class SearchRequest(BaseModel):
     query: str = Field(..., min_length=1)
     top_k: int = Field(20, ge=1, le=100)
     filters: dict | None = None  # e.g. {"status": "RECRUITING", "phase": "Phase 3"}
+    method: Literal["bm25", "semantic", "hybrid"] = "hybrid"
 
 
 class TrialResult(BaseModel):
@@ -25,6 +28,9 @@ class TrialResult(BaseModel):
     status: str | None
     score: float
     url: str | None
+    source: str | None = None  # "bm25_only", "semantic_only", "both" (hybrid only)
+    bm25_rank: int | None = None
+    semantic_rank: int | None = None
 
 
 class SearchResponse(BaseModel):
@@ -34,6 +40,7 @@ class SearchResponse(BaseModel):
     total: int
     query: str
     search_time_ms: float
+    search_method: str
 
 
 class TrialDetailResponse(BaseModel):
