@@ -1,5 +1,6 @@
 data/raw/
 data/processed/
+data/training/
 data/*.db
 models/
 *.faiss
