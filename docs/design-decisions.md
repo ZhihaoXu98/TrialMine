@@ -1,183 +1,164 @@
-# TrialMine — Design Decisions
+# TrialMind Design Decisions Log
 
-This document captures the key architectural and technical decisions made during the design of TrialMine, along with the rationale behind each.
-
----
-
-## 1. Hybrid Retrieval: BM25 + Semantic Search
-
-**Decision:** Use a two-stage retrieval system combining Elasticsearch BM25 (lexical) with FAISS-based semantic search (dense vectors), fused via Reciprocal Rank Fusion (RRF).
-
-**Rationale:**
-- BM25 excels at exact keyword matching (drug names, NCT IDs, specific biomarkers) — critical in the clinical domain where precise terminology matters.
-- Semantic search captures meaning-level similarity (e.g., "lung cancer immunotherapy" matching a trial titled "PD-L1 Checkpoint Inhibitor for NSCLC") where lexical overlap is low.
-- Neither approach alone is sufficient. RRF fusion (with smoothing constant k=60) provides a principled way to merge two ranked lists without requiring score calibration between the systems.
-
-**Configuration:** `configs/development.yaml` defines `bm25_top_k: 100` and `semantic_top_k: 100`, meaning each retriever independently returns its top 100 candidates before fusion.
+This document records every significant technical decision made during the project.
+Each entry explains what we chose, why, and what we'd do differently at scale.
 
 ---
 
-## 2. Retrieve-Then-Rerank Funnel
+## Week 1
 
-**Decision:** Structure the pipeline as a multi-stage funnel: BM25/Semantic (100 each) → Hybrid Fusion → Cross-Encoder Rerank (top 20) → LightGBM Metadata Blender (final top 10).
+### Decision 1: ClinicalTrials.gov API v2 over XML Bulk Download
+**Context:** Needed to get trial data. Two options: REST API (JSON) or bulk XML download.
+**Choice:** API v2
+**Why:** JSON easier to parse, can filter to oncology at source (80K vs 500K), pagination with resume support.
+**Trade-off:** Slower download (30-60 min). Worth it for cleaner data pipeline.
+**At scale:** Would use bulk download + incremental API updates for freshness.
 
-**Rationale:**
-- Cross-encoders (which jointly encode query + document) are far more accurate than bi-encoders but orders of magnitude slower — they cannot score thousands of candidates.
-- The funnel lets cheap retrievers cast a wide net, then progressively more expensive and accurate models narrow the set.
-- This is a standard pattern in production search/recommendation systems (e.g., Google, Spotify, LinkedIn).
+### Decision 2: SQLite over PostgreSQL
+**Context:** Need storage for 80K parsed trials.
+**Choice:** SQLite
+**Why:** Zero config, single portable file, sufficient for 80K rows, SQL for debugging.
+**Trade-off:** No concurrent writes, single-machine only.
+**At scale:** PostgreSQL or a managed database (Cloud SQL, RDS).
 
-**Trade-off:** More pipeline stages add latency and complexity. The chosen stage sizes (100 → 20 → 10) balance recall against response time for an interactive application.
-√
----
+### Decision 3: Elasticsearch for BM25 Search
+**Context:** Need text search with relevance ranking.
+**Choice:** Elasticsearch 8.x
+**Why:** Industry standard, built-in BM25 with field boosting, Docker setup trivial, scales to millions.
+**Trade-off:** Adds a Docker service (~512MB-1GB memory).
+**At scale:** Managed Elasticsearch (Elastic Cloud) or OpenSearch with index sharding.
 
-## 3. LightGBM Metadata Blender as Final Ranker
+### Decision 4: FastAPI over Flask
+**Context:** Need HTTP API framework.
+**Choice:** FastAPI
+**Why:** Pydantic validation, auto-generated OpenAPI docs, async support, type hints.
+**At scale:** Same choice — FastAPI scales well with uvicorn workers.
 
-**Decision:** The final ranking stage uses a LightGBM model that combines cross-encoder relevance scores with structured metadata features (phase, enrollment, status, eligibility match scores).
-
-**Rationale:**
-- Neural models (cross-encoder) capture text relevance well, but cannot easily incorporate structured signals like "this trial is recruiting" or "patient age falls within the trial's age range."
-- LightGBM is fast at inference, handles heterogeneous features natively (continuous scores + categorical metadata), and is easy to train with Optuna hyperparameter tuning.
-- This separation of concerns (neural model for text relevance, gradient-boosted tree for feature combination) is easier to debug and iterate on than a single end-to-end model.
-
-**Feature groups fed to LightGBM:**
-- Retrieval signals: BM25 rank/score, semantic rank/score, RRF score
-- Cross-encoder: relevance score
-- Trial metadata: phase, status, enrollment size, sponsor type
-- Eligibility match: age match, sex match, concept overlap
-
----
-
-## 4. BioNLP-Specific Models (SciBERT → BioLinkBERT)
-
-**Decision:** Use domain-specific transformer models rather than general-purpose ones. Starting with `allenai/scibert_scivocab_uncased` for embeddings, with a plan to fine-tune and switch to BioLinkBERT. Cross-encoder starts with `cross-encoder/ms-marco-MiniLM-L-6-v2`.
-
-**Rationale:**
-- Clinical trial text is highly specialized (biomarkers, drug mechanisms, staging criteria). General-purpose models (e.g., all-MiniLM-L6-v2) underperform on biomedical vocabulary.
-- SciBERT provides a strong baseline with biomedical pre-training. BioLinkBERT adds link-based pre-training over PubMed citation graphs, which captures relational knowledge between medical concepts.
-- The cross-encoder starts general-purpose (MS MARCO trained) because it will be fine-tuned on domain-specific relevance judgments.
+### Decision 5: Keep Trials with Missing Fields
+**Context:** ~5-10% of trials have sparse metadata.
+**Choice:** Require title + NCT ID only, allow all else to be None.
+**Why:** Missing data ≠ irrelevant trial. Search ranks sparse trials lower naturally.
+**At scale:** Add data quality scores per trial, surface them in UI.
 
 ---
 
-## 5. Agentic Query Understanding with LangGraph
+## Week 2
 
-**Decision:** Use a LangGraph-based agent pipeline (QueryParser → SearchOrchestrator) with Claude (via `langchain-anthropic`) as the LLM backbone.
+### Decision 6: BioLinkBERT-base for Semantic Embeddings
+**Context:** Need a dense encoder for semantic search over clinical trial text.
+**Choice:** `michiyasunaga/BioLinkBERT-base` (768-dim) via sentence-transformers with mean pooling.
+**Why:** Pre-trained on PubMed with citation-informed objectives — captures biomedical entity relationships better than general BERT. 768-dim keeps FAISS index manageable (412 MB for 140K trials).
+**Trade-off:** Not trained for retrieval or sentence similarity — the model encodes token-level biomedical knowledge, not query-document relevance.
+**At scale:** Fine-tune on patient-to-trial query pairs (Phase 5), or switch to a retrieval-tuned model like BiomedBERT-mnli or a contrastive-trained variant.
 
-**Rationale:**
-- Patient descriptions are unstructured and ambiguous ("I'm a 55-year-old woman with stage IIIA NSCLC, EGFR+, tried carboplatin"). A simple keyword search cannot extract structured clinical intent from this.
-- The QueryParser agent uses an LLM to decompose patient descriptions into structured fields: cancer type, stage, biomarkers, age, sex, location, and a reformulated search query.
-- The SearchOrchestrator runs a ReAct-style tool-use loop: it can call `search_trials`, `check_eligibility`, `get_trial_details`, and `explain_trial` — allowing multi-step reasoning (e.g., search → inspect top results → refine query → re-search).
-- LangGraph (vs. raw LangChain chains) provides explicit state management and graph-based control flow, making the agent logic easier to test and debug.
+### Decision 7: FAISS IndexFlatIP for Semantic Search
+**Context:** Need nearest-neighbor search over 140K 768-dim trial embeddings.
+**Choice:** FAISS `IndexFlatIP` with L2-normalised vectors (inner product = cosine similarity).
+**Why:** Exact search, no approximation error, fast enough at 140K scale (~50 ms), simple to build and debug.
+**Trade-off:** Brute-force — linear scan, no quantization. Memory = 140K × 768 × 4 bytes ≈ 412 MB.
+**At scale:** Switch to `IndexIVFPQ` or `IndexHNSWFlat` for sub-linear search at millions of vectors. Would also add GPU acceleration.
 
----
+### Decision 8: Reciprocal Rank Fusion (RRF) over Score Interpolation
+**Context:** Need to merge BM25 and semantic ranked lists into one hybrid result set.
+**Choice:** RRF with k=60 (standard constant from Cormack et al., 2009).
+**Why:** Rank-based fusion is robust to incompatible score scales (BM25 scores are unbounded TF-IDF; semantic scores are 0–1 cosine). No tuning required for weight parameters.
+**Trade-off:** Treats all rank positions equally across methods — a strong BM25 #1 is weighted the same as a weak semantic #1. Cannot express "trust BM25 more."
+**At scale:** After fine-tuning the semantic model, consider weighted RRF or learned score interpolation (α × BM25_norm + (1-α) × semantic). The cross-encoder re-ranker (Phase 3) will compensate for noisy fusion regardless.
 
-## 6. Medical Concept Extraction via SciSpacy + UMLS
+### Decision 9: Findings from the Hybrid Retrieval Comparison (2026-03-25)
+**Context:** Ran 20 oncology test queries across BM25, semantic, and hybrid search to evaluate retrieval before re-ranking or fine-tuning. Queries range from clinical ("triple negative breast cancer neoadjuvant") to patient-language ("clinical trial for glioblastoma that has come back") to misspelled ("melanomt with checkpoint inhibitors").
 
-**Decision:** Use SciSpacy NER models with UMLS concept normalization for enriching queries and computing eligibility features.
+**Key findings:**
 
-**Rationale:**
-- Matching "NSCLC" to "Non-Small Cell Lung Cancer" or "Keytruda" to "pembrolizumab" requires medical knowledge. UMLS provides canonical Concept Unique Identifiers (CUIs) that unify synonyms.
-- SciSpacy models are pre-trained on biomedical text and can extract entities like cancer types, biomarkers, drugs, and anatomical sites.
-- Extracted concepts feed into both the eligibility feature computation (for the LightGBM ranker) and the agent's structured query.
+| Metric | Value |
+|---|---|
+| BM25 ∩ Semantic overlap (top 3) | **0/3 for all 20 queries (0%)** |
+| BM25 avg latency | 20–35 ms |
+| Semantic avg latency | 48–54 ms |
+| Hybrid avg latency | 80–130 ms |
 
----
+**Finding 1: Zero top-3 overlap, but nonzero top-200 overlap — the signal is buried, not absent.**
+BM25 and semantic return completely disjoint top-3 results across all 20 queries (0% overlap). But at the top-200 candidate level, overlap ranges from 1% to 16% depending on query type:
 
-## 7. Pydantic Models as the Canonical Data Contract
+| Query type | Top-200 overlap | Example |
+|---|---|---|
+| Broad clinical terms | 16% (31/200) | "immunotherapy for non-small cell lung cancer" |
+| Specific + clinical | 8–9% (17-18/200) | "breast cancer hormone receptor positive phase 3", "CAR-T pediatric leukemia" |
+| Patient language | 1–2% (2-4/200) | "glioblastoma that has come back", "neuroblastoma high risk children" |
 
-**Decision:** Define a single `Trial` Pydantic model that flows through every layer: parse → store → index → API response.
+This means the semantic model captures *some* signal — relevant trials appear in its top 200 — but they're buried at rank 30-100+ instead of surfacing at rank 1-3. The RRF fusion confirms this: 52% of hybrid top-3 results are tagged `source: "both"`, meaning RRF successfully promotes trials found in both candidate pools.
 
-**Rationale:**
-- A single canonical type prevents data drift between pipeline stages. If the parser produces a `Trial`, and the store expects a `Trial`, schema mismatches are caught at validation time rather than at runtime deep in the pipeline.
-- Pydantic provides runtime validation, serialization, and clear documentation of field types and constraints.
-- API boundary types (`SearchRequest`, `SearchResponse`, etc.) are separate Pydantic models that project or reshape the canonical `Trial` for external consumers.
+**Finding 2: BM25 is the stronger retriever at this stage.**
+BM25 consistently returns on-topic trials for specific clinical terms (drug names, disease subtypes, biomarkers). Examples: "ibrutinib" → ibrutinib CLL trials, "neuroblastoma high risk children" → neuroblastoma pediatric protocols, "BCG unresponsive" → BCG-refractory bladder cancer trials. BM25's field boosting (title 3×, conditions 2×) and English stemming handle clinical vocabulary well.
 
----
+**Finding 3: Semantic search has severe embedding space collapse (anisotropy).**
+The same handful of generic trials dominate semantic results across many unrelated queries (NCT03925662 "Mebendazole Adjuvant Therapy" appears in 8/20, NCT03715309 "R2 in Follicular Lymphoma" in 6/20, NCT05515796 "Efficacy Prediction Model" in 6/20 — these 3 trials occupy 33% of all 60 semantic result slots).
 
-## 8. YAML-Driven Configuration, No Magic Numbers
+Root cause confirmed by cosine score distribution for "clinical trial for glioblastoma that has come back":
 
-**Decision:** All hyperparameters, model paths, and infrastructure settings live in `configs/development.yaml` (and future `training/*.yaml` files). No hardcoded constants in source code.
+| Rank | Cosine score |
+|---|---|
+| #1 | 0.8988 |
+| #100 | 0.8689 |
+| #1000 | 0.8517 |
+| **Range (#1 – #1000)** | **0.047** |
 
-**Rationale:**
-- Reproducibility: every experiment configuration is version-controlled and diffable.
-- Environment flexibility: switch between dev/staging/prod by swapping config files, not editing code.
-- Auditability: MLflow logs the full config YAML for each training run, creating a complete experiment record.
+A spread of only 0.047 across 1000 results means the model cannot meaningfully distinguish relevant from irrelevant. All trial embeddings cluster in a narrow cone (classic BERT anisotropy), and "hub" trials near the centroid win every query.
 
----
+**Finding 4: The model understands paraphrase but can't retrieve.**
+Critical sanity check comparing "clinical trial for glioblastoma that has come back" (patient) vs "recurrent glioblastoma" (clinical):
 
-## 9. Elasticsearch with Custom English Analyzer
+| Test | Result |
+|---|---|
+| Semantic top-200 overlap between both phrasings | **59/200 (30%)** — the model knows they mean the same thing |
+| BM25 top-200 overlap between both phrasings | **0/200** — BM25 can't bridge "come back" → "recurrent" |
+| Semantic top 5 for "recurrent glioblastoma" | #1 Basal Cell Carcinoma, #2 Sarcoma Database, #3 Mebendazole, #4 Cisplatin Nephrotoxicity, **#5 Tofacitinib in Recurrent GBM** |
+| BM25 top 5 for "recurrent glioblastoma" | **5/5 are actual recurrent GBM trials** |
 
-**Decision:** Use a custom Elasticsearch analyzer with English stemming, stop word removal, and field-specific boosting (title 3×, conditions 2×).
+The semantic model maps both patient and clinical phrasings to the same region of embedding space (30% overlap) — it understands they're semantically similar. But that entire region is dominated by hub trials, so neither phrasing produces useful top results. The first actually relevant result ("Tofacitinib in Recurrent GBM") appears at semantic rank #5 for the clinical phrasing, with a score of 0.8682 vs #1's 0.8825 — a gap of only 0.014.
 
-**Rationale:**
-- Default Elasticsearch analysis misses domain-specific needs. English stemming ensures "recruiting" matches "recruited", and stop words reduce noise.
-- An `all_text` catch-all field concatenates title + conditions + summary + eligibility + interventions, ensuring no query falls through the cracks.
-- Field boosting prioritizes title and condition matches — a trial titled "Breast Cancer Phase 3" should rank above one that merely mentions breast cancer in the eligibility criteria.
-- Single shard, zero replicas — appropriate for a development/single-node setup. Production would increase both.
+**Diagnosis: fixable. The architecture is sound, the embeddings need work.**
 
----
+The evidence shows: (a) relevant trials ARE in the top-200 candidate pools, (b) the model does understand semantic similarity between phrasings, (c) but the compressed score distribution buries good results under hub noise. This is a ranking quality problem, not a fundamental architecture problem.
 
-## 10. Resumable Data Ingestion Pipeline
+**Fix paths, ordered by impact and urgency:**
 
-**Decision:** The data downloader persists state (page token, page count, trial count) to a `.download_state.json` file after every page, enabling resume after interruption.
+1. **Cross-encoder re-ranking (Phase 3) — immediate, highest leverage.** A cross-encoder sees the full (query, trial_text) pair and scores from scratch — it doesn't suffer from embedding collapse. Since relevant trials ARE in the top-200 candidates, re-ranking should surface them. Off-the-shelf `cross-encoder/ms-marco-MiniLM-L-6-v2` can work without any training data. Expected impact: transforms hybrid from "BM25 with noise" into "BM25 + semantic diversity, properly ranked."
 
-**Rationale:**
-- The ClinicalTrials.gov oncology dataset spans thousands of trials across 100+ API pages. A full download takes significant time.
-- Network failures, rate limits, or process interruptions should not force a restart from scratch.
-- The state file is minimal (3 fields) and atomic — page N is fully written to disk before the state file advances, preventing partial-page corruption.
+2. **Contrastive fine-tuning (Phase 5) — fixes the root cause.** Train BioLinkBERT with contrastive loss (e.g., InfoNCE) to spread the embedding space. Can bootstrap training data using BM25 results as pseudo-positives (GPL approach) or generate synthetic patient queries from trial text via LLM. Target: expand the 0.047 score range to 0.3+, push top-200 overlap from 1-16% to 30-60%.
 
----
+3. **Embedding whitening — quick experiment.** Center embeddings (subtract corpus mean) and apply PCA whitening to the existing FAISS vectors. Literature shows 5-15% retrieval improvement on anisotropic embeddings. Zero retraining, just post-processing — worth trying as a baseline before fine-tuning.
 
-## 11. SQLite as the Primary Data Store
+4. **Model swap — moderate effort fallback.** If fine-tuning BioLinkBERT is slow to converge, consider `pritamdeka/S-PubMedBert-MS-MARCO` (biomedical + retrieval-trained) or `sentence-transformers/all-MiniLM-L6-v2` (general retrieval). Requires rebuilding the FAISS index (~30 min).
 
-**Decision:** Use SQLite (via SQLAlchemy ORM) as the canonical trial store, separate from Elasticsearch.
-
-**Rationale:**
-- SQLite is zero-config, file-based, and sufficient for the data volumes involved (tens of thousands of trials, each a few KB).
-- Separating the data store from the search index means the source of truth is independent of Elasticsearch. If the index is corrupted or needs re-indexing, a full rebuild from SQLite is trivial.
-- SQLAlchemy ORM provides migrations support and a clean separation between the data model and persistence logic.
-
-**Indexes:** `nct_id` (unique), `status`, `phase` — supporting the most common lookup and filter patterns.
-
----
-
-## 12. FastAPI + Streamlit Serving Architecture
-
-**Decision:** FastAPI backend (port 8000) with a separate Streamlit frontend (port 8501), communicating over HTTP.
-
-**Rationale:**
-- Decoupled frontend/backend allows independent development, testing, and deployment. The API can serve multiple clients (Streamlit UI, CLI, other integrations).
-- FastAPI provides automatic OpenAPI documentation, async support, and Pydantic integration.
-- Streamlit enables rapid prototyping of the patient-facing UI without frontend engineering overhead.
-- CORS is configured to allow all origins in development to support the Streamlit ↔ FastAPI connection.
-
----
-
-## 13. MLflow + Optuna for Experiment Tracking and HPO
-
-**Decision:** Use MLflow for experiment tracking and Optuna for hyperparameter optimization, with all parameters sourced from YAML configs.
-
-**Rationale:**
-- MLflow provides experiment comparison, metric visualization, and model artifact storage — essential when iterating on embeddings, cross-encoder fine-tuning, and ranker training.
-- Optuna integrates natively with LightGBM and supports Bayesian optimization, which is more sample-efficient than grid/random search.
-- Storing the full config YAML as an MLflow artifact alongside metrics creates a complete, reproducible experiment record.
+**Data:** Full results in `data/evaluation/method_comparison.csv` (180 rows, 20 queries × 3 methods × top 3).
 
 ---
 
-## 14. Prometheus + Grafana for Production Monitoring
+## Week 3
 
-**Decision:** Instrument the application with Prometheus metrics (request latency, retrieval stage timing, cache hit rates) and visualize with Grafana.
-
-**Rationale:**
-- A search system needs observability into latency at each pipeline stage — is BM25 slow? Is the cross-encoder the bottleneck?
-- Prometheus is the de facto standard for application metrics in containerized deployments.
-- Planned metrics: per-endpoint latency histograms, per-retrieval-stage latencies, cache hit/miss counters, active request gauges.
+(Add decisions 10-12 after completing Week 3)
 
 ---
 
-## 15. Project Structure: src Layout with Entry Points
+## Week 4
 
-**Decision:** Use the `src/` layout (`src/TrialMine/`) with `pyproject.toml`-defined entry points (`trialmine-serve`, `trialmine-ui`, `trialmine-ingest`).
+(Add decisions 13-16 after completing Week 4)
 
-**Rationale:**
-- The `src/` layout prevents accidental imports of the un-installed package (a common source of "works on my machine" bugs).
-- Entry points provide clean CLI commands without requiring users to know file paths.
-- `pyproject.toml` (PEP 621) is the modern standard for Python packaging, replacing `setup.py`.
+---
+
+## Week 5
+
+(Add decisions 17-19 after completing Week 5)
+
+---
+
+## Week 6
+
+(Add decisions 20-23 after completing Week 6)
+
+---
+
+## Week 7-12
+
+(Continue adding as you build)

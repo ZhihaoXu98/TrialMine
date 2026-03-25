@@ -16,6 +16,13 @@ st.caption("ML-powered clinical trial search engine for oncology")
 
 # ── Sidebar filters ─────────────────────────────────────────────────────────
 with st.sidebar:
+    st.header("Search Settings")
+    search_method = st.radio(
+        "Search Method",
+        options=["hybrid", "bm25", "semantic"],
+        format_func=lambda x: {"hybrid": "Hybrid (BM25 + Semantic)", "bm25": "BM25 (Keyword)", "semantic": "Semantic (Embedding)"}[x],
+    )
+
     st.header("Filters")
     status_filter = st.selectbox(
         "Status",
@@ -53,6 +60,12 @@ _STATUS_COLORS = {
     "NOT_YET_RECRUITING": "orange",
 }
 
+_SOURCE_LABELS = {
+    "bm25_only": "keyword",
+    "semantic_only": "semantic",
+    "both": "keyword + semantic",
+}
+
 
 def _status_badge(status: str | None) -> str:
     color = _STATUS_COLORS.get(status or "", "gray")
@@ -63,6 +76,23 @@ def _phase_badge(phase: str | None) -> str:
     return f"**{phase}**" if phase else ""
 
 
+def _source_tag(source: str | None, method: str) -> str:
+    """Return a tag showing how this result was found."""
+    if method == "bm25":
+        return ":blue[keyword]"
+    if method == "semantic":
+        return ":violet[semantic]"
+    # Hybrid — show source
+    label = _SOURCE_LABELS.get(source or "", "")
+    if source == "bm25_only":
+        return ":blue[keyword]"
+    if source == "semantic_only":
+        return ":violet[semantic]"
+    if source == "both":
+        return ":blue[keyword] + :violet[semantic]"
+    return ""
+
+
 # ── Run search ───────────────────────────────────────────────────────────────
 if query:
     filters = {}
@@ -71,7 +101,12 @@ if query:
     if phase_filter != "Any":
         filters["phase"] = phase_filter
 
-    payload = {"query": query, "top_k": top_k, "filters": filters or None}
+    payload = {
+        "query": query,
+        "top_k": top_k,
+        "filters": filters or None,
+        "method": search_method,
+    }
 
     try:
         with httpx.Client(timeout=30) as client:
@@ -86,8 +121,15 @@ if query:
         st.stop()
 
     results = data["results"]
+    method_label = {
+        "bm25": "BM25",
+        "semantic": "Semantic",
+        "hybrid": "Hybrid",
+    }.get(data.get("search_method", ""), "")
+
     st.markdown(
         f"**{data['total']} results** for *\"{data['query']}\"* "
+        f"via **{method_label}** search "
         f"({data['search_time_ms']:.0f} ms)"
     )
 
@@ -106,10 +148,12 @@ if query:
                 st.markdown(_status_badge(r["status"]))
                 st.markdown(_phase_badge(r["phase"]))
 
-            meta_col1, meta_col2 = st.columns(2)
+            meta_col1, meta_col2, meta_col3 = st.columns(3)
             with meta_col1:
-                st.caption(f"Score: {r['score']:.2f}")
+                st.caption(f"Score: {r['score']:.4f}")
             with meta_col2:
+                st.markdown(_source_tag(r.get("source"), data.get("search_method", "")))
+            with meta_col3:
                 if r.get("url"):
                     st.caption(f"[{r['nct_id']}]({r['url']})")
                 else:
