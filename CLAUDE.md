@@ -58,9 +58,9 @@ See README.md for overview. Key directories:
 - docs/ — architecture, design decisions, model cards
 
 ## Current State
-Last updated: 2026-03-25
+Last updated: 2026-03-26
 
-Phase: 3 (Fine-tuning data ready) — BM25 + semantic + hybrid search working, training data generated
+Phase: 4 (Bi-encoder fine-tuned) — BM25 + fine-tuned semantic + hybrid search working, FAISS index rebuilt
 
 ### What's working
 - **Data pipeline**: downloads oncology trials from ClinicalTrials.gov API v2, parses, stores in SQLite
@@ -68,11 +68,11 @@ Phase: 3 (Fine-tuning data ready) — BM25 + semantic + hybrid search working, t
 - **BM25 search**: Elasticsearch index with 140,723 trials (596 MB), searchable via API
   - `scripts/build_index.py` → Elasticsearch `trials` index (requires Docker)
   - `src/TrialMine/retrieval/bm25.py` (ElasticsearchIndex — create, bulk index, search with field boosting, get_trial)
-- **Semantic search**: BioLinkBERT-base embeddings + FAISS index
-  - `scripts/build_index.py --skip-bm25` or `scripts/build_faiss.py` → `data/trial_embeddings.faiss` (412 MB) + `data/trial_embeddings.json`
-  - `src/TrialMine/models/embeddings.py` (TrialEmbedder — mean-pooled BioLinkBERT)
+- **Semantic search**: Fine-tuned BioLinkBERT embeddings + FAISS index
+  - `scripts/build_index.py --skip-bm25 --model models/embeddings/fine-tuned` → `data/trial_embeddings.faiss` (412 MB) + `data/trial_embeddings.json`
+  - `src/TrialMine/models/embeddings.py` (TrialEmbedder — mean-pooled BioLinkBERT, accepts local model path)
   - `src/TrialMine/retrieval/semantic.py` (FAISSIndex — cosine similarity via IndexFlatIP)
-  - Tested: clinical-language queries score ~0.90 cosine; patient-language queries ~0.87-0.89
+  - Fine-tuned: cosine spread 0.51–0.61 in top 5 (was 0.047 range pre-tuning), hub trial problem eliminated
 - **Hybrid search**: Reciprocal Rank Fusion (RRF, k=60) combining BM25 + semantic
   - `src/TrialMine/retrieval/hybrid.py` (HybridRetriever — 200 candidates per method, RRF fusion, metadata enrichment)
   - Each result tagged with source: "bm25_only", "semantic_only", or "both"
@@ -95,18 +95,29 @@ Phase: 3 (Fine-tuning data ready) — BM25 + semantic + hybrid search working, t
   - Config: `configs/training_data.yaml` (cancer type taxonomy, sampling caps, API settings)
   - Output: `data/training/train_pairs.jsonl` (586K triplets), `data/training/val_pairs.jsonl` (145K triplets)
   - Run: `make training-data` or `python scripts/generate_training_data.py [--skip-synthetic] [--dry-run] [--resume]`
+- **Fine-tuned BioLinkBERT bi-encoder**: contrastive fine-tuning with MultipleNegativesRankingLoss
+  - `scripts/finetune_embeddings.py` — training script (SentenceTransformerTrainer API)
+  - `notebooks/finetune_biolinkbert.ipynb` — Colab notebook for GPU training
+  - Config: `configs/training/embeddings.yaml` (lr=2e-5, batch=32, 3 epochs, fp16, MNRL scale=20)
+  - Trained on A100 (288 min), 586K triplets, best model selected by NDCG@10
+  - Output: `models/embeddings/fine-tuned/` (model + metadata.json with eval metrics)
+  - Final eval: NDCG@10=0.492, MRR@10=0.426, Recall@10=0.700, Recall@1=0.300
 
 ### Key evaluation findings
-- BM25∩Semantic top-3 overlap: 0% across all 20 queries (completely disjoint results)
-- Top-200 overlap: 1-16% depending on query type — signal is buried, not absent
-- Semantic search has severe anisotropy: cosine range of only 0.047 across 1000 results
-- 3 hub trials monopolize 33% of semantic result slots (embedding space collapse)
-- The model understands paraphrase (30% overlap between patient/clinical phrasings) but can't rank
-- Diagnosis: architecture sound, fixable via cross-encoder re-ranking (Phase 3) and contrastive fine-tuning (Phase 5)
+- **Pre-fine-tuning (base BioLinkBERT):**
+  - BM25∩Semantic top-3 overlap: 0% across all 20 queries (completely disjoint results)
+  - Semantic search had severe anisotropy: cosine range of only 0.047 across 1000 results
+  - 3 hub trials monopolized 33% of semantic result slots (embedding space collapse)
+- **Post-fine-tuning:**
+  - BM25∩Semantic top-3 overlap: 7% (4/20 queries share results) — up from 0%
+  - Cosine spread in top 5: 0.10 (was 0.047 across 1000 results) — model now differentiates
+  - Hub trial problem eliminated — every query returns distinct, relevant results
+  - Semantic results are qualitatively relevant (BCG trials for BCG queries, EGFR trials for EGFR queries)
 
 ### Key files/data (not in git)
 - `data/trials.db` — SQLite with 140K parsed trials (912 MB)
-- `data/trial_embeddings.faiss` — FAISS index (412 MB, rebuild with `scripts/build_index.py --skip-bm25`)
+- `data/trial_embeddings.faiss` — FAISS index (412 MB, rebuild with `scripts/build_index.py --skip-bm25 --model models/embeddings/fine-tuned`)
+- `models/embeddings/fine-tuned/` — fine-tuned BioLinkBERT model (~430 MB)
 - `data/evaluation/method_comparison.csv` — comparison results from scripts/compare_methods.py
 - `data/training/train_pairs.jsonl` — 586K training triplets (1.0 GB)
 - `data/training/val_pairs.jsonl` — 145K validation triplets (260 MB)
@@ -116,6 +127,6 @@ Phase: 3 (Fine-tuning data ready) — BM25 + semantic + hybrid search working, t
 - `.env` — API keys (ANTHROPIC_API_KEY) — NEVER commit
 
 ### What's next
-- Fine-tune BioLinkBERT with contrastive learning on the 730K training triplets (fixes embedding anisotropy at source)
-- Cross-encoder re-ranking + LightGBM metadata blending (highest leverage — rescues noisy semantic results)
+- Cross-encoder re-ranking + LightGBM metadata blending (highest leverage — re-ranks hybrid candidates)
 - LangGraph agents (query parsing, search orchestration)
+- Update FastAPI/Streamlit to use fine-tuned model path

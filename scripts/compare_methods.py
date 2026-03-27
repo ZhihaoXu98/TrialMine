@@ -124,8 +124,8 @@ def main() -> None:
     faiss_index = FAISSIndex()
     faiss_index.load(FAISS_INDEX_PATH, FAISS_MAPPING_PATH)
 
-    print("Loading BioLinkBERT embedder...")
-    embedder = TrialEmbedder()
+    print("Loading fine-tuned BioLinkBERT embedder...")
+    embedder = TrialEmbedder(model_name="models/embeddings/fine-tuned")
 
     hybrid = HybridRetriever(bm25=es_index, semantic=faiss_index, embedder=embedder)
 
