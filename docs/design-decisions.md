@@ -378,7 +378,108 @@ Re-ran the same 20 oncology queries after fine-tuning BioLinkBERT with MNRL on 5
 
 ## Week 4
 
-(Add decisions 17-20 after completing Week 4)
+### Decision 17: LLM-as-Judge over Human Annotation
+
+**Context:** Need relevance labels for the 20 test queries to compute NDCG and MRR. Without labels, we can only measure overlap and latency — not ranking quality.
+
+**Options:** Human annotation (gold standard), LLM-as-judge (Claude Haiku), heuristic labels (assume trials matching cancer type are relevant).
+
+**Choice:** Claude Haiku API (`claude-haiku-4-5-20251001`) with a structured 0-3 relevance scale.
+
+**Why:** Labeling 990 (query, trial) pairs manually would take 8+ hours. Claude Haiku labels at ~90 pairs/minute for ~$2 total. The 4-point scale (0=wrong cancer, 1=marginal, 2=relevant, 3=highly relevant) captures gradations that binary relevant/irrelevant misses — critical for NDCG which is graded. The prompt provides trial title, conditions, phase, status, and eligibility text for informed judgment.
+
+**Trade-off:** No inter-annotator agreement measurement. No human calibration — we don't know if Haiku's "score 2" matches a clinician's. Score distribution may reflect Haiku's tendency toward generosity (46% score 3, 23% score 0). Results are non-reproducible across API versions.
+
+**At scale:** Label a 50-100 pair gold set with domain experts, measure Haiku's agreement (Cohen's kappa), then use Haiku for the remaining labels with the calibrated confidence interval. Consider using multiple LLM judges and majority voting.
+
+> **Interview answer:** "LLM-as-judge because labeling 990 pairs manually is infeasible at this stage, and graded relevance (0-3) is necessary for NDCG. I'd calibrate against human labels in production."
+
+---
+
+### Decision 18: Pooled Judgment over Single-Model Retrieval for Evaluation
+
+**Context:** Need to evaluate off-the-shelf vs fine-tuned embeddings fairly. Initial approach retrieved top-30 results using only the fine-tuned model, labeled those, then compared both models against those labels.
+
+**Options:** Label only fine-tuned results (fast, 600 pairs), label only off-the-shelf results (same bias, reversed), pool results from both models and label the union (fair, more pairs).
+
+**Choice:** Pooled judgment — retrieve top-30 from each model, deduplicate, label all unique trials.
+
+**Why:** The single-model approach had a critical bias: when the off-the-shelf model retrieved a trial not in the fine-tuned top-30, that trial defaulted to relevance 0 — even if it was highly relevant. This inflated the gap from +49% (real) to +123% (biased). Pooling produced 990 unique pairs with only 21% overlap between models (210 shared, 390 each model-only), confirming the bias was significant.
+
+**Impact of the fix:**
+
+| Metric | Biased eval | Pooled eval | What changed |
+|---|---|---|---|
+| Off-the-shelf NDCG@10 | 0.357 | 0.534 | +50% (was penalized) |
+| Fine-tuned NDCG@10 | 0.797 | 0.796 | Unchanged (already labeled) |
+| Reported gap | +123% | +49% | Honest now |
+| MRR gap | +19% | 0% | BM25 drives first result |
+
+**Trade-off:** 65% more API calls (990 vs 600). Requires loading both models for retrieval, doubling memory during dataset creation.
+
+**At scale:** Use depth-k pooling from all candidate systems (standard in TREC evaluations). Include random documents from the corpus as negative controls to estimate labeling quality.
+
+> **Interview answer:** "Pooled judgment because evaluating with one model's results biases against the other. Our initial +123% improvement was inflated to nearly +49% once we labeled the union — a textbook case of evaluation contamination."
+
+---
+
+### Decision 19: Explicit Transformer+Pooling for Non-ST Models
+
+**Context:** `SentenceTransformer("michiyasunaga/BioLinkBERT-base")` auto-detects that the model has no `modules.json` and silently creates a wrapper with mean pooling. This appears to succeed — no exception is raised — but the model crashes with SIGSEGV during `.encode()`.
+
+**Options:** Catch the crash (impossible — SIGSEGV kills the process), detect the warning and retry, proactively check for `modules.json` before loading.
+
+**Choice:** Check for `modules.json` before loading. If absent (raw HuggingFace checkpoint), explicitly construct `Transformer` + `Pooling` modules instead of relying on auto-detection.
+
+**Why:** The SIGSEGV is not catchable in Python — it terminates the process instantly. The auto-detection path in sentence-transformers creates an internally inconsistent model state for models without proper ST configuration. Explicit module construction bypasses the problematic code path entirely. The check works for both local paths (`Path(model_name) / "modules.json"`) and HuggingFace Hub models (`hf_hub_download`).
+
+**Trade-off:** One extra HTTP request for Hub models to check `modules.json` existence. Fine-tuned models (which have `modules.json`) use the standard fast path.
+
+**At scale:** Same approach — this is a robustness fix. Would file an upstream issue with sentence-transformers to fix the auto-detection path.
+
+> **Interview answer:** "Proactive detection because SIGSEGV is uncatchable. I check for `modules.json` before loading — if absent, I wire up Transformer and Pooling modules explicitly, bypassing the buggy auto-detection path."
+
+---
+
+### Evaluation: Embedding Comparison — Pooled LLM-Labeled (2026-03-27)
+
+Used 990 pooled relevance labels (20 queries x ~50 unique trials from both models) to compare off-the-shelf vs fine-tuned BioLinkBERT in hybrid search.
+
+**Pooling statistics:**
+
+| Source | Count | % |
+|---|---|---|
+| Both models | 210 | 21% |
+| Fine-tuned only | 390 | 39% |
+| Off-the-shelf only | 390 | 39% |
+
+**Score distribution (990 labels):**
+
+| Score | Count | % | Meaning |
+|---|---|---|---|
+| 0 | 225 | 22.7% | Wrong cancer type |
+| 1 | 172 | 17.4% | Marginal — same area, wrong specifics |
+| 2 | 138 | 13.9% | Relevant — patient could be eligible |
+| 3 | 455 | 46.0% | Highly relevant — strong match |
+
+**Comparison results:**
+
+| Metric | Off-the-shelf | Fine-tuned | Improvement |
+|---|---|---|---|
+| NDCG@5 | 0.577 | 0.816 | +41.4% |
+| NDCG@10 | 0.534 | 0.796 | +49.1% |
+| MRR | 0.917 | 0.917 | +0.0% |
+
+Fine-tuned wins on 19/20 queries (only loss: "sarcoma clinical trials for young adults").
+
+**Key findings:**
+
+1. **Fine-tuning improves ranking, not first-result quality.** MRR is identical (0.917) — BM25 places a relevant result at rank 1 regardless of the embedding model. The fine-tuned model's advantage is in the quality of results at positions 2-10.
+2. **The real improvement is +49%, not +123%.** The initial biased evaluation inflated the gap because 390 off-the-shelf-only results (39% of the pool) defaulted to relevance 0 without labels.
+3. **Off-the-shelf model is better than it looked.** NDCG@10 of 0.534 (was 0.357 in biased eval) means the base model does find relevant trials — they just weren't labeled in the first evaluation.
+4. **Hybrid search matters more than the embedding model.** BM25 handles keyword matching, the embedding model handles semantic understanding. The combination delivers MRR 0.917 with either model.
+
+**Data:** `data/evaluation/labeled_queries.jsonl` (990 rows), `data/evaluation/per_query_*.json`. MLflow experiment: `trialmind-retrieval`.
 
 ---
 
