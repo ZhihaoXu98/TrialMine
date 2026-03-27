@@ -4,12 +4,27 @@ Usage:
     python scripts/build_index.py [--db PATH] [--es-url URL] [--index NAME]
                                   [--faiss-path PATH] [--model NAME]
                                   [--batch-size N] [--skip-bm25] [--skip-semantic]
+
+Model shortcuts:
+    --model off-the-shelf   → michiyasunaga/BioLinkBERT-base  → data/faiss_offshelf.index
+    --model fine-tuned      → models/embeddings/fine-tuned    → data/faiss_finetuned.index
+    --model <path>          → custom model path               → --faiss-path required
 """
 
 import argparse
 import logging
 import time
 from pathlib import Path
+
+MODEL_ALIASES: dict[str, str] = {
+    "off-the-shelf": "michiyasunaga/BioLinkBERT-base",
+    "fine-tuned": "models/embeddings/fine-tuned",
+}
+
+DEFAULT_FAISS_PATHS: dict[str, str] = {
+    "off-the-shelf": "data/faiss_offshelf.index",
+    "fine-tuned": "data/faiss_finetuned.index",
+}
 
 logging.basicConfig(
     level=logging.INFO,
@@ -163,6 +178,35 @@ def _avg_len(texts: list[str]) -> float:
     return sum(len(t) for t in texts) / max(len(texts), 1)
 
 
+def resolve_model(model_arg: str) -> str:
+    """Resolve a model alias to its full path/name.
+
+    Args:
+        model_arg: Model alias ('off-the-shelf', 'fine-tuned') or a direct path.
+
+    Returns:
+        Resolved model name or path.
+    """
+    return MODEL_ALIASES.get(model_arg, model_arg)
+
+
+def resolve_faiss_path(model_arg: str, explicit_path: str | None) -> str:
+    """Determine the FAISS output path based on model alias or explicit flag.
+
+    Args:
+        model_arg: The raw --model argument (may be an alias).
+        explicit_path: The --faiss-path value, or None if not provided.
+
+    Returns:
+        Final FAISS index output path.
+    """
+    if explicit_path is not None:
+        return explicit_path
+    if model_arg in DEFAULT_FAISS_PATHS:
+        return DEFAULT_FAISS_PATHS[model_arg]
+    return "data/trial_embeddings.faiss"
+
+
 def main() -> None:
     """Parse arguments and build requested indexes."""
     parser = argparse.ArgumentParser(description="Build search indexes")
@@ -171,13 +215,13 @@ def main() -> None:
     parser.add_argument("--index", default="trials", help="Elasticsearch index name")
     parser.add_argument(
         "--faiss-path",
-        default="data/trial_embeddings.faiss",
-        help="Output path for FAISS index",
+        default=None,
+        help="Output path for FAISS index (auto-set from --model alias if omitted)",
     )
     parser.add_argument(
         "--model",
-        default="michiyasunaga/BioLinkBERT-base",
-        help="HuggingFace embedding model name",
+        default="fine-tuned",
+        help="Model: 'off-the-shelf', 'fine-tuned', or a HuggingFace/local path",
     )
     parser.add_argument("--batch-size", type=int, default=64, help="Encoding batch size")
     parser.add_argument("--skip-bm25", action="store_true", help="Skip BM25 index build")
@@ -185,6 +229,11 @@ def main() -> None:
     args = parser.parse_args()
 
     db_path = Path(args.db)
+    model_name = resolve_model(args.model)
+    faiss_path = resolve_faiss_path(args.model, args.faiss_path)
+
+    logger.info("Model: %s (alias=%s)", model_name, args.model)
+    logger.info("FAISS output: %s", faiss_path)
 
     # BM25 index (needs full Trial objects for structured fields)
     if not args.skip_bm25:
@@ -207,7 +256,7 @@ def main() -> None:
 
     # Semantic index (queries SQLite directly for minimal memory usage)
     if not args.skip_semantic:
-        build_semantic_index(db_path, args.faiss_path, args.model, args.batch_size)
+        build_semantic_index(db_path, faiss_path, model_name, args.batch_size)
 
 
 if __name__ == "__main__":

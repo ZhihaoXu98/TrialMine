@@ -60,7 +60,7 @@ See README.md for overview. Key directories:
 ## Current State
 Last updated: 2026-03-26
 
-Phase: 4 (Bi-encoder fine-tuned) — BM25 + fine-tuned semantic + hybrid search working, FAISS index rebuilt
+Phase: 4 (Bi-encoder fine-tuned + evaluated) — BM25 + fine-tuned semantic + hybrid search working, FAISS indexes for both models, LLM-labeled evaluation complete
 
 ### What's working
 - **Data pipeline**: downloads oncology trials from ClinicalTrials.gov API v2, parses, stores in SQLite
@@ -69,8 +69,10 @@ Phase: 4 (Bi-encoder fine-tuned) — BM25 + fine-tuned semantic + hybrid search 
   - `scripts/build_index.py` → Elasticsearch `trials` index (requires Docker)
   - `src/TrialMine/retrieval/bm25.py` (ElasticsearchIndex — create, bulk index, search with field boosting, get_trial)
 - **Semantic search**: Fine-tuned BioLinkBERT embeddings + FAISS index
-  - `scripts/build_index.py --skip-bm25 --model models/embeddings/fine-tuned` → `data/trial_embeddings.faiss` (412 MB) + `data/trial_embeddings.json`
-  - `src/TrialMine/models/embeddings.py` (TrialEmbedder — mean-pooled BioLinkBERT, accepts local model path)
+  - `scripts/build_index.py --skip-bm25 --model fine-tuned` → `data/faiss_finetuned.index` (412 MB) + `data/faiss_finetuned.json`
+  - `scripts/build_index.py --skip-bm25 --model off-the-shelf` → `data/faiss_offshelf.index` (412 MB) + `data/faiss_offshelf.json`
+  - Model aliases: `--model off-the-shelf` → `michiyasunaga/BioLinkBERT-base`, `--model fine-tuned` → `models/embeddings/fine-tuned`
+  - `src/TrialMine/models/embeddings.py` (TrialEmbedder — mean-pooled BioLinkBERT, explicit Transformer+Pooling for non-ST models to avoid SIGSEGV)
   - `src/TrialMine/retrieval/semantic.py` (FAISSIndex — cosine similarity via IndexFlatIP)
   - Fine-tuned: cosine spread 0.51–0.61 in top 5 (was 0.047 range pre-tuning), hub trial problem eliminated
 - **Hybrid search**: Reciprocal Rank Fusion (RRF, k=60) combining BM25 + semantic
@@ -83,10 +85,14 @@ Phase: 4 (Bi-encoder fine-tuned) — BM25 + fine-tuned semantic + hybrid search 
 - **Streamlit UI** (port 8501): search bar, 3 example query buttons, result cards with status/phase badges, sidebar (method selector, status, phase, top_k), source tags per result
   - `src/TrialMine/ui/app.py` — communicates with FastAPI via httpx
 - **Method comparison**: `scripts/compare_methods.py` — runs 20 oncology queries across all 3 methods, logs to MLflow, prints side-by-side top 3, overlap stats, saves CSV
-- **MLflow tracking**: experiment `trialmind-retrieval` with baseline runs (bm25, semantic, hybrid)
+- **Evaluation pipeline**: LLM-as-judge + automated comparison
+  - `scripts/build_eval_dataset.py` — Claude Haiku labels 600 (query, trial) pairs on 0-3 relevance scale, supports `--limit N` preview and `--resume`
+  - `scripts/compare_embeddings.py` — runs hybrid search with both embedding models, computes NDCG@5/10 + MRR, logs to MLflow
+  - `data/evaluation/labeled_queries.jsonl` — 600 labels (20 queries x 30 results), score dist: 0→4.3%, 1→19.0%, 2→15.7%, 3→61.0%
+- **MLflow tracking**: experiment `trialmind-retrieval` with baseline + eval runs
   - Tracking URI: `sqlite:///mlflow.db`
   - UI: `make mlflow` → http://localhost:5001
-  - `src/TrialMine/evaluation/metrics.py` — precision@k, recall@k, NDCG@k, MRR (ready for labelled data)
+  - `src/TrialMine/evaluation/metrics.py` — precision@k, recall@k, NDCG@k, MRR
 - **Training data generation**: `scripts/generate_training_data.py` — 3-source pipeline for BioLinkBERT fine-tuning
   - Source 1: 242K metadata-derived (query, trial) pairs from conditions, interventions, phases
   - Source 2: 1,500 synthetic patient queries via Claude Haiku API (resumable, checkpointed)
@@ -113,12 +119,20 @@ Phase: 4 (Bi-encoder fine-tuned) — BM25 + fine-tuned semantic + hybrid search 
   - Cosine spread in top 5: 0.10 (was 0.047 across 1000 results) — model now differentiates
   - Hub trial problem eliminated — every query returns distinct, relevant results
   - Semantic results are qualitatively relevant (BCG trials for BCG queries, EGFR trials for EGFR queries)
+- **Embedding comparison (LLM-labeled, 600 pairs, hybrid search):**
+  - NDCG@5:  Off-the-shelf 0.383 → Fine-tuned 0.812 (+112.3%)
+  - NDCG@10: Off-the-shelf 0.357 → Fine-tuned 0.797 (+123.3%)
+  - MRR:     Off-the-shelf 0.770 → Fine-tuned 0.917 (+19.0%)
+  - Fine-tuned wins on 19/20 queries (only loss: "sarcoma clinical trials for young adults")
 
 ### Key files/data (not in git)
 - `data/trials.db` — SQLite with 140K parsed trials (912 MB)
-- `data/trial_embeddings.faiss` — FAISS index (412 MB, rebuild with `scripts/build_index.py --skip-bm25 --model models/embeddings/fine-tuned`)
+- `data/faiss_finetuned.index` + `.json` — fine-tuned FAISS index (412 MB, rebuild with `scripts/build_index.py --skip-bm25 --model fine-tuned`)
+- `data/faiss_offshelf.index` + `.json` — off-the-shelf FAISS index (412 MB, rebuild with `scripts/build_index.py --skip-bm25 --model off-the-shelf`)
 - `models/embeddings/fine-tuned/` — fine-tuned BioLinkBERT model (~430 MB)
+- `data/evaluation/labeled_queries.jsonl` — 600 LLM-labeled (query, trial) pairs with 0-3 relevance scores
 - `data/evaluation/method_comparison.csv` — comparison results from scripts/compare_methods.py
+- `data/evaluation/per_query_*.json` — per-query metrics from compare_embeddings.py
 - `data/training/train_pairs.jsonl` — 586K training triplets (1.0 GB)
 - `data/training/val_pairs.jsonl` — 145K validation triplets (260 MB)
 - `data/training/synthetic_queries.jsonl` — 1,500 Claude-generated patient queries (1.5 MB)
