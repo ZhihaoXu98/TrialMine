@@ -170,11 +170,69 @@ Relevant trials ARE in the semantic candidate pool — they're just buried at ra
 **At scale:** Mine negatives using the current model's embeddings — encode all trials, for each positive find the k nearest neighbours that aren't relevant. This produces the hardest possible negatives. Update the negative set every training epoch (dynamic hard negative mining).
 **Interview answer:** "Keyword overlap because it's simple, fast, and targets exactly what we need: same cancer, different drug. The 730K triplets generated in 12 minutes with no external dependencies — embedding-based mining would be better but requires encoding 140K trials first."
 
+### Decision 14: SentenceTransformerTrainer over Legacy model.fit()
+**Context:** Need to fine-tune BioLinkBERT as a bi-encoder for clinical trial retrieval. sentence-transformers 5.x offers two APIs: the new `SentenceTransformerTrainer` (HuggingFace Trainer-based) and the legacy `model.fit()`.
+**Options:** Legacy `model.fit()` (simpler, well-documented) vs `SentenceTransformerTrainer` (new 5.x API, HF ecosystem integration).
+**Choice:** `SentenceTransformerTrainer`
+**Why:** Built on HuggingFace Trainer — automatic checkpointing, `load_best_model_at_end`, fp16 mixed precision, gradient accumulation, and MLflow integration via `report_to="mlflow"` for free. The `InformationRetrievalEvaluator` integrates natively for NDCG@10/MRR@10 evaluation during training. Dataset loading via HuggingFace `datasets` library handles the 1GB training file efficiently with memory mapping.
+**Trade-off:** Newer API with fewer community examples. `warmup_ratio` parameter is deprecated in Transformers v5+ (works but warns). Required `accelerate` package as an extra dependency.
+**At scale:** Same choice — the Trainer API supports distributed training across multiple GPUs with zero code changes via `accelerate launch`.
+**Interview answer:** "SentenceTransformerTrainer because it integrates with the HuggingFace ecosystem — automatic checkpointing, fp16, and MLflow logging with zero boilerplate."
+
+### Decision 15: MultipleNegativesRankingLoss with Hard Negatives
+**Context:** Need a loss function that teaches the model to rank relevant trials above irrelevant ones. Training data has triplets: (query, positive_trial, hard_negative_trial).
+**Options:** CosineSimilarityLoss (pairwise), ContrastiveLoss (binary), TripletLoss (anchor/pos/neg), MultipleNegativesRankingLoss (in-batch + explicit negatives).
+**Choice:** `MultipleNegativesRankingLoss` (MNRL) with scale=20.0 and 3-column input (anchor, positive, negative).
+**Why:** MNRL uses BOTH in-batch negatives (all other positives in the batch become negatives) AND our explicit hard negatives from the third column. With batch_size=32, each query sees 1 positive + 31 in-batch negatives + 1 hard negative = 33 contrasts per step. This is far more efficient than TripletLoss (1 positive + 1 negative). The scale=20.0 parameter sharpens the softmax distribution, encouraging more decisive ranking.
+**Trade-off:** Memory-intensive — 3 forward passes per step (anchor, positive, negative). Required batch_size reduction from 32 to 16 on T4 GPU (15GB VRAM), compensated with gradient accumulation. On A100 (40GB), batch_size=32 fits.
+**At scale:** Consider GISTEmbedLoss (guided in-batch negatives using a teacher model) or CachedMultipleNegativesRankingLoss (supports larger effective batch sizes via gradient caching).
+**Interview answer:** "MNRL because it gets 33 contrasts per training step — 31 in-batch negatives plus our keyword-mined hard negative. Far more efficient than triplet loss which only sees 1 negative per step."
+
+### Decision 16: Colab Pro (A100) over Local MPS Training
+**Context:** BioLinkBERT fine-tuning with MNRL requires significant GPU memory. Apple M4 MPS has 18GB shared memory; T4 has 15GB dedicated VRAM.
+**Options:** Local MPS (free, 18GB shared), Colab free T4 (free, 15GB), Colab Pro A100 ($10/mo, 40GB).
+**Choice:** Colab Pro with A100 GPU.
+**Why:** MNRL does 3 forward passes per step. With batch_size=32 and seq_length=512, peak memory exceeds 18GB — OOM on both MPS and T4. Reducing batch_size to 4 with gradient accumulation would fit but cripples training quality (fewer in-batch negatives) and increases wall time to 24+ hours. A100 (40GB) runs batch_size=32 with fp16 in ~5 hours. Cost: $10/mo, amortised across bi-encoder + cross-encoder training.
+**Trade-off:** Requires data upload to Google Drive (~1.3GB). Colab session management (keep tab open). Model download back to local machine.
+**At scale:** Dedicated GPU instances (Lambda Labs, RunPod) or cloud training (SageMaker, Vertex AI). Would use multi-GPU training with DeepSpeed for larger models.
+**Interview answer:** "A100 on Colab because MNRL's triple forward pass needs 40GB to maintain batch_size=32 — and in-batch negative count directly affects contrastive learning quality. $10 to avoid crippling the batch size."
+
+### Evaluation: Post-Fine-Tuning Comparison (2026-03-26)
+
+Re-ran the same 20 oncology queries after fine-tuning BioLinkBERT with MNRL on 586K triplets (3 epochs, A100, 288 min).
+
+**Training metrics (val set, 5K queries against 5K corpus docs):**
+
+| Metric | Step 1000 | Step 14000 (final) |
+|---|---|---|
+| Training Loss | 1.237 | 0.445 |
+| NDCG@10 | 0.336 | 0.492 |
+| MRR@10 | 0.284 | 0.426 |
+| Recall@1 | 0.192 | 0.300 |
+| Recall@10 | 0.504 | 0.700 |
+
+**Retrieval comparison (20 queries, top 3):**
+
+| Metric | Before | After |
+|---|---|---|
+| BM25∩Semantic top-3 overlap | 0% | 7% |
+| Cosine range in top 5 | 0.047 (across 1000) | 0.10 |
+| Hub trial monopolisation | 33% of slots | 0% |
+| Semantic unique trials | 38 | 60 |
+
+**Key improvements:**
+1. **Anisotropy fixed at source.** Cosine scores now span 0.51–0.61 in top 5 results (was 0.85–0.90 for all results). The model genuinely differentiates relevant from irrelevant.
+2. **Hub trials eliminated.** No single trial dominates semantic results — every query returns distinct, topically relevant trials.
+3. **Qualitative relevance.** "bladder cancer BCG unresponsive" returns BCG-related trials. "EGFR mutated lung cancer" returns EGFR-targeted therapy trials. Before fine-tuning, these returned generic oncology trials.
+4. **BM25 still complementary.** 93% of top-3 results remain disjoint — the methods find different relevant trials, which is ideal for hybrid fusion.
+
+**Data:** `data/evaluation/method_comparison.csv` (180 rows). MLflow experiment: `trialmind-retrieval`.
+
 ---
 
 ## Week 4
 
-(Add decisions 13-16 after completing Week 4)
+(Add decisions 17-20 after completing Week 4)
 
 ---
 

@@ -1,4 +1,4 @@
-.PHONY: setup download index serve ui mlflow compare test lint
+.PHONY: setup download index serve ui mlflow compare training-data finetune test lint
 
 setup:
 	pip install -e ".[dev]"
@@ -23,6 +23,9 @@ compare:
 
 training-data:
 	python scripts/generate_training_data.py
+
+finetune:
+	python scripts/finetune_embeddings.py
 
 test:
 	pytest tests/
