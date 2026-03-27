@@ -479,6 +479,13 @@ Fine-tuned wins on 19/20 queries (only loss: "sarcoma clinical trials for young 
 3. **Off-the-shelf model is better than it looked.** NDCG@10 of 0.534 (was 0.357 in biased eval) means the base model does find relevant trials — they just weren't labeled in the first evaluation.
 4. **Hybrid search matters more than the embedding model.** BM25 handles keyword matching, the embedding model handles semantic understanding. The combination delivers MRR 0.917 with either model.
 
+**Remaining limitations:**
+
+1. **20 queries is thin.** One query swings the average by 5%. No bootstrap confidence intervals or paired significance tests. The +49% is likely real given the consistency (19/20 queries), but the exact number has wide error bars.
+2. **No human calibration.** Haiku's relevance scores are uncalibrated — 46% score-3 may reflect LLM generosity rather than true relevance. Without a human-labeled gold set, we can't measure agreement (Cohen's kappa) or systematic bias.
+3. **No BM25-only baseline.** We compare hybrid(off-the-shelf) vs hybrid(fine-tuned), but don't isolate how much of each model's NDCG comes from BM25 alone. The identical MRR suggests BM25 does the heavy lifting for top results.
+4. **Score distribution is top-heavy.** 60% of labels are score 2-3 (relevant). NDCG looks better when most results are relevant because even imperfect orderings score well. A harder evaluation set with more score-0 distractors would be more discriminating.
+
 **Data:** `data/evaluation/labeled_queries.jsonl` (990 rows), `data/evaluation/per_query_*.json`. MLflow experiment: `trialmind-retrieval`.
 
 ---
