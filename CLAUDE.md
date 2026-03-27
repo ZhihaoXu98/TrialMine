@@ -88,7 +88,7 @@ Phase: 4 (Bi-encoder fine-tuned + evaluated) — BM25 + fine-tuned semantic + hy
 - **Evaluation pipeline**: LLM-as-judge + automated comparison
   - `scripts/build_eval_dataset.py` — Claude Haiku labels 600 (query, trial) pairs on 0-3 relevance scale, supports `--limit N` preview and `--resume`
   - `scripts/compare_embeddings.py` — runs hybrid search with both embedding models, computes NDCG@5/10 + MRR, logs to MLflow
-  - `data/evaluation/labeled_queries.jsonl` — 600 labels (20 queries x 30 results), score dist: 0→4.3%, 1→19.0%, 2→15.7%, 3→61.0%
+  - `data/evaluation/labeled_queries.jsonl` — 990 pooled labels (20 queries x ~50 unique trials from both models)
 - **MLflow tracking**: experiment `trialmind-retrieval` with baseline + eval runs
   - Tracking URI: `sqlite:///mlflow.db`
   - UI: `make mlflow` → http://localhost:5001
@@ -119,18 +119,21 @@ Phase: 4 (Bi-encoder fine-tuned + evaluated) — BM25 + fine-tuned semantic + hy
   - Cosine spread in top 5: 0.10 (was 0.047 across 1000 results) — model now differentiates
   - Hub trial problem eliminated — every query returns distinct, relevant results
   - Semantic results are qualitatively relevant (BCG trials for BCG queries, EGFR trials for EGFR queries)
-- **Embedding comparison (LLM-labeled, 600 pairs, hybrid search):**
-  - NDCG@5:  Off-the-shelf 0.383 → Fine-tuned 0.812 (+112.3%)
-  - NDCG@10: Off-the-shelf 0.357 → Fine-tuned 0.797 (+123.3%)
-  - MRR:     Off-the-shelf 0.770 → Fine-tuned 0.917 (+19.0%)
+- **Embedding comparison (LLM-labeled, 990 pooled pairs, hybrid search):**
+  - Pooled evaluation: top-30 from BOTH models labeled (eliminates bias toward fine-tuned)
+  - 990 pairs: 210 overlap, 390 fine-tuned only, 390 off-the-shelf only
+  - NDCG@5:  Off-the-shelf 0.577 → Fine-tuned 0.816 (+41.4%)
+  - NDCG@10: Off-the-shelf 0.534 → Fine-tuned 0.796 (+49.1%)
+  - MRR:     Off-the-shelf 0.917 = Fine-tuned 0.917 (BM25 drives first-result quality)
   - Fine-tuned wins on 19/20 queries (only loss: "sarcoma clinical trials for young adults")
+  - Score dist: 0→22.7%, 1→17.4%, 2→13.9%, 3→46.0%
 
 ### Key files/data (not in git)
 - `data/trials.db` — SQLite with 140K parsed trials (912 MB)
 - `data/faiss_finetuned.index` + `.json` — fine-tuned FAISS index (412 MB, rebuild with `scripts/build_index.py --skip-bm25 --model fine-tuned`)
 - `data/faiss_offshelf.index` + `.json` — off-the-shelf FAISS index (412 MB, rebuild with `scripts/build_index.py --skip-bm25 --model off-the-shelf`)
 - `models/embeddings/fine-tuned/` — fine-tuned BioLinkBERT model (~430 MB)
-- `data/evaluation/labeled_queries.jsonl` — 600 LLM-labeled (query, trial) pairs with 0-3 relevance scores
+- `data/evaluation/labeled_queries.jsonl` — 990 LLM-labeled (query, trial) pairs with 0-3 relevance scores (pooled from both models)
 - `data/evaluation/method_comparison.csv` — comparison results from scripts/compare_methods.py
 - `data/evaluation/per_query_*.json` — per-query metrics from compare_embeddings.py
 - `data/training/train_pairs.jsonl` — 586K training triplets (1.0 GB)
