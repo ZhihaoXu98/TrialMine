@@ -1,7 +1,12 @@
 """Build evaluation dataset with LLM-as-judge relevance labels.
 
-For each of 20 test queries, retrieves top 30 hybrid results (fine-tuned
-embeddings) and asks Claude Haiku to rate relevance on a 0-3 scale.
+For each of 20 test queries, retrieves top 30 hybrid results from BOTH
+the off-the-shelf and fine-tuned embedding models, pools the unique
+trials, and asks Claude Haiku to rate relevance on a 0-3 scale.
+
+Pooled retrieval eliminates evaluation bias: labeling only one model's
+results would systematically penalize the other model for finding
+different-but-relevant trials that never got labeled.
 
 Output: data/evaluation/labeled_queries.jsonl
 
@@ -157,8 +162,58 @@ def label_pair(
         return -1, f"api_error: {exc}"
 
 
+MODEL_CONFIGS = {
+    "off-the-shelf": {
+        "model_name": "michiyasunaga/BioLinkBERT-base",
+        "faiss_index": "data/faiss_offshelf.index",
+        "faiss_mapping": "data/faiss_offshelf.json",
+    },
+    "fine-tuned": {
+        "model_name": "models/embeddings/fine-tuned",
+        "faiss_index": "data/faiss_finetuned.index",
+        "faiss_mapping": "data/faiss_finetuned.json",
+    },
+}
+
+
+def pool_results(
+    results_by_model: dict[str, list[dict]],
+) -> list[dict]:
+    """Merge results from multiple models into a deduplicated list.
+
+    Each trial in the output has a 'retrieved_by' field indicating which
+    model(s) surfaced it ('off-the-shelf', 'fine-tuned', or 'both').
+
+    Args:
+        results_by_model: Dict mapping model label to its result list.
+
+    Returns:
+        Deduplicated list of trial dicts with 'retrieved_by' metadata.
+    """
+    seen: dict[str, dict] = {}
+    source_tracker: dict[str, set[str]] = {}
+
+    for model_label, results in results_by_model.items():
+        for trial in results:
+            nct_id = trial["nct_id"]
+            if nct_id not in seen:
+                seen[nct_id] = trial
+                source_tracker[nct_id] = set()
+            source_tracker[nct_id].add(model_label)
+
+    pooled = []
+    for nct_id, trial in seen.items():
+        sources = source_tracker[nct_id]
+        if len(sources) > 1:
+            trial["retrieved_by"] = "both"
+        else:
+            trial["retrieved_by"] = next(iter(sources))
+        pooled.append(trial)
+    return pooled
+
+
 def main() -> None:
-    """Retrieve hybrid results and label with Claude Haiku."""
+    """Retrieve pooled hybrid results from both models and label with Claude Haiku."""
     import anthropic
 
     from TrialMine.models.embeddings import TrialEmbedder
@@ -176,32 +231,62 @@ def main() -> None:
         help="Skip already-labeled pairs (append mode).",
     )
     parser.add_argument("--db", default="data/trials.db", help="SQLite database path")
-    parser.add_argument("--top-k", type=int, default=30, help="Results per query")
+    parser.add_argument("--top-k", type=int, default=30, help="Results per query per model")
     args = parser.parse_args()
 
-    # ── Setup retrieval ───────────────────────────────────────────────────────
-    print("Loading search components...")
+    # ── Setup shared BM25 ─────────────────────────────────────────────────────
+    print("Loading shared Elasticsearch index...")
     es_index = ElasticsearchIndex()
-    faiss_index = FAISSIndex()
-    faiss_index.load("data/faiss_finetuned.index", "data/faiss_finetuned.json")
-    embedder = TrialEmbedder(model_name="models/embeddings/fine-tuned")
-    hybrid = HybridRetriever(bm25=es_index, semantic=faiss_index, embedder=embedder)
+
+    # ── Load both models ──────────────────────────────────────────────────────
+    hybrids: dict[str, HybridRetriever] = {}
+    for label, cfg in MODEL_CONFIGS.items():
+        print(f"\nLoading {label} model...")
+        embedder = TrialEmbedder(model_name=cfg["model_name"])
+        faiss_idx = FAISSIndex()
+        faiss_idx.load(cfg["faiss_index"], cfg["faiss_mapping"])
+        hybrids[label] = HybridRetriever(bm25=es_index, semantic=faiss_idx, embedder=embedder)
 
     # ── Load eligibility from SQLite ──────────────────────────────────────────
-    print("Loading eligibility criteria from SQLite...")
+    print("\nLoading eligibility criteria from SQLite...")
     elig_lookup = get_eligibility_lookup(args.db)
     print(f"  Loaded eligibility for {len(elig_lookup):,} trials")
 
-    # ── Retrieve top-k for each query ─────────────────────────────────────────
-    print(f"\nRetrieving top {args.top_k} hybrid results for {len(QUERIES)} queries...")
+    # ── Pooled retrieval: top-k from each model, then deduplicate ─────────────
+    print(f"\nRetrieving top {args.top_k} hybrid results per model for {len(QUERIES)} queries...")
     query_results: list[list[dict]] = []
+    total_ft_only = 0
+    total_ots_only = 0
+    total_both = 0
+
     for i, query in enumerate(QUERIES):
-        results = hybrid.search(query=query, top_k=args.top_k)
-        query_results.append(results)
-        print(f"  Query {i}: {len(results)} results")
+        per_model = {}
+        for label, hybrid in hybrids.items():
+            per_model[label] = hybrid.search(query=query, top_k=args.top_k)
+
+        pooled = pool_results(per_model)
+        query_results.append(pooled)
+
+        n_ft = sum(1 for t in pooled if t["retrieved_by"] == "fine-tuned")
+        n_ots = sum(1 for t in pooled if t["retrieved_by"] == "off-the-shelf")
+        n_both = sum(1 for t in pooled if t["retrieved_by"] == "both")
+        total_ft_only += n_ft
+        total_ots_only += n_ots
+        total_both += n_both
+
+        print(f"  Query {i}: {len(pooled)} unique trials "
+              f"(both={n_both}, ft-only={n_ft}, ots-only={n_ots})")
 
     total_pairs = sum(len(r) for r in query_results)
-    print(f"\nTotal (query, trial) pairs: {total_pairs}")
+    print(f"\nTotal unique (query, trial) pairs: {total_pairs}")
+    print(f"  Overlap (both models):  {total_both}")
+    print(f"  Fine-tuned only:        {total_ft_only}")
+    print(f"  Off-the-shelf only:     {total_ots_only}")
+
+    # ── Free model memory before labeling ─────────────────────────────────────
+    del hybrids
+    import gc
+    gc.collect()
 
     # ── Resume support ────────────────────────────────────────────────────────
     existing = set()
@@ -240,6 +325,7 @@ def main() -> None:
                     "trial_title": trial.get("title", ""),
                     "relevance": score,
                     "reason": reason,
+                    "retrieved_by": trial.get("retrieved_by", "unknown"),
                     "labeler": "claude-haiku",
                 }
                 f.write(json.dumps(record) + "\n")
