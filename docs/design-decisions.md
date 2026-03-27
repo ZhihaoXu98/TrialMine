@@ -376,8 +376,6 @@ Re-ran the same 20 oncology queries after fine-tuning BioLinkBERT with MNRL on 5
 
 ---
 
-## Week 4
-
 ### Decision 17: LLM-as-Judge over Human Annotation
 
 **Context:** Need relevance labels for the 20 test queries to compute NDCG and MRR. Without labels, we can only measure overlap and latency — not ranking quality.
@@ -490,9 +488,15 @@ Fine-tuned wins on 19/20 queries (only loss: "sarcoma clinical trials for young 
 
 ---
 
+## Week 4
+
+(Add decisions 20+ after completing Week 4)
+
+---
+
 ## Week 5
 
-(Add decisions 21-23 after completing Week 5)
+(Add decisions after completing Week 5)
 
 ---
 
