@@ -1,0 +1,142 @@
+[
+  {
+    "query_id": 0,
+    "query": "breast cancer hormone receptor positive phase 3",
+    "ndcg5": 0.3801,
+    "ndcg10": 0.5639,
+    "mrr": 1.0
+  },
+  {
+    "query_id": 1,
+    "query": "immunotherapy for non-small cell lung cancer",
+    "ndcg5": 1.0,
+    "ndcg10": 0.9581,
+    "mrr": 1.0
+  },
+  {
+    "query_id": 2,
+    "query": "CAR-T cell therapy for pediatric leukemia",
+    "ndcg5": 1.0,
+    "ndcg10": 1.0,
+    "mrr": 1.0
+  },
+  {
+    "query_id": 3,
+    "query": "clinical trial for glioblastoma that has come back",
+    "ndcg5": 0.786,
+    "ndcg10": 0.6197,
+    "mrr": 1.0
+  },
+  {
+    "query_id": 4,
+    "query": "melanomt with checkpoint inhibitors",
+    "ndcg5": 0.3801,
+    "ndcg10": 0.5977,
+    "mrr": 1.0
+  },
+  {
+    "query_id": 5,
+    "query": "prostate cancer trials for men over 65",
+    "ndcg5": 0.6574,
+    "ndcg10": 0.7715,
+    "mrr": 1.0
+  },
+  {
+    "query_id": 6,
+    "query": "pancreatic cancer that has spread to the liver",
+    "ndcg5": 1.0,
+    "ndcg10": 0.8974,
+    "mrr": 1.0
+  },
+  {
+    "query_id": 7,
+    "query": "triple negative breast cancer neoadjuvant",
+    "ndcg5": 1.0,
+    "ndcg10": 1.0,
+    "mrr": 1.0
+  },
+  {
+    "query_id": 8,
+    "query": "colorectal cancer with microsatellite instability",
+    "ndcg5": 0.9165,
+    "ndcg10": 0.889,
+    "mrr": 1.0
+  },
+  {
+    "query_id": 9,
+    "query": "ovarian cancer PARP inhibitor maintenance",
+    "ndcg5": 1.0,
+    "ndcg10": 1.0,
+    "mrr": 1.0
+  },
+  {
+    "query_id": 10,
+    "query": "stage 4 kidney cancer immunotherapy combination",
+    "ndcg5": 0.5841,
+    "ndcg10": 0.5824,
+    "mrr": 0.5
+  },
+  {
+    "query_id": 11,
+    "query": "newly diagnosed multiple myeloma treatment",
+    "ndcg5": 1.0,
+    "ndcg10": 0.9603,
+    "mrr": 1.0
+  },
+  {
+    "query_id": 12,
+    "query": "HPV related head and neck cancer",
+    "ndcg5": 0.8166,
+    "ndcg10": 0.8264,
+    "mrr": 1.0
+  },
+  {
+    "query_id": 13,
+    "query": "sarcoma clinical trials for young adults",
+    "ndcg5": 0.5588,
+    "ndcg10": 0.4628,
+    "mrr": 1.0
+  },
+  {
+    "query_id": 14,
+    "query": "targeted therapy for EGFR mutated lung cancer",
+    "ndcg5": 0.8875,
+    "ndcg10": 0.8328,
+    "mrr": 1.0
+  },
+  {
+    "query_id": 15,
+    "query": "liver cancer hepatocellular carcinoma systemic therapy",
+    "ndcg5": 0.9031,
+    "ndcg10": 0.7916,
+    "mrr": 1.0
+  },
+  {
+    "query_id": 16,
+    "query": "bladder cancer BCG unresponsive",
+    "ndcg5": 1.0,
+    "ndcg10": 0.8258,
+    "mrr": 1.0
+  },
+  {
+    "query_id": 17,
+    "query": "chronic lymphocytic leukemia ibrutinib",
+    "ndcg5": 1.0,
+    "ndcg10": 1.0,
+    "mrr": 1.0
+  },
+  {
+    "query_id": 18,
+    "query": "neuroblastoma high risk children",
+    "ndcg5": 1.0,
+    "ndcg10": 1.0,
+    "mrr": 1.0
+  },
+  {
+    "query_id": 19,
+    "query": "mesothelioma immunotherapy combination",
+    "ndcg5": 0.7093,
+    "ndcg10": 0.7694,
+    "mrr": 0.5
+  }
+]

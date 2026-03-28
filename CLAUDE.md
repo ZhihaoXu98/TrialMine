@@ -58,9 +58,9 @@ See README.md for overview. Key directories:
 - docs/ — architecture, design decisions, model cards
 
 ## Current State
-Last updated: 2026-03-26
+Last updated: 2026-03-28
 
-Phase: 4 (Bi-encoder fine-tuned + evaluated) — BM25 + fine-tuned semantic + hybrid search working, FAISS indexes for both models, LLM-labeled evaluation complete
+Phase: 5 (Cross-encoder re-ranker trained + evaluated) — hybrid + cross-encoder blended re-ranking working, all evaluation complete
 
 ### What's working
 - **Data pipeline**: downloads oncology trials from ClinicalTrials.gov API v2, parses, stores in SQLite
@@ -108,6 +108,17 @@ Phase: 4 (Bi-encoder fine-tuned + evaluated) — BM25 + fine-tuned semantic + hy
   - Trained on A100 (288 min), 586K triplets, best model selected by NDCG@10
   - Output: `models/embeddings/fine-tuned/` (model + metadata.json with eval metrics)
   - Final eval: NDCG@10=0.492, MRR@10=0.426, Recall@10=0.700, Recall@1=0.300
+- **Cross-encoder re-ranker**: fine-tuned BioLinkBERT cross-encoder with blended scoring
+  - `src/TrialMine/models/cross_encoder.py` (CrossEncoderReranker — score, rerank with blended 0.7 RRF + 0.3 CE, rerank_with_timing)
+  - `scripts/finetune_cross_encoder.py` — training script (CrossEncoderTrainer + BinaryCrossEntropyLoss)
+  - `notebooks/finetune_cross_encoder.ipynb` — Colab notebook for T4 GPU training
+  - `scripts/evaluate_cross_encoder.py` — evaluates cross-encoder on 20 labeled queries, compares to hybrid-only baseline
+  - `scripts/demo_reranker.py` — before/after re-ranking comparison on 3 demo queries
+  - Config: `configs/training/cross_encoder.yaml` (BioLinkBERT-base, lr=2e-5, batch=16, 1 epoch, BinaryCrossEntropyLoss)
+  - Trained on T4 (Colab), 100K triplets → 200K binary pairs, early stopping, best model by NDCG@10
+  - Output: `models/cross-encoder/fine-tuned/` (model + metadata.json)
+  - Blended scoring: `0.7 * RRF_normalized + 0.3 * CE_sigmoid` (pure CE replacement hurts; blending preserves RRF quality)
+  - MLflow experiment: `trialmind-cross-encoder`
 
 ### Key evaluation findings
 - **Pre-fine-tuning (base BioLinkBERT):**
@@ -127,12 +138,23 @@ Phase: 4 (Bi-encoder fine-tuned + evaluated) — BM25 + fine-tuned semantic + hy
   - MRR:     Off-the-shelf 0.917 = Fine-tuned 0.917 (BM25 drives first-result quality)
   - Fine-tuned wins on 19/20 queries (only loss: "sarcoma clinical trials for young adults")
   - Score dist: 0→22.7%, 1→17.4%, 2→13.9%, 3→46.0%
+- **Cross-encoder re-ranking (blended scoring, 990 labeled pairs, hybrid search):**
+  - Off-the-shelf ms-marco-MiniLM (pure CE) HURTS: NDCG@5=0.719 (-11.9%) — doesn't understand biomedical text
+  - Fine-tuned BioLinkBERT CE (pure CE) also HURTS: NDCG@5=0.657 (-19.5%) — binary training labels don't teach graded relevance
+  - Root cause: CE trained on binary (right/wrong disease) replaces useful RRF quality signals with blunt disease-matching
+  - Fix: blended scoring (0.7 RRF + 0.3 CE) instead of pure CE replacement
+  - NDCG@5:  Hybrid 0.816 → + CE blended 0.829 (+1.6%)
+  - NDCG@10: Hybrid 0.796 → + CE blended 0.817 (+2.7%)
+  - MRR:     Hybrid 0.917 → + CE blended 0.950 (+3.6%)
+  - Wins 7, Losses 4, Ties 9 — biggest gains on hardest queries (sarcoma +31%, glioblastoma +14%)
+  - Re-ranking latency: ~4s for 50 candidates on CPU
 
 ### Key files/data (not in git)
 - `data/trials.db` — SQLite with 140K parsed trials (912 MB)
 - `data/faiss_finetuned.index` + `.json` — fine-tuned FAISS index (412 MB, rebuild with `scripts/build_index.py --skip-bm25 --model fine-tuned`)
 - `data/faiss_offshelf.index` + `.json` — off-the-shelf FAISS index (412 MB, rebuild with `scripts/build_index.py --skip-bm25 --model off-the-shelf`)
-- `models/embeddings/fine-tuned/` — fine-tuned BioLinkBERT model (~430 MB)
+- `models/embeddings/fine-tuned/` — fine-tuned BioLinkBERT bi-encoder (~430 MB)
+- `models/cross-encoder/fine-tuned/` — fine-tuned BioLinkBERT cross-encoder (~430 MB)
 - `data/evaluation/labeled_queries.jsonl` — 990 LLM-labeled (query, trial) pairs with 0-3 relevance scores (pooled from both models)
 - `data/evaluation/method_comparison.csv` — comparison results from scripts/compare_methods.py
 - `data/evaluation/per_query_*.json` — per-query metrics from compare_embeddings.py
@@ -144,6 +166,6 @@ Phase: 4 (Bi-encoder fine-tuned + evaluated) — BM25 + fine-tuned semantic + hy
 - `.env` — API keys (ANTHROPIC_API_KEY) — NEVER commit
 
 ### What's next
-- Cross-encoder re-ranking + LightGBM metadata blending (highest leverage — re-ranks hybrid candidates)
+- LightGBM metadata blending (combine CE score + metadata features for final ranking)
 - LangGraph agents (query parsing, search orchestration)
-- Update FastAPI/Streamlit to use fine-tuned model path
+- Update FastAPI/Streamlit to use fine-tuned model + cross-encoder pipeline

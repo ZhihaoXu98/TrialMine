@@ -490,7 +490,120 @@ Fine-tuned wins on 19/20 queries (only loss: "sarcoma clinical trials for young 
 
 ## Week 4
 
-(Add decisions 20+ after completing Week 4)
+### Decision 20: BinaryCrossEntropyLoss over Graded Loss for Cross-Encoder
+
+**Context:** Need to train a cross-encoder re-ranker to refine hybrid retrieval rankings. Training data consists of 586K triplets (query, positive_trial, negative_trial) with binary relevance — positive means "correct disease match", negative means "wrong disease."
+
+**Options:** BinaryCrossEntropyLoss (convert triplets to binary pairs), MarginMSELoss (distill from a teacher), graded loss on the 990 labeled pairs (0-3 scale).
+
+**Choice:** BinaryCrossEntropyLoss — convert each triplet to two binary pairs: (query, positive, 1.0) + (query, negative, 0.0).
+
+**Why:** The 990 labeled pairs with graded relevance are too few for a 110M-param model — 20 queries split 80/20 gives only ~800 training pairs, guaranteeing overfitting. The 586K triplets provide sufficient data, but only have binary labels. BinaryCrossEntropyLoss is the natural fit for binary relevance data. The loss is well-supported by sentence-transformers' CrossEncoderTrainer API.
+
+**Trade-off:** Binary labels teach disease-matching ("is this the right cancer?") but NOT graded relevance ("is this Phase 3 EGFR trial better than that Phase 1 broad immunotherapy trial?"). This turned out to be the critical limitation — see evaluation below.
+
+**At scale:** Collect 5K-10K graded relevance labels (0-3) via LLM-as-judge on diverse queries, then train with ordinal or regression loss. Alternatively, distill from a large cross-encoder teacher using MarginMSELoss.
+
+> **Interview answer:** "BinaryCrossEntropyLoss because 990 graded labels would overfit a 110M-param model, and 586K binary triplets provide sufficient training signal. The trade-off is that binary labels only teach disease-matching, not graded relevance — which limits the model to a tiebreaker role."
+
+---
+
+### Decision 21: Blended Scoring (0.7 RRF + 0.3 CE) over Pure Cross-Encoder Re-Ranking
+
+**Context:** Standard cross-encoder re-ranking replaces the retrieval score entirely — candidates are sorted by CE score alone. Our fine-tuned CE was trained on binary labels (right/wrong disease), while hybrid RRF captures multi-signal relevance from both BM25 keyword matching and semantic similarity.
+
+**Options:** Pure CE ranking (standard approach), blended scoring (weighted combination of RRF + CE), CE score as a LightGBM feature (deferred to next phase).
+
+**Choice:** Blended scoring: `0.7 * RRF_normalized + 0.3 * CE_sigmoid`
+
+**Why:** Pure CE ranking DESTROYS results. Both off-the-shelf (ms-marco-MiniLM, NDCG@5: -11.9%) and fine-tuned (BioLinkBERT CE, NDCG@5: -19.5%) cross-encoders degrade quality when used as sole rankers. Root cause: the CE learned binary disease-matching from training data, which replaces useful multi-signal RRF quality with a blunt "right disease or not" score. A breast cancer Phase 3 EGFR trial and a breast cancer Phase 1 supportive care trial both get CE score ≈1.0 — the CE can't distinguish them.
+
+Blending preserves RRF's multi-signal ranking while allowing CE to act as a tiebreaker when RRF scores are close. The 0.7/0.3 split was chosen conservatively — CE gets enough weight to help on hard queries but not enough to override correct RRF rankings.
+
+**Trade-off:** The improvement is marginal (+1.6% NDCG@5, +2.7% NDCG@10) — the CE adds value primarily on the hardest queries (sarcoma +31%, glioblastoma +14%) while slightly hurting 4/20 queries. The 4-second CPU latency is significant for a marginal gain.
+
+**At scale:** Feed CE score as one feature (among many) into LightGBM rather than using it for direct ranking. The tree model can learn when to trust CE vs RRF, and combine both with metadata features (phase, enrollment, status). This is the architecturally correct solution — the CE score is a signal, not a decision-maker.
+
+> **Interview answer:** "Blended scoring because the CE was trained on binary labels and doesn't understand graded relevance — pure CE re-ranking replaces good RRF signals with blunt disease-matching. At 0.3 weight, CE helps on hard queries without overriding correct rankings. The right long-term fix is feeding CE as a feature into LightGBM."
+
+---
+
+### Decision 22: T4 with Subsampled Data over Full Dataset Training
+
+**Context:** 586K triplets → 1.17M binary pairs at batch_size=16 = 219K steps per epoch. On Colab T4, this would take 39+ hours for 3 epochs — exceeding session limits.
+
+**Options:** A100 (fast, $0.10/hr, limited availability), T4 with full data (39 hours, impractical), T4 with subsampled data (2 hours).
+
+**Choice:** T4 with 100K subsampled triplets (200K pairs), 1 epoch, early stopping at patience=3.
+
+**Why:** The cross-encoder converges fast — validation NDCG@10 plateaued at 0.992 within 12,500 steps (the model early-stopped). 100K triplets already provide sufficient disease-matching signal. Training loss decreased from 0.693 to 0.199 in one epoch. The remaining 486K triplets are mostly near-duplicates (same cancer type, slightly different trial pairs).
+
+**Trade-off:** Less exposure to rare cancer types. The model may underperform on uncommon conditions that appeared in the dropped 83% of triplets.
+
+**At scale:** Use A100 or multi-GPU training with the full dataset. Consider curriculum learning: start with easy (cross-cancer) negatives, then progressively harder (within-cancer) negatives.
+
+> **Interview answer:** "Subsampled to 100K triplets because the model converged in 12,500 steps — NDCG@10 hit 0.992 and early-stopped. Throwing more data at a binary classification task with diminishing returns isn't worth 39 hours of GPU time."
+
+---
+
+### Decision 23: Off-the-Shelf CE Baseline Before Fine-Tuning
+
+**Context:** Fine-tuning a cross-encoder requires GPU hours. Need to know if an off-the-shelf model already helps — that determines whether fine-tuning is about domain adaptation (incremental) or essential.
+
+**Options:** Skip baseline and fine-tune directly, evaluate off-the-shelf ms-marco-MiniLM first.
+
+**Choice:** Evaluate `cross-encoder/ms-marco-MiniLM-L-6-v2` (22M params, trained on 500K MS MARCO pairs) before any fine-tuning.
+
+**Why:** The baseline told us something critical: off-the-shelf CE HURTS (NDCG@5: -11.9%). This means a general-domain cross-encoder doesn't understand biomedical text well enough to improve over our domain-specific hybrid retrieval. Fine-tuning is essential, not incremental.
+
+**Trade-off:** Added ~15 minutes of evaluation time before starting the fine-tuning pipeline. Worth it for the diagnostic value.
+
+**At scale:** Always evaluate off-the-shelf baselines before training. The baseline comparison is free information that prevents wasted GPU hours.
+
+> **Interview answer:** "Baseline first because it cost 15 minutes and told us fine-tuning is essential — a general-domain cross-encoder actively degrades biomedical search quality."
+
+---
+
+### Evaluation: Cross-Encoder Re-Ranking (2026-03-28)
+
+Evaluated cross-encoder re-ranking on 20 labeled queries (990 graded relevance labels, hybrid search with fine-tuned BioLinkBERT bi-encoder).
+
+**Progressive evaluation — each approach tested:**
+
+| Approach | NDCG@5 | NDCG@10 | MRR | vs Baseline |
+|---|---|---|---|---|
+| Hybrid only (baseline) | 0.816 | 0.796 | 0.917 | — |
+| + off-the-shelf ms-marco-MiniLM (pure CE) | 0.719 | 0.707 | — | -11.9% |
+| + fine-tuned BioLinkBERT CE (pure CE, no summary) | 0.634 | 0.660 | — | -22.2% |
+| + fine-tuned BioLinkBERT CE (pure CE, with summary) | 0.657 | 0.651 | — | -19.5% |
+| + fine-tuned BioLinkBERT CE (blended 0.7 RRF + 0.3 CE) | 0.829 | 0.817 | 0.950 | +1.6% |
+
+**Per-query analysis (blended scoring):**
+
+- Wins: 7/20, Losses: 4/20, Ties: 9/20
+- Biggest wins: sarcoma (+31%), melanoma (+25%), glioblastoma (+14%), pancreatic (+11%)
+- Biggest losses: EGFR lung cancer (-4.3%), liver cancer (-4.1%)
+- Re-ranking latency: ~4s for 50 candidates on CPU
+
+**Key findings:**
+
+1. **Cross-encoders are not magic.** Both off-the-shelf and fine-tuned CEs degraded results when used as pure re-rankers. The standard "retrieve then re-rank with CE" pipeline assumes the CE has better relevance understanding than the retriever — ours doesn't, because binary training labels only teach disease-matching.
+
+2. **Train/inference text alignment matters.** Initial evaluation used only title+conditions as trial text, but training data included brief_summary. Adding brief_summary via Elasticsearch lookup improved pure CE from -22.2% to -19.5% — meaningful but not the root cause.
+
+3. **The CE works as a boost, not a replacement.** At 0.3 weight, it helps on hard queries where RRF candidates are close in score and CE breaks ties correctly. At higher weight, it overrides correct RRF rankings with crude disease-matching.
+
+4. **Binary training labels are the bottleneck.** The CE achieved 0.992 NDCG@10 on its validation set — it's excellent at binary classification. But search ranking is a graded problem (score 0-3), and the CE can't distinguish between "somewhat relevant" (2) and "highly relevant" (3) trials.
+
+5. **The right role for CE is as a feature, not a ranker.** The CE score should feed into LightGBM alongside metadata features (phase, enrollment, status, intervention match). Let the tree model learn when CE is informative vs when to trust RRF.
+
+**Remaining limitations:**
+
+1. **4-second CPU latency.** Scoring 50 candidate pairs through a 110M-param model takes ~4s on CPU. Batch inference on GPU or model distillation (MiniLM-sized CE) would be needed for production.
+2. **Marginal improvement doesn't justify complexity.** +1.6% NDCG@5 with 4 losses out of 20 queries is borderline. The CE's value will be tested more rigorously as a LightGBM feature.
+3. **No graded training signal.** Need 5K+ graded labels to train a CE that understands relevance gradations, not just disease matching.
+
+**Data:** `data/evaluation/per_query_reranked_fine-tuned.json`. MLflow experiment: `trialmind-cross-encoder`.
 
 ---
 
