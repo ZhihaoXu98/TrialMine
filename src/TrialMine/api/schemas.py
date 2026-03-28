@@ -41,6 +41,7 @@ class SearchResponse(BaseModel):
     query: str
     search_time_ms: float
     search_method: str
+    timings: dict[str, float] | None = None
 
 
 class TrialDetailResponse(BaseModel):

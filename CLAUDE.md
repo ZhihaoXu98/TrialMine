@@ -60,7 +60,7 @@ See README.md for overview. Key directories:
 ## Current State
 Last updated: 2026-03-28
 
-Phase: 5 (Cross-encoder re-ranker trained + evaluated) — hybrid + cross-encoder blended re-ranking working, all evaluation complete
+Phase: 6 (LightGBM blender + ablation complete) — full pipeline working: BM25 + semantic + hybrid + CE + LightGBM
 
 ### What's working
 - **Data pipeline**: downloads oncology trials from ClinicalTrials.gov API v2, parses, stores in SQLite
@@ -148,6 +148,23 @@ Phase: 5 (Cross-encoder re-ranker trained + evaluated) — hybrid + cross-encode
   - MRR:     Hybrid 0.917 → + CE blended 0.950 (+3.6%)
   - Wins 7, Losses 4, Ties 9 — biggest gains on hardest queries (sarcoma +31%, glioblastoma +14%)
   - Re-ranking latency: ~4s for 50 candidates on CPU
+- **LightGBM metadata blender (LambdaRank, 990 labeled pairs, 11 features):**
+  - `src/TrialMine/models/ranker.py` (RankingBlender — compute_features, LightGBM predict, rerank)
+  - `scripts/train_ranker.py` — feature engineering + LambdaRank training with leave-one-query-out CV
+  - `scripts/evaluate.py` — full ablation evaluation across all 5 pipeline stages
+  - Features: bm25_score, semantic_score, cross_encoder_score, rrf_score, phase_numeric, is_recruiting, is_active, enrollment_log, condition_exact_match, title_query_overlap, has_eligibility
+  - Leave-one-query-out CV: NDCG@5=0.844, NDCG@10=0.840 (honest, unbiased estimate)
+  - Ablation (trained on all data, evaluated on same): NDCG@5=0.980, NDCG@10=0.921, MRR=1.000 (optimistic due to train=test overlap)
+  - Feature importance: rrf_score (393) > cross_encoder_score (243) > bm25_score (132) > enrollment_log (97) > semantic_score (93) > phase_numeric (57)
+  - CE score is 2nd most important feature — validates CE as feature despite failing as standalone ranker
+  - MLflow experiment: `trialmind-ranker`, ablation: `trialmind-ablation`
+  - Output: `models/ranker/v1/model.lgb` + `metadata.json`
+  - Note: FAISS + LightGBM OpenMP conflict requires `OMP_NUM_THREADS=1` on macOS
+- **Full pipeline** (hybrid.py `full_pipeline` method):
+  - BM25 (22ms) → Semantic (37ms) → RRF merge → CE scoring (4s) → LightGBM blending → top-k results
+  - Returns timings dict: bm25_ms, semantic_ms, merge_ms, cross_encoder_ms, blender_ms, total_ms
+  - API response includes optional `timings` field
+- **Ablation evaluation**: `scripts/evaluate.py` + `docs/evaluation-report.md`
 
 ### Key files/data (not in git)
 - `data/trials.db` — SQLite with 140K parsed trials (912 MB)
@@ -155,6 +172,8 @@ Phase: 5 (Cross-encoder re-ranker trained + evaluated) — hybrid + cross-encode
 - `data/faiss_offshelf.index` + `.json` — off-the-shelf FAISS index (412 MB, rebuild with `scripts/build_index.py --skip-bm25 --model off-the-shelf`)
 - `models/embeddings/fine-tuned/` — fine-tuned BioLinkBERT bi-encoder (~430 MB)
 - `models/cross-encoder/fine-tuned/` — fine-tuned BioLinkBERT cross-encoder (~430 MB)
+- `models/ranker/v1/model.lgb` — LightGBM LambdaRank model + metadata.json
+- `data/evaluation/ranking_features.csv` — 990 rows x 11 features for LightGBM training
 - `data/evaluation/labeled_queries.jsonl` — 990 LLM-labeled (query, trial) pairs with 0-3 relevance scores (pooled from both models)
 - `data/evaluation/method_comparison.csv` — comparison results from scripts/compare_methods.py
 - `data/evaluation/per_query_*.json` — per-query metrics from compare_embeddings.py
@@ -166,6 +185,6 @@ Phase: 5 (Cross-encoder re-ranker trained + evaluated) — hybrid + cross-encode
 - `.env` — API keys (ANTHROPIC_API_KEY) — NEVER commit
 
 ### What's next
-- LightGBM metadata blending (combine CE score + metadata features for final ranking)
 - LangGraph agents (query parsing, search orchestration)
-- Update FastAPI/Streamlit to use fine-tuned model + cross-encoder pipeline
+- Update FastAPI/Streamlit to use fine-tuned models + full pipeline
+- More evaluation queries (20 is too few for reliable LightGBM training)

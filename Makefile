@@ -1,4 +1,4 @@
-.PHONY: setup download index serve ui mlflow compare training-data finetune finetune-cross-encoder eval-cross-encoder demo-reranker test lint
+.PHONY: setup download index serve ui mlflow compare training-data finetune finetune-cross-encoder eval-cross-encoder demo-reranker train-ranker evaluate test lint
 
 setup:
 	pip install -e ".[dev]"
@@ -35,6 +35,12 @@ eval-cross-encoder:
 
 demo-reranker:
 	python scripts/demo_reranker.py
+
+train-ranker:
+	OMP_NUM_THREADS=1 python scripts/train_ranker.py
+
+evaluate:
+	OMP_NUM_THREADS=1 python scripts/evaluate.py
 
 test:
 	pytest tests/
