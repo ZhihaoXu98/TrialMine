@@ -50,9 +50,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-LABELS_FILE = Path("data/evaluation/labeled_queries.jsonl")
-FEATURES_FILE = Path("data/evaluation/ranking_features.csv")
-MODEL_DIR = Path("models/ranker/v1")
+LABELS_FILES = [
+    Path("data/evaluation/labeled_queries.jsonl"),      # 20 queries (IDs 0-19)
+    Path("data/evaluation/test_labels.jsonl"),           # 50 queries (IDs 100-149)
+    Path("data/evaluation/train_labels_extra.jsonl"),    # 80 queries (IDs 200-279)
+]
+FEATURES_FILE = Path("data/evaluation/ranking_features_v2.csv")
+MODEL_DIR = Path("models/ranker/v2")
 MLFLOW_TRACKING_URI = "sqlite:///mlflow.db"
 MLFLOW_EXPERIMENT = "trialmind-ranker"
 
@@ -62,29 +66,34 @@ FAISS_MAPPING = "data/faiss_finetuned.json"
 CE_MODEL = "models/cross-encoder/fine-tuned"
 
 
-def load_labels(labels_file: Path) -> list[dict]:
-    """Load relevance labels as a flat list.
+def load_labels(labels_files: list[Path]) -> list[dict]:
+    """Load relevance labels from multiple JSONL files.
 
     Args:
-        labels_file: Path to labeled_queries.jsonl.
+        labels_files: Paths to label JSONL files.
 
     Returns:
         List of dicts with query_id, query, nct_id, relevance.
     """
     records = []
-    with open(labels_file) as f:
-        for line in f:
-            if not line.strip():
-                continue
-            rec = json.loads(line)
-            if rec.get("relevance", -1) < 0:
-                continue
-            records.append({
-                "query_id": rec["query_id"],
-                "query": rec["query"],
-                "nct_id": rec["nct_id"],
-                "relevance": rec["relevance"],
-            })
+    for labels_file in labels_files:
+        if not labels_file.exists():
+            logger.warning("Labels file not found, skipping: %s", labels_file)
+            continue
+        with open(labels_file) as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                rec = json.loads(line)
+                if rec.get("relevance", -1) < 0:
+                    continue
+                records.append({
+                    "query_id": rec["query_id"],
+                    "query": rec["query"],
+                    "nct_id": rec["nct_id"],
+                    "relevance": rec["relevance"],
+                })
+        logger.info("Loaded %d labels from %s", len(records), labels_file.name)
     return records
 
 
@@ -405,8 +414,8 @@ def main() -> None:
     args = parse_args()
 
     # ── Check prerequisites ───────────────────────────────────────────────
-    if not LABELS_FILE.exists():
-        logger.error("Labels file not found: %s", LABELS_FILE)
+    if not any(f.exists() for f in LABELS_FILES):
+        logger.error("No labels files found: %s", LABELS_FILES)
         sys.exit(1)
     if not args.load_features and not Path(FAISS_INDEX).exists():
         logger.error("FAISS index not found: %s", FAISS_INDEX)
@@ -417,7 +426,7 @@ def main() -> None:
         df = pd.read_csv(FEATURES_FILE)
     else:
         # ── Load labels ───────────────────────────────────────────────────
-        labels = load_labels(LABELS_FILE)
+        labels = load_labels(LABELS_FILES)
         n_queries = len(set(r["query_id"] for r in labels))
         logger.info("Loaded %d labels across %d queries", len(labels), n_queries)
 
@@ -533,7 +542,7 @@ def main() -> None:
     mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
     mlflow.set_experiment(MLFLOW_EXPERIMENT)
 
-    with mlflow.start_run(run_name="lambdarank_v1") as run:
+    with mlflow.start_run(run_name="lambdarank_v2") as run:
         mlflow.set_tag("method", "lightgbm_lambdarank")
         mlflow.set_tag("stage", "ranker_training")
         mlflow.log_param("n_features", len(FEATURE_NAMES))

@@ -63,7 +63,7 @@ EMBEDDER_MODEL = "models/embeddings/fine-tuned"
 FAISS_INDEX = "data/faiss_finetuned.index"
 FAISS_MAPPING = "data/faiss_finetuned.json"
 CE_MODEL = "models/cross-encoder/fine-tuned"
-RANKER_MODEL = "models/ranker/v1/model.lgb"
+RANKER_MODEL = "models/ranker/v2/model.lgb"
 
 N_BOOTSTRAP = 1000
 EVAL_TOP_K = 10
