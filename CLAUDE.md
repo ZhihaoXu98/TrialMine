@@ -60,7 +60,7 @@ See README.md for overview. Key directories:
 ## Current State
 Last updated: 2026-03-28
 
-Phase: 6 (LightGBM blender + ablation complete) — full pipeline working: BM25 + semantic + hybrid + CE + LightGBM
+Phase: 6b (expanded training + fair eval v2) — full pipeline working: BM25 + semantic + hybrid + CE + LightGBM v2 (145 queries)
 
 ### What's working
 - **Data pipeline**: downloads oncology trials from ClinicalTrials.gov API v2, parses, stores in SQLite
@@ -148,23 +148,31 @@ Phase: 6 (LightGBM blender + ablation complete) — full pipeline working: BM25 
   - MRR:     Hybrid 0.917 → + CE blended 0.950 (+3.6%)
   - Wins 7, Losses 4, Ties 9 — biggest gains on hardest queries (sarcoma +31%, glioblastoma +14%)
   - Re-ranking latency: ~4s for 50 candidates on CPU
-- **LightGBM metadata blender (LambdaRank, 990 labeled pairs, 11 features):**
+- **LightGBM metadata blender v2 (LambdaRank, 6,018 labeled pairs, 145 queries, 11 features):**
   - `src/TrialMine/models/ranker.py` (RankingBlender — compute_features, LightGBM predict, rerank)
-  - `scripts/train_ranker.py` — feature engineering + LambdaRank training with leave-one-query-out CV
+  - `scripts/train_ranker.py` — loads 3 label files, feature engineering + LambdaRank LOOCV
   - `scripts/evaluate.py` — full ablation evaluation across all 5 pipeline stages
+  - `scripts/expand_eval_data.py` — generates 75 training + 50 test queries, labels with Claude Haiku
   - Features: bm25_score, semantic_score, cross_encoder_score, rrf_score, phase_numeric, is_recruiting, is_active, enrollment_log, condition_exact_match, title_query_overlap, has_eligibility
-  - Leave-one-query-out CV: NDCG@5=0.844, NDCG@10=0.840 (honest, unbiased estimate)
-  - Ablation (trained on all data, evaluated on same): NDCG@5=0.980, NDCG@10=0.921, MRR=1.000 (optimistic due to train=test overlap)
-  - Feature importance: rrf_score (393) > cross_encoder_score (243) > bm25_score (132) > enrollment_log (97) > semantic_score (93) > phase_numeric (57)
-  - CE score is 2nd most important feature — validates CE as feature despite failing as standalone ranker
+  - Training data: 3 label files merged (20 + 50 + 75 queries = 145 queries, 6,018 pairs)
+  - LOOCV on 145 queries: NDCG@5=0.843, NDCG@10=0.831
+  - Feature importance: cross_encoder_score (1673) > rrf_score (1012) > phase_numeric (593) > title_query_overlap (557) > semantic_score (520) > bm25_score (516) > enrollment_log (487)
+  - CE is now #1 feature (was #2 with 20 queries) — more data lets LightGBM trust CE scores
   - MLflow experiment: `trialmind-ranker`, ablation: `trialmind-ablation`
-  - Output: `models/ranker/v1/model.lgb` + `metadata.json`
+  - Output: `models/ranker/v2/model.lgb` + `metadata.json` (v1 preserved at `models/ranker/v1/`)
   - Note: FAISS + LightGBM OpenMP conflict requires `OMP_NUM_THREADS=1` on macOS
 - **Full pipeline** (hybrid.py `full_pipeline` method):
   - BM25 (22ms) → Semantic (37ms) → RRF merge → CE scoring (4s) → LightGBM blending → top-k results
   - Returns timings dict: bm25_ms, semantic_ms, merge_ms, cross_encoder_ms, blender_ms, total_ms
   - API response includes optional `timings` field
 - **Ablation evaluation**: `scripts/evaluate.py` + `docs/evaluation-report.md`
+- **Fair held-out evaluation v2** (50 new test queries, 1,953 labels, LightGBM v2):
+  - `scripts/build_fair_eval.py` — pools BM25+semantic+hybrid, labels with Claude Haiku, runs ablation
+  - Test queries: 50 deliberately hard queries (rare cancers, comorbidities, health equity, complex patients)
+  - NDCG@5: BM25 0.617 → Semantic 0.606 → Hybrid 0.636 → +CE 0.651 → +LGB 0.670
+  - NDCG@5 increases monotonically — each stage adds value on unseen queries
+  - MRR drops from CE (0.825) to LGB (0.806) — blender optimizes list-level, sometimes at cost of first result
+  - Report: `docs/fair-evaluation-report.md`
 
 ### Key files/data (not in git)
 - `data/trials.db` — SQLite with 140K parsed trials (912 MB)
@@ -172,9 +180,14 @@ Phase: 6 (LightGBM blender + ablation complete) — full pipeline working: BM25 
 - `data/faiss_offshelf.index` + `.json` — off-the-shelf FAISS index (412 MB, rebuild with `scripts/build_index.py --skip-bm25 --model off-the-shelf`)
 - `models/embeddings/fine-tuned/` — fine-tuned BioLinkBERT bi-encoder (~430 MB)
 - `models/cross-encoder/fine-tuned/` — fine-tuned BioLinkBERT cross-encoder (~430 MB)
-- `models/ranker/v1/model.lgb` — LightGBM LambdaRank model + metadata.json
-- `data/evaluation/ranking_features.csv` — 990 rows x 11 features for LightGBM training
-- `data/evaluation/labeled_queries.jsonl` — 990 LLM-labeled (query, trial) pairs with 0-3 relevance scores (pooled from both models)
+- `models/ranker/v2/model.lgb` — LightGBM LambdaRank v2 model + metadata.json (trained on 145 queries)
+- `models/ranker/v1/model.lgb` — LightGBM v1 model (trained on 20 queries, preserved)
+- `data/evaluation/ranking_features_v2.csv` — 6,018 rows x 11 features for LightGBM v2 training
+- `data/evaluation/ranking_features.csv` — 990 rows x 11 features (v1, preserved)
+- `data/evaluation/labeled_queries.jsonl` — 990 LLM-labeled pairs (20 queries, IDs 0-19)
+- `data/evaluation/test_labels.jsonl` — 2,044 LLM-labeled pairs (50 queries, IDs 100-149, now used for training)
+- `data/evaluation/train_labels_extra.jsonl` — 2,984 LLM-labeled pairs (75 queries, IDs 200-274)
+- `data/evaluation/test_labels_v2.jsonl` — 1,953 LLM-labeled pairs (50 NEW test queries, IDs 300-349)
 - `data/evaluation/method_comparison.csv` — comparison results from scripts/compare_methods.py
 - `data/evaluation/per_query_*.json` — per-query metrics from compare_embeddings.py
 - `data/training/train_pairs.jsonl` — 586K training triplets (1.0 GB)
@@ -185,6 +198,7 @@ Phase: 6 (LightGBM blender + ablation complete) — full pipeline working: BM25 
 - `.env` — API keys (ANTHROPIC_API_KEY) — NEVER commit
 
 ### What's next
-- LangGraph agents (query parsing, search orchestration)
+- LangGraph agents (query parsing, search orchestration, result explanation)
 - Update FastAPI/Streamlit to use fine-tuned models + full pipeline
-- More evaluation queries (20 is too few for reliable LightGBM training)
+- Optional: retrain CE on graded labels (6,018 pairs) instead of binary — could improve CE feature quality
+- Optional: Optuna hyperparameter tuning for LightGBM (viable now with 145 queries)

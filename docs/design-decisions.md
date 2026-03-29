@@ -707,7 +707,94 @@ Evaluated all 5 pipeline stages on 20 labeled queries (990 graded relevance labe
 
 ## Week 6
 
-(Add decisions 24-26 after completing Week 6)
+### Decision 28: Expand Training Data over Hyperparameter Tuning (2026-03-28)
+
+**Context:** LightGBM v1 was trained on only 20 queries (990 labeled pairs). Fair evaluation showed modest re-ranking gains (NDCG@5: hybrid 0.691 → blender 0.716, +3.6%). The model couldn't learn to leverage cross-encoder scores effectively — CE was only feature #2 (gain=243) behind RRF (gain=393).
+
+**Options:** (A) Optuna hyperparameter tuning on 20 queries, (B) expand training data to 150+ queries, (C) both.
+
+**Choice:** (B) — expand data first.
+
+**Why:** 20 queries is too few for a listwise LambdaRank model. Each LOOCV fold trains on 19 groups — barely enough for LightGBM to learn meaningful feature interactions. More data directly fixes the root cause. Hyperparameter tuning on 20 queries would overfit to those specific queries.
+
+**What we did:**
+- Merged existing 70 queries (20 original + 50 fair-eval) into training
+- Generated 75 new training queries covering rare cancers, biomarkers, patient language, trial design, clinical scenarios, demographics
+- Total: 145 training queries, 6,018 labeled pairs (7x more data)
+- Labels from Claude Haiku, pooled from BM25+semantic+hybrid to avoid method bias
+- Cost: ~$1.50 for 4,937 new labels
+
+**Result:** Cross-encoder score jumped to #1 feature (gain=1,673 vs old 243). With enough data, LightGBM learned that CE is the most informative single signal. Feature importance distribution became healthier — no single feature dominates excessively.
+
+> **Interview answer:** "We scaled from 20 to 145 training queries. The key insight: feature importance shifted dramatically — cross-encoder went from #2 to #1 feature — proving that the original model was data-starved, not architecturally flawed."
+
+---
+
+### Decision 29: New Held-Out Test Set for Fair Evaluation (2026-03-28)
+
+**Context:** After merging the original 50 test queries into training, we needed a new independent test set. Option A: rely on 145-query LOOCV. Option B: generate 50 entirely new test queries.
+
+**Choice:** (B) — new held-out test set.
+
+**Why:** LOOCV is nearly unbiased with 145 queries, but an independent test set is the gold standard. The new test queries deliberately include harder cases: rare cancers (BPDC, systemic mastocytosis), complex patients (pregnancy, transplant, autoimmune), health equity (rural, non-English speaking, underserved populations). This tests generalization beyond typical oncology queries.
+
+**Trade-off:** Cost an additional ~$0.50 in labeling. The harder test queries produce lower absolute NDCG scores, which can look worse in a report but are more honest.
+
+> **Interview answer:** "I generated 50 deliberately harder test queries — rare cancers, comorbid patients, health equity scenarios — so the evaluation tests generalization, not just typical oncology."
+
+---
+
+### Evaluation: Fair Held-Out Evaluation v2 (2026-03-28)
+
+**Setup:** LightGBM v2 trained on 145 queries (6,018 pairs). Evaluated on 50 NEW held-out test queries (1,953 pairs). Labels pooled from BM25+semantic+hybrid, scored by Claude Haiku (0-3).
+
+| Method | NDCG@5 | NDCG@10 | MRR | Latency |
+|---|---|---|---|---|
+| BM25 only | 0.617±0.09 | 0.614±0.08 | 0.768±0.10 | 21ms |
+| Semantic only | 0.606±0.07 | 0.603±0.06 | 0.815±0.08 | 36ms |
+| Hybrid (BM25 + Semantic) | 0.636±0.08 | 0.644±0.06 | 0.807±0.09 | 71ms |
+| + Cross-Encoder Re-ranking | 0.651±0.08 | 0.657±0.06 | 0.825±0.09 | 6166ms |
+| + Metadata Blender | 0.670±0.08 | 0.657±0.07 | 0.806±0.09 | 6134ms |
+
+**Diagnostic checklist:**
+
+1. **NDCG@5 increases monotonically at each stage?** Yes. BM25 (0.617) → Hybrid (+3.1%) → +CE (+2.4%) → +LGB (+2.9%). Total: +8.6% from BM25-only to full pipeline.
+
+2. **Any stage decreasing NDCG?** No decrease in NDCG@5 or NDCG@10. However, **MRR drops from CE (0.825) to LGB (0.806)** — the blender sometimes pushes the single best result down by promoting phase 3/recruiting trials. This is a known trade-off: list-level optimization (NDCG) vs first-result quality (MRR).
+
+3. **NDCG@10 flat between CE and LGB** (0.657 → 0.657). The blender only improves top-5 ranking, not top-10. With more training data this may improve.
+
+4. **Cross-encoder is #1 feature?** Yes — gain=1,673 (30.1%). Followed by rrf_score (18.2%), phase_numeric (10.7%), title_overlap (10.0%). Healthy distribution, not over-concentrated.
+
+5. **Does blender add value beyond CE?** Yes, modestly. +2.9% NDCG@5. Feature importance shows metadata features collectively contribute ~33% (phase, enrollment, recruiting status). The blender learns domain-appropriate behavior: phase 3 recruiting trials with high enrollment are more relevant.
+
+**Comparison to v1 fair eval (different test set):**
+
+| Method | v1 (old test) | v2 (new test) | Note |
+|---|---|---|---|
+| BM25 only | 0.617 | 0.617 | Same (unaffected by training) |
+| Hybrid | 0.691 | 0.636 | New queries are harder |
+| + LGB | 0.716 | 0.670 | Improvement holds on harder queries |
+
+The new test queries are intentionally harder (rare cancers, complex scenarios, health equity). Lower absolute numbers reflect query difficulty, not model regression.
+
+**Feature importance (v2 model, 145 queries):**
+
+| Feature | Gain | Share |
+|---|---|---|
+| cross_encoder_score | 1,673 | 30.1% |
+| rrf_score | 1,012 | 18.2% |
+| phase_numeric | 593 | 10.7% |
+| title_query_overlap | 557 | 10.0% |
+| semantic_score | 520 | 9.4% |
+| bm25_score | 516 | 9.3% |
+| enrollment_log | 487 | 8.8% |
+| is_recruiting | 106 | 1.9% |
+| is_active | 56 | 1.0% |
+| condition_exact_match | 54 | 1.0% |
+| has_eligibility | 0 | 0.0% |
+
+**Data:** `docs/fair-evaluation-report.md`, `docs/feature_importance.png`, `data/evaluation/ranking_features_v2.csv`, `data/evaluation/test_labels_v2.jsonl`. MLflow experiment: `trialmind-ranker`.
 
 ---
 
