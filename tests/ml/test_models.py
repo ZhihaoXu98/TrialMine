@@ -21,6 +21,14 @@ EMBEDDER_PATH = REPO_ROOT / "models" / "embeddings" / "fine-tuned"
 CROSS_ENCODER_PATH = REPO_ROOT / "models" / "cross-encoder" / "fine-tuned"
 RANKER_PATH = REPO_ROOT / "models" / "ranker" / "v2" / "model.lgb"
 
+# Skip-gate predicates. We check for a *load-bearing* file, not just the
+# directory — gitignore now lets ``metadata.json`` through (so the
+# directories may exist in CI without weights), and ``Path.exists()`` on
+# the bare dir would falsely advertise a usable model.
+HAS_EMBEDDER = (EMBEDDER_PATH / "config.json").exists()
+HAS_CROSS_ENCODER = (CROSS_ENCODER_PATH / "config.json").exists()
+HAS_RANKER = RANKER_PATH.exists()
+
 
 # --------------------------------------------------------------------------- #
 # Embedder                                                                    #
@@ -28,7 +36,7 @@ RANKER_PATH = REPO_ROOT / "models" / "ranker" / "v2" / "model.lgb"
 
 
 @pytest.mark.skipif(
-    not EMBEDDER_PATH.exists(),
+    not HAS_EMBEDDER,
     reason="Fine-tuned embedder not present at models/embeddings/fine-tuned",
 )
 def test_embedder_loads() -> None:
@@ -40,7 +48,7 @@ def test_embedder_loads() -> None:
 
 
 @pytest.mark.skipif(
-    not EMBEDDER_PATH.exists(),
+    not HAS_EMBEDDER,
     reason="Fine-tuned embedder not present at models/embeddings/fine-tuned",
 )
 def test_embedder_outputs_768_dimensional_vector() -> None:
@@ -56,7 +64,7 @@ def test_embedder_outputs_768_dimensional_vector() -> None:
 
 
 @pytest.mark.skipif(
-    not EMBEDDER_PATH.exists(),
+    not HAS_EMBEDDER,
     reason="Fine-tuned embedder not present at models/embeddings/fine-tuned",
 )
 def test_embedder_places_cancer_closer_to_tumor_than_to_bicycle() -> None:
@@ -82,7 +90,7 @@ def test_embedder_places_cancer_closer_to_tumor_than_to_bicycle() -> None:
 
 
 @pytest.mark.skipif(
-    not CROSS_ENCODER_PATH.exists(),
+    not HAS_CROSS_ENCODER,
     reason="Fine-tuned cross-encoder not present at models/cross-encoder/fine-tuned",
 )
 def test_cross_encoder_loads_and_scores_pairs() -> None:
@@ -107,7 +115,7 @@ def test_cross_encoder_loads_and_scores_pairs() -> None:
 
 
 @pytest.mark.skipif(
-    not RANKER_PATH.exists(),
+    not HAS_RANKER,
     reason="LightGBM ranker not present at models/ranker/v2/model.lgb",
 )
 def test_lightgbm_ranker_loads_and_predicts() -> None:
