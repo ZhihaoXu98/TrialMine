@@ -218,9 +218,9 @@ def test_stop_list_filters_boilerplate(parser_with_nlp: EligibilityParser) -> No
     bucket = {item.lower() for item in profile.required_conditions}
     # Boilerplate should not appear
     for boilerplate in ("subjects", "patients", "inclusion criteria", "informed consent"):
-        assert (
-            boilerplate not in bucket
-        ), f"'{boilerplate}' leaked into required_conditions: {profile.required_conditions}"
+        assert boilerplate not in bucket, (
+            f"'{boilerplate}' leaked into required_conditions: {profile.required_conditions}"
+        )
 
 
 @pytest.mark.slow
