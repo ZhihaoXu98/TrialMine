@@ -30,33 +30,67 @@ EMBEDDER_MODEL = "michiyasunaga/BioLinkBERT-base"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Startup: connect to Elasticsearch, load FAISS + embedder. Shutdown: close."""
-    # Elasticsearch
+    """Startup / shutdown handler.
+
+    Each resource loads independently and tolerantly — if any one is
+    unavailable the API still starts in a degraded mode and routes return
+    structured 503s for the affected feature (per the project rule of
+    never letting the API return a raw 500).
+    """
+    # Elasticsearch — tolerant of being down at startup
     logger.info("Connecting to Elasticsearch at %s ...", ES_URL)
-    app.state.es_index = ElasticsearchIndex(es_url=ES_URL, index_name=INDEX_NAME)
-    logger.info("Elasticsearch connected.")
+    try:
+        app.state.es_index = ElasticsearchIndex(
+            es_url=ES_URL, index_name=INDEX_NAME
+        )
+        logger.info("Elasticsearch connected.")
+    except Exception as exc:
+        logger.warning(
+            "Elasticsearch unavailable at startup: %s — bm25 / hybrid / "
+            "trial-lookup endpoints will return 503 until restart.",
+            exc,
+        )
+        app.state.es_index = None
 
     # FAISS index
     faiss_path = Path(FAISS_INDEX_PATH)
     if faiss_path.exists():
         logger.info("Loading FAISS index from %s ...", FAISS_INDEX_PATH)
-        app.state.faiss_index = FAISSIndex()
-        app.state.faiss_index.load(FAISS_INDEX_PATH, FAISS_MAPPING_PATH)
-        logger.info("FAISS index loaded (%d vectors).", app.state.faiss_index.index.ntotal)
+        try:
+            app.state.faiss_index = FAISSIndex()
+            app.state.faiss_index.load(FAISS_INDEX_PATH, FAISS_MAPPING_PATH)
+            logger.info(
+                "FAISS index loaded (%d vectors).",
+                app.state.faiss_index.index.ntotal,
+            )
+        except Exception as exc:
+            logger.warning("FAISS index load failed: %s", exc)
+            app.state.faiss_index = None
     else:
-        logger.warning("FAISS index not found at %s — semantic search disabled.", FAISS_INDEX_PATH)
+        logger.warning(
+            "FAISS index not found at %s — semantic search disabled.",
+            FAISS_INDEX_PATH,
+        )
         app.state.faiss_index = None
 
     # Embedder
     if app.state.faiss_index is not None:
         logger.info("Loading embedding model %s ...", EMBEDDER_MODEL)
-        app.state.embedder = TrialEmbedder(model_name=EMBEDDER_MODEL)
-        logger.info("Embedder loaded.")
+        try:
+            app.state.embedder = TrialEmbedder(model_name=EMBEDDER_MODEL)
+            logger.info("Embedder loaded.")
+        except Exception as exc:
+            logger.warning("Embedder load failed: %s", exc)
+            app.state.embedder = None
     else:
         app.state.embedder = None
 
-    # Hybrid retriever
-    if app.state.faiss_index is not None and app.state.embedder is not None:
+    # Hybrid retriever — needs all three
+    if (
+        app.state.es_index is not None
+        and app.state.faiss_index is not None
+        and app.state.embedder is not None
+    ):
         app.state.hybrid_retriever = HybridRetriever(
             bm25=app.state.es_index,
             semantic=app.state.faiss_index,
@@ -66,10 +100,26 @@ async def lifespan(app: FastAPI):
     else:
         app.state.hybrid_retriever = None
 
+    # Agent pipeline — lazy-loads its own resources via tools.py singletons
+    # on first /api/v1/search call with use_agent=True. Compiling here is
+    # cheap (<100 ms); the heavy resource loading is deferred.
+    try:
+        from TrialMine.agents.pipeline import build_pipeline
+
+        app.state.pipeline = build_pipeline()
+        logger.info("Agent pipeline compiled.")
+    except Exception as exc:
+        logger.warning("Agent pipeline build failed: %s", exc)
+        app.state.pipeline = None
+
     yield
 
-    app.state.es_index.es.close()
-    logger.info("Elasticsearch connection closed.")
+    if app.state.es_index is not None:
+        try:
+            app.state.es_index.es.close()
+            logger.info("Elasticsearch connection closed.")
+        except Exception as exc:
+            logger.warning("Error closing Elasticsearch client: %s", exc)
 
 
 def create_app() -> FastAPI:

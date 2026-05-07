@@ -32,23 +32,39 @@ async def health_check() -> dict:
 
 @router.post("/api/v1/search", response_model=SearchResponse)
 async def search_trials(request: SearchRequest, req: Request) -> SearchResponse:
-    """Run a search over indexed trials using the specified method.
+    """Run a search over indexed trials.
+
+    By default routes through the agent pipeline (parse → orchestrate →
+    fallback). Set ``use_agent=False`` on the request to bypass and run
+    plain BM25 / semantic / hybrid retrieval.
 
     Args:
-        request: SearchRequest with query, top_k, filters, and method.
+        request: SearchRequest with query, top_k, filters, method, use_agent.
         req: FastAPI Request (carries app state).
 
     Returns:
-        SearchResponse with ranked results, timing, and method used.
+        SearchResponse with ranked results, timing, and (for agent runs)
+        agent_trace, patient_profile, used_fallback fields.
     """
+    if request.use_agent:
+        return await _search_agent(request, req)
+
     method = request.method
 
     # Validate that required components are loaded
+    if req.app.state.es_index is None:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Elasticsearch unavailable — set use_agent=True to use the "
+                "agent path (which has its own degraded-mode handling)."
+            ),
+        )
     if method in ("semantic", "hybrid"):
         if req.app.state.faiss_index is None or req.app.state.embedder is None:
             raise HTTPException(
                 status_code=503,
-                detail=f"Semantic search unavailable — FAISS index not loaded. Use method='bm25'.",
+                detail="Semantic search unavailable — FAISS index not loaded. Use method='bm25'.",
             )
 
     try:
@@ -94,6 +110,71 @@ async def search_trials(request: SearchRequest, req: Request) -> SearchResponse:
         query=request.query,
         search_time_ms=round(elapsed_ms, 2),
         search_method=method,
+    )
+
+
+async def _search_agent(request: SearchRequest, req: Request) -> SearchResponse:
+    """Route the request through the agent pipeline.
+
+    Always returns a :class:`SearchResponse` — the pipeline catches its own
+    exceptions and may set ``used_fallback=True`` and ``error="..."`` on
+    degraded paths rather than raising. The agent pipeline lazy-builds on
+    first use; subsequent calls reuse cached resources via tools.py
+    module-level singletons.
+    """
+    pipeline = getattr(req.app.state, "pipeline", None)
+    if pipeline is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Agent pipeline not initialised — set use_agent=False to bypass.",
+        )
+
+    from TrialMine.agents.pipeline import search as pipeline_search
+
+    t0 = time.perf_counter()
+    agent_result = await pipeline_search(request.query, pipeline)
+    elapsed_ms = (time.perf_counter() - t0) * 1000
+
+    sr = agent_result.get("search_results") or {}
+    raw_results = sr.get("results") or []
+
+    def _conds(value) -> list[str]:
+        if isinstance(value, list):
+            return [str(c).strip() for c in value if str(c).strip()]
+        return [c.strip() for c in (value or "").split(";") if c.strip()]
+
+    results = [
+        TrialResult(
+            nct_id=r.get("nct_id", ""),
+            title=r.get("title", "") or "",
+            conditions=_conds(r.get("conditions")),
+            phase=r.get("phase"),
+            status=r.get("status"),
+            score=float(r.get("score") or 0.0),
+            url=r.get("url") or (
+                f"https://clinicaltrials.gov/study/{r['nct_id']}"
+                if r.get("nct_id")
+                else None
+            ),
+            source=r.get("source"),
+            explanation=r.get("explanation"),
+            eligibility=r.get("eligibility"),
+            warnings=r.get("warnings") or [],
+        )
+        for r in raw_results
+        if r.get("nct_id")
+    ]
+
+    return SearchResponse(
+        results=results,
+        total=len(results),
+        query=request.query,
+        search_time_ms=round(elapsed_ms, 2),
+        search_method="agent",
+        agent_trace=agent_result.get("agent_trace"),
+        used_fallback=agent_result.get("used_fallback", False),
+        patient_profile=agent_result.get("patient_profile"),
+        error=agent_result.get("error"),
     )
 
 
@@ -166,6 +247,11 @@ async def get_trial(nct_id: str, req: Request) -> TrialDetailResponse:
         TrialDetailResponse with full trial data.
     """
     es_index = req.app.state.es_index
+    if es_index is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Elasticsearch unavailable — trial lookup disabled until restart.",
+        )
     doc = es_index.get_trial(nct_id.upper())
 
     if not doc:
