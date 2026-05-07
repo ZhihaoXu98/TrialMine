@@ -30,30 +30,30 @@ EXAMPLE_QUERIES: list[str] = [
 
 # emoji + Streamlit color name + display label
 STATUS_DISPLAY: dict[str, tuple[str, str, str]] = {
-    "RECRUITING":               ("🟢", "green",  "Recruiting"),
-    "ACTIVE_NOT_RECRUITING":    ("🟡", "orange", "Active, not recruiting"),
-    "NOT_YET_RECRUITING":       ("🟠", "orange", "Not yet recruiting"),
-    "ENROLLING_BY_INVITATION":  ("🟡", "orange", "Enrolling by invitation"),
-    "AVAILABLE":                ("🟢", "green",  "Available"),
-    "COMPLETED":                ("⚪", "gray",   "Completed"),
-    "TERMINATED":               ("🔴", "red",    "Terminated"),
-    "WITHDRAWN":                ("🔴", "red",    "Withdrawn"),
-    "SUSPENDED":                ("🔴", "red",    "Suspended"),
+    "RECRUITING": ("🟢", "green", "Recruiting"),
+    "ACTIVE_NOT_RECRUITING": ("🟡", "orange", "Active, not recruiting"),
+    "NOT_YET_RECRUITING": ("🟠", "orange", "Not yet recruiting"),
+    "ENROLLING_BY_INVITATION": ("🟡", "orange", "Enrolling by invitation"),
+    "AVAILABLE": ("🟢", "green", "Available"),
+    "COMPLETED": ("⚪", "gray", "Completed"),
+    "TERMINATED": ("🔴", "red", "Terminated"),
+    "WITHDRAWN": ("🔴", "red", "Withdrawn"),
+    "SUSPENDED": ("🔴", "red", "Suspended"),
 }
 
 STEP_DISPLAY: dict[str, str] = {
-    "parse_query":             "🧠 Understood your situation",
-    "normalize":               "🔤 Normalized terminology",
-    "build_query":             "🔍 Built search query",
-    "build_filters":           "🎚️  Set filters",
-    "retrieve":                "📚 Searched trial database",
-    "check_eligibility":       "✅ Checked eligibility",
-    "explain":                 "💬 Generated explanations",
-    "fallback_search":         "⚠️  Fell back to basic search",
-    "timeout":                 "⏱️  Timed out",
-    "execute_search_error":    "❌ Primary search failed",
-    "fallback_search_error":   "❌ Fallback also failed",
-    "pipeline_error":          "❌ Pipeline error",
+    "parse_query": "🧠 Understood your situation",
+    "normalize": "🔤 Normalized terminology",
+    "build_query": "🔍 Built search query",
+    "build_filters": "🎚️  Set filters",
+    "retrieve": "📚 Searched trial database",
+    "check_eligibility": "✅ Checked eligibility",
+    "explain": "💬 Generated explanations",
+    "fallback_search": "⚠️  Fell back to basic search",
+    "timeout": "⏱️  Timed out",
+    "execute_search_error": "❌ Primary search failed",
+    "fallback_search_error": "❌ Fallback also failed",
+    "pipeline_error": "❌ Pipeline error",
 }
 
 VERDICT_ICON = {"Met": "✅", "Unmet": "❌", "Unknown": "❓"}
@@ -73,10 +73,10 @@ st.set_page_config(
 def _init_state() -> None:
     """Seed session_state with the keys we depend on across reruns."""
     defaults: dict[str, Any] = {
-        "results":         None,   # full SearchResponse dict, or None
-        "results_error":   None,   # human-readable error string, or None
-        "search_input":    "",     # bound to the text input widget
-        "pending_query":   None,   # set by submit/example handlers; consumed below
+        "results": None,  # full SearchResponse dict, or None
+        "results_error": None,  # human-readable error string, or None
+        "search_input": "",  # bound to the text input widget
+        "pending_query": None,  # set by submit/example handlers; consumed below
     }
     for k, v in defaults.items():
         st.session_state.setdefault(k, v)
@@ -103,10 +103,10 @@ def _run_search(
 ) -> None:
     """Hit POST /api/v1/search and store response (or friendly error) in session_state."""
     payload: dict[str, Any] = {
-        "query":     query,
-        "top_k":     top_k,
+        "query": query,
+        "top_k": top_k,
         "use_agent": use_agent,
-        "method":    "hybrid",
+        "method": "hybrid",
     }
     if filters and not use_agent:
         payload["filters"] = filters
@@ -147,9 +147,7 @@ def _run_search(
 
     if resp.status_code >= 400:
         st.session_state.results = None
-        st.session_state.results_error = (
-            f"**API error {resp.status_code}** — {resp.text[:200]}"
-        )
+        st.session_state.results_error = f"**API error {resp.status_code}** — {resp.text[:200]}"
         return
 
     st.session_state.results = resp.json()
@@ -198,12 +196,12 @@ def _render_eligibility(eligibility: dict | None) -> None:
         st.warning(f"Eligibility check failed: {eligibility['error']}")
         return
 
-    verdict   = eligibility.get("verdict", "Unknown")
+    verdict = eligibility.get("verdict", "Unknown")
     parse_conf = eligibility.get("parse_confidence")
     icon = VERDICT_ICON.get(verdict, "❓")
 
     header = f"**Overall: {icon} {verdict}**"
-    if isinstance(parse_conf, (int, float)):
+    if isinstance(parse_conf, int | float):
         header += f" &nbsp; *(parse confidence: {parse_conf:.0%})*"
     st.markdown(header)
 
@@ -216,8 +214,8 @@ def _render_eligibility(eligibility: dict | None) -> None:
         if not isinstance(info, dict):
             continue
         c_verdict = info.get("verdict", "Unknown")
-        c_icon    = VERDICT_ICON.get(c_verdict, "❓")
-        reason    = info.get("reason") or info.get("note") or info.get("explanation") or ""
+        c_icon = VERDICT_ICON.get(c_verdict, "❓")
+        reason = info.get("reason") or info.get("note") or info.get("explanation") or ""
         if reason:
             st.markdown(f"- {c_icon} **{name}** — {reason}")
         else:
@@ -227,17 +225,17 @@ def _render_eligibility(eligibility: dict | None) -> None:
 def _render_full_details(r: dict) -> None:
     rows: list[tuple[str, str]] = []
     if r.get("conditions"):
-        rows.append(("Conditions",     "; ".join(r["conditions"])))
+        rows.append(("Conditions", "; ".join(r["conditions"])))
     if r.get("phase"):
-        rows.append(("Phase",          str(r["phase"])))
+        rows.append(("Phase", str(r["phase"])))
     if r.get("status"):
-        rows.append(("Status",         str(r["status"])))
+        rows.append(("Status", str(r["status"])))
     if r.get("source"):
-        rows.append(("Found via",      str(r["source"]).replace("_", " ")))
+        rows.append(("Found via", str(r["source"]).replace("_", " ")))
     if r.get("bm25_rank") is not None:
-        rows.append(("BM25 rank",      str(r["bm25_rank"])))
+        rows.append(("BM25 rank", str(r["bm25_rank"])))
     if r.get("semantic_rank") is not None:
-        rows.append(("Semantic rank",  str(r["semantic_rank"])))
+        rows.append(("Semantic rank", str(r["semantic_rank"])))
     if r.get("score") is not None:
         rows.append(("Internal score", f"{r['score']:.4f}"))
 
@@ -254,7 +252,7 @@ def _render_card(r: dict, idx: int, total: int) -> None:
         head_l, head_r = st.columns([4, 1])
         with head_l:
             title = r.get("title") or "(untitled)"
-            url   = r.get("url")
+            url = r.get("url")
             if url:
                 st.markdown(f"#### [{title}]({url})")
             else:
@@ -305,18 +303,24 @@ def _render_agent_trace(trace: list[dict]) -> None:
         return
 
     for entry in trace:
-        step      = entry.get("step", "")
-        duration  = entry.get("duration_ms", 0) or 0
+        step = entry.get("step", "")
+        duration = entry.get("duration_ms", 0) or 0
         decisions = entry.get("decisions", {}) or {}
-        title     = STEP_DISPLAY.get(step, f"⚙️ {step}")
+        title = STEP_DISPLAY.get(step, f"⚙️ {step}")
 
         st.markdown(f"**{title}** &nbsp; `{duration:.0f} ms`")
 
         if step == "parse_query":
             shown = False
             for key in (
-                "condition", "condition_stage", "age", "sex",
-                "biomarkers", "prior_treatments", "preferences", "location",
+                "condition",
+                "condition_stage",
+                "age",
+                "sex",
+                "biomarkers",
+                "prior_treatments",
+                "preferences",
+                "location",
             ):
                 v = decisions.get(key)
                 if v in (None, [], ""):
@@ -330,7 +334,7 @@ def _render_agent_trace(trace: list[dict]) -> None:
 
         elif step == "normalize":
             input_c = decisions.get("input_condition")
-            norm    = decisions.get("normalized") or ""
+            norm = decisions.get("normalized") or ""
             if input_c and norm and str(input_c).lower() != norm.lower():
                 st.markdown(f"- `{input_c}` → `{norm}`")
             elif norm:
@@ -352,15 +356,15 @@ def _render_agent_trace(trace: list[dict]) -> None:
                 st.caption("No filters applied.")
 
         elif step == "retrieve":
-            n     = decisions.get("n_results", 0)
-            kind  = decisions.get("pipeline", "?")
+            n = decisions.get("n_results", 0)
+            kind = decisions.get("pipeline", "?")
             st.markdown(f"- Pipeline: `{kind}`, returned {n} candidates")
             top_ids = decisions.get("top_nct_ids") or []
             if top_ids:
                 st.caption("Top: " + ", ".join(top_ids))
 
         elif step == "check_eligibility":
-            n        = decisions.get("n_checked", 0)
+            n = decisions.get("n_checked", 0)
             verdicts = decisions.get("verdicts") or []
             if verdicts:
                 joined = " ".join(VERDICT_ICON.get(v or "", "❓") for v in verdicts)
@@ -384,7 +388,7 @@ def _trace_durations(trace: list[dict]) -> dict[str, float]:
     out: dict[str, float] = {}
     for entry in trace or []:
         step = entry.get("step", "")
-        dur  = entry.get("duration_ms", 0) or 0
+        dur = entry.get("duration_ms", 0) or 0
         out[step] = out.get(step, 0) + dur
     return out
 
@@ -407,33 +411,39 @@ with st.sidebar:
     if use_agent:
         st.caption("AI agent infers status / phase filters from your query.")
         status_filter = "Any"
-        phase_filter  = "Any"
+        phase_filter = "Any"
     else:
         status_filter = st.selectbox(
             "Status",
-            ["Any", "RECRUITING", "ACTIVE_NOT_RECRUITING",
-             "NOT_YET_RECRUITING", "COMPLETED"],
+            ["Any", "RECRUITING", "ACTIVE_NOT_RECRUITING", "NOT_YET_RECRUITING", "COMPLETED"],
             index=1,
         )
         phase_filter = st.selectbox(
             "Phase",
-            ["Any", "Phase 1", "Phase 2", "Phase 3", "Phase 4",
-             "Phase 1/Phase 2", "Phase 2/Phase 3"],
+            [
+                "Any",
+                "Phase 1",
+                "Phase 2",
+                "Phase 3",
+                "Phase 4",
+                "Phase 1/Phase 2",
+                "Phase 2/Phase 3",
+            ],
         )
 
     top_k = st.slider("Max results", min_value=5, max_value=50, value=20, step=5)
 
     # Stats — only after a successful search
     if st.session_state.results:
-        data       = st.session_state.results
+        data = st.session_state.results
         st.markdown("---")
         st.markdown("## 📊 Stats")
 
-        n         = data.get("total", 0)
+        n = data.get("total", 0)
         elapsed_s = (data.get("search_time_ms") or 0) / 1000.0
         c1, c2 = st.columns(2)
         c1.metric("Trials found", f"{n}")
-        c2.metric("Total time",   f"{elapsed_s:.2f} s")
+        c2.metric("Total time", f"{elapsed_s:.2f} s")
 
         # Timing breakdown — derive from agent_trace (agent path) or timings dict (legacy)
         trace = data.get("agent_trace") or []
@@ -451,7 +461,7 @@ with st.sidebar:
             if parts:
                 st.caption(" · ".join(parts))
         elif data.get("timings"):
-            t     = data["timings"]
+            t = data["timings"]
             parts = []
             if t.get("bm25_ms"):
                 parts.append(f"BM25: {t['bm25_ms']:.0f} ms")
@@ -544,12 +554,12 @@ if st.session_state.results_error:
     st.error(st.session_state.results_error)
 
 elif st.session_state.results:
-    data    = st.session_state.results
+    data = st.session_state.results
     results: list[dict] = data.get("results") or []
 
     elapsed_s = (data.get("search_time_ms") or 0) / 1000.0
-    n         = len(results)
-    qtext     = data.get("query", "")
+    n = len(results)
+    qtext = data.get("query", "")
     st.markdown(
         f"### {n} trial{'s' if n != 1 else ''} found"
         f" &nbsp; *for «{qtext}»*"
@@ -557,10 +567,16 @@ elif st.session_state.results:
     )
 
     # Patient profile summary (agent path only)
-    profile      = data.get("patient_profile") or {}
+    profile = data.get("patient_profile") or {}
     profile_keys = (
-        "condition", "condition_stage", "age", "sex",
-        "biomarkers", "prior_treatments", "preferences", "location",
+        "condition",
+        "condition_stage",
+        "age",
+        "sex",
+        "biomarkers",
+        "prior_treatments",
+        "preferences",
+        "location",
     )
     if any(profile.get(k) for k in profile_keys):
         with st.container(border=True):

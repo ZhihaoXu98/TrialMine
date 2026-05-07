@@ -97,17 +97,22 @@ async def parse_query(state: SearchState) -> dict:
     profile: PatientProfile = await asyncio.to_thread(parser.parse, state["raw_query"])
     elapsed_ms = (time.perf_counter() - t0) * 1000
 
-    populated = sum(
-        1
-        for v in (
-            profile.condition,
-            profile.condition_stage,
-            profile.age,
-            profile.sex,
-            profile.location,
+    populated = (
+        sum(
+            1
+            for v in (
+                profile.condition,
+                profile.condition_stage,
+                profile.age,
+                profile.sex,
+                profile.location,
+            )
+            if v is not None
         )
-        if v is not None
-    ) + len(profile.prior_treatments) + len(profile.biomarkers) + len(profile.preferences)
+        + len(profile.prior_treatments)
+        + len(profile.biomarkers)
+        + len(profile.preferences)
+    )
 
     return {
         "patient_profile": profile.model_dump(),
@@ -195,9 +200,7 @@ async def fallback_search(state: SearchState) -> dict:
         from TrialMine.agents.tools import _get_hybrid
 
         retriever = _get_hybrid()
-        ranked = await asyncio.to_thread(
-            retriever.search, raw_query, DEFAULT_FALLBACK_TOP_K, None
-        )
+        ranked = await asyncio.to_thread(retriever.search, raw_query, DEFAULT_FALLBACK_TOP_K, None)
         results = [
             {
                 "nct_id": r.get("nct_id"),
@@ -251,8 +254,7 @@ async def fallback_search(state: SearchState) -> dict:
             },
             "used_fallback": True,
             "error": (
-                f"both paths failed — primary: {reason}; "
-                f"fallback: {type(exc).__name__}: {exc}"
+                f"both paths failed — primary: {reason}; fallback: {type(exc).__name__}: {exc}"
             ),
             "agent_trace": [
                 {
@@ -344,11 +346,9 @@ async def search(
     t0 = time.perf_counter()
     try:
         final = await asyncio.wait_for(pipeline.ainvoke(initial), timeout=timeout)
-    except asyncio.TimeoutError:
+    except TimeoutError:
         elapsed_ms = (time.perf_counter() - t0) * 1000
-        logger.warning(
-            "Pipeline exceeded %.1fs budget — returning degraded response", timeout
-        )
+        logger.warning("Pipeline exceeded %.1fs budget — returning degraded response", timeout)
         record_agent_failure("timeout")
         return {
             "patient_profile": None,

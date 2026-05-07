@@ -180,7 +180,7 @@ Phase: 7 (LangGraph agent system) — Week 7 close-out. Demo-quality Streamlit U
   - Section split: 4-tier fallback (`headers` → `single_header` → `variant` → `fallback`)
   - Age extraction: column-first, regex fallback (12 patterns including unicode ≥/≤ and `\<` escape leak)
   - Stop-list (~80 boilerplate terms) filters SciSpacy noise; treatment regex routes drug/therapy spans to treatments bucket
-  - Tests: 37 (32 fast regex + 5 slow SciSpacy integration), all passing — `tests/features/test_eligibility.py`
+  - Tests: 37 (32 fast regex + 5 slow SciSpacy integration), all passing — `tests/unit/test_eligibility.py`
   - Demo: `scripts/demo_eligibility_parser.py --limit 20 [--show-buckets]`
   - Batch parse: `scripts/parse_eligibility.py [--limit N] [--resume]` writes to `parsed_eligibility` SQLite table; 23 trials/sec single-process; 1000-trial demo: 94.4% have min_age, 99.7% have conditions, avg conf 0.977, 91% canonical headers
 - **Concept normalizer** (Phase 6c):

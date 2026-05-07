@@ -53,9 +53,7 @@ class EligibilityProfile(BaseModel):
     raw_inclusion: str = ""
     raw_exclusion: str = ""
     parse_confidence: float = 0.0
-    section_source: Literal[
-        "headers", "single_header", "variant", "fallback", "empty"
-    ] = "fallback"
+    section_source: Literal["headers", "single_header", "variant", "fallback", "empty"] = "fallback"
 
 
 # --------------------------------------------------------------------------- #
@@ -101,9 +99,7 @@ _AGE_RANGE_PATTERNS: list[tuple[re.Pattern[str], str]] = [
     ),
     # "Age: 18-65" / "18-75 years"
     (
-        re.compile(
-            r"(?i)(?:\bage\s*[:\-]?\s*)?\b(\d+)\s*-\s*(\d+)\s*(?:years?|y(?:rs?)?)\b"
-        ),
+        re.compile(r"(?i)(?:\bage\s*[:\-]?\s*)?\b(\d+)\s*-\s*(\d+)\s*(?:years?|y(?:rs?)?)\b"),
         "years",
     ),
 ]
@@ -111,17 +107,13 @@ _AGE_RANGE_PATTERNS: list[tuple[re.Pattern[str], str]] = [
 # Min-age patterns. Sub-confidence 0.9.
 _AGE_MIN_PATTERNS = [
     # ">= 18 years", "≥ 18 years", "\>= 18 years" (escape leak), "Age >= 18"
-    re.compile(
-        r"(?i)(?:age\s*)?(?:\\)?(?:>=|≥)\s*(\d+)\s*(?:years?|y(?:rs?)?)?"
-    ),
+    re.compile(r"(?i)(?:age\s*)?(?:\\)?(?:>=|≥)\s*(\d+)\s*(?:years?|y(?:rs?)?)?"),
     # "at least 18 years"
     re.compile(r"(?i)\bat\s+least\s+(\d+)\s*(?:years?|y(?:rs?)?)\b"),
     # "minimum age 18" / "minimum age of 18"
     re.compile(r"(?i)\bminimum\s+age\s+(?:of\s+)?(\d+)"),
     # "18 years and older" / "18 years or older" / "18 years and above"
-    re.compile(
-        r"(?i)\b(\d+)\s*(?:years?|y(?:rs?)?)\s*(?:and|or)\s+(?:older|above|greater)"
-    ),
+    re.compile(r"(?i)\b(\d+)\s*(?:years?|y(?:rs?)?)\s*(?:and|or)\s+(?:older|above|greater)"),
     # "Adults (18+)" / "age 18+"
     re.compile(r"(?i)\b(?:adults?|age)\s*\(?(\d+)\+\)?"),
 ]
@@ -131,9 +123,7 @@ _AGE_MAX_PATTERNS = [
     # "younger than 65"
     re.compile(r"(?i)\byounger\s+than\s+(\d+)"),
     # "<= 65 years", "≤ 65 years", "\<= 65"
-    re.compile(
-        r"(?i)(?:age\s*)?(?:\\)?(?:<=|≤)\s*(\d+)\s*(?:years?|y(?:rs?)?)?"
-    ),
+    re.compile(r"(?i)(?:age\s*)?(?:\\)?(?:<=|≤)\s*(\d+)\s*(?:years?|y(?:rs?)?)?"),
     # "maximum age 75"
     re.compile(r"(?i)\bmaximum\s+age\s+(?:of\s+)?(\d+)"),
 ]
@@ -146,9 +136,7 @@ _KEYWORD_PEDIATRIC_RE = re.compile(r"(?i)\bpediatric\b|\bchildren\b")
 _SEX_FEMALE_RE = re.compile(
     r"(?i)\b(?:female|women)\s+only\b|\b(?:females?|women)\s+participants?\b"
 )
-_SEX_MALE_RE = re.compile(
-    r"(?i)\b(?:male|men)\s+only\b|\b(?:males?|men)\s+participants?\b"
-)
+_SEX_MALE_RE = re.compile(r"(?i)\b(?:male|men)\s+only\b|\b(?:males?|men)\s+participants?\b")
 
 # Treatment-typing heuristic — span text matches → bucket as treatment.
 _TREATMENT_RE = re.compile(
@@ -286,7 +274,6 @@ _STOP_SPANS: frozenset[str] = frozenset(
         "regulatory",
         "institutional guidelines",
         "central lab",
-        "regimen",
         "marketing authorization",
         "ministry",
         "food",
@@ -296,7 +283,6 @@ _STOP_SPANS: frozenset[str] = frozenset(
         "prescribing information",
         "indications",
         "therapeutic",
-        "indications",
     }
 )
 
@@ -431,9 +417,7 @@ class EligibilityParser:
         inclusion, exclusion, section_source = self._split_sections(raw_text)
         section_conf = _SECTION_CONF[section_source]
 
-        min_age, max_age, age_conf = self._extract_age(
-            inclusion, min_age_col, max_age_col
-        )
+        min_age, max_age, age_conf = self._extract_age(inclusion, min_age_col, max_age_col)
         sex, sex_conf = self._extract_sex(raw_text, sex_col)
 
         req_cond, req_treat = self._extract_entities(inclusion)
@@ -587,7 +571,9 @@ class EligibilityParser:
             return [], []
 
         try:
-            doc = nlp(section_text)
+            # SciSpacy Language is callable but typed as ``object`` here so
+            # the parser can be constructed without spacy installed.
+            doc = nlp(section_text)  # type: ignore[operator]
         except Exception as exc:  # NER failures shouldn't bring the parser down
             logger.warning("SciSpacy NER failed: %s", exc)
             return [], []

@@ -61,12 +61,13 @@ async def search_trials(request: SearchRequest, req: Request) -> SearchResponse:
                 "agent path (which has its own degraded-mode handling)."
             ),
         )
-    if method in ("semantic", "hybrid"):
-        if req.app.state.faiss_index is None or req.app.state.embedder is None:
-            raise HTTPException(
-                status_code=503,
-                detail="Semantic search unavailable — FAISS index not loaded. Use method='bm25'.",
-            )
+    if method in ("semantic", "hybrid") and (
+        req.app.state.faiss_index is None or req.app.state.embedder is None
+    ):
+        raise HTTPException(
+            status_code=503,
+            detail="Semantic search unavailable — FAISS index not loaded. Use method='bm25'.",
+        )
 
     try:
         t0 = time.perf_counter()
@@ -83,17 +84,13 @@ async def search_trials(request: SearchRequest, req: Request) -> SearchResponse:
         raise
     except Exception as exc:
         logger.exception("Search failed (method=%s)", method)
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
     results = [
         TrialResult(
             nct_id=r["nct_id"],
             title=r.get("title", ""),
-            conditions=[
-                c.strip()
-                for c in (r.get("conditions") or "").split(";")
-                if c.strip()
-            ],
+            conditions=[c.strip() for c in (r.get("conditions") or "").split(";") if c.strip()],
             phase=r.get("phase"),
             status=r.get("status"),
             score=r.get("score", 0.0),
@@ -154,11 +151,8 @@ async def _search_agent(request: SearchRequest, req: Request) -> SearchResponse:
             phase=r.get("phase"),
             status=r.get("status"),
             score=float(r.get("score") or 0.0),
-            url=r.get("url") or (
-                f"https://clinicaltrials.gov/study/{r['nct_id']}"
-                if r.get("nct_id")
-                else None
-            ),
+            url=r.get("url")
+            or (f"https://clinicaltrials.gov/study/{r['nct_id']}" if r.get("nct_id") else None),
             source=r.get("source"),
             explanation=r.get("explanation"),
             eligibility=r.get("eligibility"),

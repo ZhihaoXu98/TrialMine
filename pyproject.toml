@@ -44,6 +44,8 @@ dev = [
     "pytest>=8.2",
     "pytest-asyncio>=0.23",
     "ruff>=0.4",
+    "mypy>=1.10",
+    "pre-commit>=3.7",
 ]
 
 [project.scripts]
@@ -64,3 +66,17 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+markers = [
+    "slow: integration tests that load SciSpacy or trained models (deselect with -m 'not slow')",
+]
+
+[tool.mypy]
+# Pydantic plugin teaches mypy that Field(None, ...) means a real None default,
+# without it every BaseModel.__init__ call yells "missing argument".
+plugins = ["pydantic.mypy"]
+ignore_missing_imports = true
+# ML codebase: most third-party libs (sentence_transformers, faiss, lightgbm,
+# scispacy, mlflow) ship without type stubs. Stay on the loose side rather
+# than gate the entire build on stub availability.
+check_untyped_defs = false
+disable_error_code = ["import-untyped"]

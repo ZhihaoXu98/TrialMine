@@ -5,10 +5,8 @@ metadata features to produce a final ranking score. Trained with
 LambdaRank to optimize NDCG directly.
 """
 
-import json
 import logging
 import math
-from pathlib import Path
 
 import lightgbm as lgb
 import numpy as np
@@ -103,11 +101,7 @@ def compute_features(
     cond_words = set(conditions.lower().split()) if conditions else set()
     title_words = set(title.lower().split()) if title else set()
     condition_match = 1.0 if query_words & cond_words else 0.0
-    title_overlap = (
-        len(query_words & title_words) / len(query_words)
-        if query_words
-        else 0.0
-    )
+    title_overlap = len(query_words & title_words) / len(query_words) if query_words else 0.0
 
     return {
         "bm25_score": bm25_score,
@@ -158,7 +152,7 @@ class RankingBlender:
         """
         if self.model is None:
             raise RuntimeError("No model loaded. Call load() first.")
-        return self.model.predict(features)
+        return np.asarray(self.model.predict(features))
 
     def rerank(
         self,
@@ -187,7 +181,7 @@ class RankingBlender:
         features = np.array(feature_rows, dtype=np.float32)
         scores = self.predict(features)
 
-        for candidate, score in zip(candidates, scores):
+        for candidate, score in zip(candidates, scores, strict=False):
             candidate["blender_score"] = float(score)
 
         ranked = sorted(candidates, key=lambda x: x["blender_score"], reverse=True)

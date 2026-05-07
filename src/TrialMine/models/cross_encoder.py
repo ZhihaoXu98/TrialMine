@@ -80,7 +80,8 @@ class CrossEncoderReranker:
 
         # Normalize CE scores to [0, 1] via sigmoid (already logits)
         import math
-        for candidate, ce in zip(candidates, ce_scores):
+
+        for candidate, ce in zip(candidates, ce_scores, strict=False):
             candidate["cross_encoder_score"] = 1 / (1 + math.exp(-ce))
 
         # Normalize RRF scores to [0, 1] for blending
@@ -95,9 +96,7 @@ class CrossEncoderReranker:
             # Blend: keep RRF as primary signal, CE as boost
             candidate["blended_score"] = 0.7 * rrf_norm + 0.3 * ce_norm
 
-        ranked = sorted(
-            candidates, key=lambda x: x["blended_score"], reverse=True
-        )
+        ranked = sorted(candidates, key=lambda x: x["blended_score"], reverse=True)
         return ranked[:top_k]
 
     def rerank_with_timing(

@@ -98,9 +98,7 @@ def parse_study(raw: dict[str, Any]) -> Trial | None:
     conditions: list[str] = ps.get("conditionsModule", {}).get("conditions", [])
 
     interventions_raw = _get(ps, "armsInterventionsModule", "interventions", default=[])
-    interventions: list[str] = [
-        i["name"] for i in (interventions_raw or []) if i.get("name")
-    ]
+    interventions: list[str] = [i["name"] for i in (interventions_raw or []) if i.get("name")]
 
     elig_mod = ps.get("eligibilityModule", {})
     eligibility_criteria = elig_mod.get("eligibilityCriteria")

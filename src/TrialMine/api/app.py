@@ -55,9 +55,7 @@ async def lifespan(app: FastAPI):
     # Elasticsearch — tolerant of being down at startup
     logger.info("Connecting to Elasticsearch at %s ...", ES_URL)
     try:
-        app.state.es_index = ElasticsearchIndex(
-            es_url=ES_URL, index_name=INDEX_NAME
-        )
+        app.state.es_index = ElasticsearchIndex(es_url=ES_URL, index_name=INDEX_NAME)
         logger.info("Elasticsearch connected.")
     except Exception as exc:
         logger.warning(
@@ -161,8 +159,7 @@ async def lifespan(app: FastAPI):
                     filters=None,
                 )
                 logger.info(
-                    "Pre-warmed agent retriever + CE + blender "
-                    "(blender=%s) in %.0f ms",
+                    "Pre-warmed agent retriever + CE + blender (blender=%s) in %.0f ms",
                     "loaded" if blender is not None else "missing",
                     (time.perf_counter() - t0) * 1000,
                 )

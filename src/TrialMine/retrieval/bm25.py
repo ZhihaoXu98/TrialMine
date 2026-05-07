@@ -7,10 +7,9 @@ Responsibilities:
 """
 
 import logging
-import time
 
 from elasticsearch import Elasticsearch
-from elasticsearch.helpers import bulk, BulkIndexError
+from elasticsearch.helpers import BulkIndexError, bulk
 
 from TrialMine.data.models import Trial
 

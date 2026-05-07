@@ -63,9 +63,7 @@ class PatientProfile(BaseModel):
         None,
         ge=0,
         le=130,
-        description=(
-            "Patient age in years; only when a specific number is given."
-        ),
+        description=("Patient age in years; only when a specific number is given."),
     )
     sex: Literal["Male", "Female"] | None = Field(
         None,
@@ -212,9 +210,7 @@ class QueryParserAgent:
         """
         api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
         if not api_key:
-            raise ValueError(
-                "ANTHROPIC_API_KEY missing. Set the env var or pass api_key=."
-            )
+            raise ValueError("ANTHROPIC_API_KEY missing. Set the env var or pass api_key=.")
 
         self.model = model
         self.max_tokens = max_tokens
@@ -257,7 +253,8 @@ class QueryParserAgent:
                 )
             elapsed_ms = (time.perf_counter() - t0) * 1000
 
-            extracted: _ExtractedFields = response.parsed_output
+            extracted = response.parsed_output
+            assert extracted is not None, "messages.parse() succeeded with no parsed_output"
             profile = PatientProfile(
                 **extracted.model_dump(),
                 raw_query=raw_query,
@@ -280,8 +277,7 @@ class QueryParserAgent:
         except Exception as exc:
             elapsed_ms = (time.perf_counter() - t0) * 1000
             logger.warning(
-                "QueryParser failed in %.0f ms (%s: %s); "
-                "returning raw_query-only profile",
+                "QueryParser failed in %.0f ms (%s: %s); returning raw_query-only profile",
                 elapsed_ms,
                 type(exc).__name__,
                 exc,

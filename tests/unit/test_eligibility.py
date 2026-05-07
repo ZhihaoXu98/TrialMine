@@ -133,9 +133,7 @@ def test_extract_age_column_first_overrides_text(parser_no_nlp: EligibilityParse
 
 def test_extract_age_keyword_fallback(parser_no_nlp: EligibilityParser) -> None:
     """Bare keyword 'adult' is the lowest-precision fallback."""
-    min_age, max_age, conf = parser_no_nlp._extract_age(
-        "Healthy adult volunteers", None, None
-    )
+    min_age, max_age, conf = parser_no_nlp._extract_age("Healthy adult volunteers", None, None)
     assert min_age == 18.0
     assert max_age is None
     assert conf == pytest.approx(0.6)
@@ -200,9 +198,7 @@ def test_extract_sex_from_column(parser_no_nlp: EligibilityParser) -> None:
 
 
 def test_extract_sex_from_text_fallback(parser_no_nlp: EligibilityParser) -> None:
-    sex, conf = parser_no_nlp._extract_sex(
-        "This is a study of female participants only", None
-    )
+    sex, conf = parser_no_nlp._extract_sex("This is a study of female participants only", None)
     assert sex == "Female"
     assert conf == pytest.approx(0.8)
 
@@ -222,9 +218,9 @@ def test_stop_list_filters_boilerplate(parser_with_nlp: EligibilityParser) -> No
     bucket = {item.lower() for item in profile.required_conditions}
     # Boilerplate should not appear
     for boilerplate in ("subjects", "patients", "inclusion criteria", "informed consent"):
-        assert boilerplate not in bucket, (
-            f"'{boilerplate}' leaked into required_conditions: {profile.required_conditions}"
-        )
+        assert (
+            boilerplate not in bucket
+        ), f"'{boilerplate}' leaked into required_conditions: {profile.required_conditions}"
 
 
 @pytest.mark.slow

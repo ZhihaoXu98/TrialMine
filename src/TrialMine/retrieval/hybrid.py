@@ -12,8 +12,6 @@ import math
 import time
 from typing import TYPE_CHECKING
 
-import numpy as np
-
 from TrialMine.models.embeddings import TrialEmbedder
 from TrialMine.retrieval.bm25 import ElasticsearchIndex
 from TrialMine.retrieval.semantic import FAISSIndex
@@ -82,7 +80,7 @@ def reciprocal_rank_fusion(
             }
         )
 
-    fused.sort(key=lambda x: x["rrf_score"], reverse=True)
+    fused.sort(key=lambda x: float(x["rrf_score"]), reverse=True)  # type: ignore[arg-type]
     return fused
 
 
@@ -133,17 +131,13 @@ class HybridRetriever:
         """
         # Step 1: BM25 retrieval
         t0 = time.perf_counter()
-        bm25_results = self.bm25.search(
-            query=query, filters=filters, top_k=candidate_k
-        )
+        bm25_results = self.bm25.search(query=query, filters=filters, top_k=candidate_k)
         bm25_ms = (time.perf_counter() - t0) * 1000
 
         # Step 2: Semantic retrieval
         t0 = time.perf_counter()
         query_embedding = self.embedder.embed_text(query)
-        semantic_results = self.semantic.search(
-            query_embedding=query_embedding, top_k=candidate_k
-        )
+        semantic_results = self.semantic.search(query_embedding=query_embedding, top_k=candidate_k)
         semantic_ms = (time.perf_counter() - t0) * 1000
 
         logger.info(
@@ -222,18 +216,14 @@ class HybridRetriever:
 
         # Step 1: BM25 retrieval
         t0 = time.perf_counter()
-        bm25_results = self.bm25.search(
-            query=query, filters=filters, top_k=200
-        )
+        bm25_results = self.bm25.search(query=query, filters=filters, top_k=200)
         timings["bm25_ms"] = (time.perf_counter() - t0) * 1000
         bm25_score_map = {r["nct_id"]: r["score"] for r in bm25_results}
 
         # Step 2: Semantic retrieval
         t0 = time.perf_counter()
         query_embedding = self.embedder.embed_text(query)
-        semantic_results = self.semantic.search(
-            query_embedding=query_embedding, top_k=200
-        )
+        semantic_results = self.semantic.search(query_embedding=query_embedding, top_k=200)
         timings["semantic_ms"] = (time.perf_counter() - t0) * 1000
         semantic_score_map = {nct_id: s for nct_id, s in semantic_results}
 
@@ -257,9 +247,7 @@ class HybridRetriever:
                     filtered_fused.append(item)
                     continue
                 doc = self.bm25.get_trial(item["nct_id"])
-                if doc and all(
-                    str(doc.get(k) or "") == str(v) for k, v in filters.items()
-                ):
+                if doc and all(str(doc.get(k) or "") == str(v) for k, v in filters.items()):
                     bm25_meta[item["nct_id"]] = doc  # cache for enrichment below
                     filtered_fused.append(item)
             fused = filtered_fused
@@ -312,7 +300,7 @@ class HybridRetriever:
 
         texts = [c["trial_text"] for c in candidates]
         raw_scores = reranker.score(query, texts)
-        for c, raw in zip(candidates, raw_scores):
+        for c, raw in zip(candidates, raw_scores, strict=False):
             c["cross_encoder_score"] = 1 / (1 + math.exp(-raw))
         timings["cross_encoder_ms"] = (time.perf_counter() - t0) * 1000
 
@@ -329,9 +317,7 @@ class HybridRetriever:
             for c in candidates:
                 rrf_norm = (c["score"] - rrf_min) / rrf_range
                 c["blended_score"] = 0.7 * rrf_norm + 0.3 * c["cross_encoder_score"]
-            ranked = sorted(
-                candidates, key=lambda x: x["blended_score"], reverse=True
-            )[:top_k]
+            ranked = sorted(candidates, key=lambda x: x["blended_score"], reverse=True)[:top_k]
         timings["blender_ms"] = (time.perf_counter() - t0) * 1000
 
         timings["total_ms"] = sum(timings.values())

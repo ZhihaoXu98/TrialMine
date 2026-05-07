@@ -90,8 +90,7 @@ class SearchOrchestrator:
         """
         if eligibility_top_k > top_k:
             raise ValueError(
-                f"eligibility_top_k ({eligibility_top_k}) cannot exceed "
-                f"top_k ({top_k})"
+                f"eligibility_top_k ({eligibility_top_k}) cannot exceed top_k ({top_k})"
             )
         self._retriever = retriever
         self._concept_normalizer = concept_normalizer
@@ -217,9 +216,7 @@ class SearchOrchestrator:
         eligibility_results: list[dict | None] = [None] * len(ranked)
         if n_to_check > 0:
             tasks = [
-                asyncio.to_thread(
-                    self._check_eligibility, ranked[i]["nct_id"], profile
-                )
+                asyncio.to_thread(self._check_eligibility, ranked[i]["nct_id"], profile)
                 for i in range(n_to_check)
             ]
             partial = await asyncio.gather(*tasks)
@@ -235,10 +232,7 @@ class SearchOrchestrator:
                     "n_total_results": len(ranked),
                     "concurrent": True,
                     "verdicts": [
-                        eligibility_results[i].get("verdict")
-                        if eligibility_results[i]
-                        else None
-                        for i in range(n_to_check)
+                        (eligibility_results[i] or {}).get("verdict") for i in range(n_to_check)
                     ],
                 },
             }
@@ -257,9 +251,7 @@ class SearchOrchestrator:
                 "status": r.get("status"),
                 "enrollment": r.get("enrollment"),
                 "conditions": r.get("conditions", ""),
-                "score": r.get("blender_score")
-                or r.get("blended_score")
-                or r.get("score"),
+                "score": r.get("blender_score") or r.get("blended_score") or r.get("score"),
                 "source": r.get("source"),
                 "explanation": explanation,
                 "warnings": warnings,
@@ -319,9 +311,7 @@ class SearchOrchestrator:
             kind = "full_pipeline" if blender is not None else "ce_blended"
             return ranked, retrieve_timings, kind
 
-        ranked = self.retriever.search(
-            query=query, top_k=self.top_k, filters=filters or None
-        )
+        ranked = self.retriever.search(query=query, top_k=self.top_k, filters=filters or None)
         return ranked, None, "hybrid_only"
 
     def _normalize_condition(self, profile: PatientProfile) -> str:
@@ -358,9 +348,7 @@ class SearchOrchestrator:
         """
         filters: dict[str, str] = {}
 
-        haystack = " ".join(
-            [profile.raw_query or "", *profile.preferences]
-        ).lower()
+        haystack = " ".join([profile.raw_query or "", *profile.preferences]).lower()
         if not any(kw in haystack for kw in _COMPLETED_KEYWORDS):
             filters["status"] = "RECRUITING"
 
@@ -372,9 +360,7 @@ class SearchOrchestrator:
 
         return filters
 
-    def _check_eligibility(
-        self, nct_id: str, profile: PatientProfile
-    ) -> dict:
+    def _check_eligibility(self, nct_id: str, profile: PatientProfile) -> dict:
         """Call the ``check_trial_eligibility`` tool and parse its JSON output.
 
         Returns a dict with at least ``verdict``. On any failure (tool error,
@@ -386,23 +372,17 @@ class SearchOrchestrator:
             result_json = check_trial_eligibility.invoke(
                 {
                     "nct_id": nct_id,
-                    "patient_age": (
-                        float(profile.age) if profile.age is not None else None
-                    ),
+                    "patient_age": (float(profile.age) if profile.age is not None else None),
                     "patient_sex": profile.sex,
                     "patient_condition": profile.condition,
                     "prior_treatments": (
-                        ", ".join(profile.prior_treatments)
-                        if profile.prior_treatments
-                        else None
+                        ", ".join(profile.prior_treatments) if profile.prior_treatments else None
                     ),
                 }
             )
             return json.loads(result_json)
         except Exception as exc:
-            logger.warning(
-                "Eligibility check failed for %s: %s", nct_id, exc
-            )
+            logger.warning("Eligibility check failed for %s: %s", nct_id, exc)
             return {"verdict": "Unknown", "error": f"check failed: {exc}"}
 
     def _build_explanation(
@@ -431,15 +411,9 @@ class SearchOrchestrator:
         else:
             verdict = eligibility.get("verdict", "Unknown")
             criteria = eligibility.get("criteria", {}) or {}
-            n_met = sum(
-                1 for c in criteria.values() if c.get("verdict") == "Met"
-            )
-            n_unmet = sum(
-                1 for c in criteria.values() if c.get("verdict") == "Unmet"
-            )
-            n_unknown = sum(
-                1 for c in criteria.values() if c.get("verdict") == "Unknown"
-            )
+            n_met = sum(1 for c in criteria.values() if c.get("verdict") == "Met")
+            n_unmet = sum(1 for c in criteria.values() if c.get("verdict") == "Unmet")
+            n_unknown = sum(1 for c in criteria.values() if c.get("verdict") == "Unknown")
             counts = f"({n_met} met, {n_unmet} unmet, {n_unknown} unknown)"
             if verdict == "Met":
                 match_info = f"Eligibility: likely a Match {counts}"
@@ -448,14 +422,11 @@ class SearchOrchestrator:
             else:
                 match_info = f"Eligibility: needs review {counts}"
             if eligibility.get("parse_confidence", 1.0) < 0.5:
-                warnings.append(
-                    "low parse confidence — verdict may be unreliable"
-                )
+                warnings.append("low parse confidence — verdict may be unreliable")
 
         enrollment_text = f", enrollment {enrollment}" if enrollment else ""
         explanation = (
-            f"This {phase} trial ({status}{enrollment_text}) for "
-            f"{cond_text}. {match_info}."
+            f"This {phase} trial ({status}{enrollment_text}) for {cond_text}. {match_info}."
         )
         if warnings:
             explanation += " " + " ".join(f"[{w}]" for w in warnings)

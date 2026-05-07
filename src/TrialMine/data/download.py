@@ -19,8 +19,7 @@ PAGE_SIZE = 1000
 REQUEST_DELAY = 0.5  # seconds — respect rate limits
 
 ONCOLOGY_QUERY = (
-    "cancer OR oncology OR tumor OR carcinoma OR "
-    "lymphoma OR leukemia OR melanoma OR sarcoma"
+    "cancer OR oncology OR tumor OR carcinoma OR lymphoma OR leukemia OR melanoma OR sarcoma"
 )
 
 _STATE_FILE = ".download_state.json"
@@ -62,7 +61,7 @@ def fetch_page(client: httpx.Client, params: dict) -> dict:
         except (httpx.HTTPStatusError, httpx.TimeoutException) as exc:
             if attempt == 2:
                 raise
-            wait = 2 ** attempt * 2
+            wait = 2**attempt * 2
             logger.warning("Request failed (%s), retrying in %ds...", exc, wait)
             time.sleep(wait)
     raise RuntimeError("unreachable")
@@ -105,7 +104,10 @@ def download_oncology_trials(
             try:
                 data = fetch_page(client, params)
             except Exception:
-                logger.exception("Failed to fetch page %d — progress saved, safe to retry", page_num)
+                logger.exception(
+                    "Failed to fetch page %d — progress saved, safe to retry",
+                    page_num,
+                )
                 break
 
             studies = data.get("studies", [])

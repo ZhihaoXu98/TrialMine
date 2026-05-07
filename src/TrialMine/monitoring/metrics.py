@@ -105,9 +105,7 @@ MODEL_INFERENCE = Histogram(
 
 # Endpoints whose path includes a varying ID — collapse to a stable label so
 # we don't blow up time-series cardinality (one series per NCT id is bad).
-_NORMALISE_PREFIXES: tuple[tuple[str, str], ...] = (
-    ("/api/v1/trial/", "/api/v1/trial/{nct_id}"),
-)
+_NORMALISE_PREFIXES: tuple[tuple[str, str], ...] = (("/api/v1/trial/", "/api/v1/trial/{nct_id}"),)
 
 
 def _endpoint_label(path: str) -> str:
@@ -140,9 +138,7 @@ async def metrics_middleware(
         status = response.status_code
     except Exception:
         REQUEST_COUNT.labels(endpoint=endpoint, status="500").inc()
-        REQUEST_LATENCY.labels(endpoint=endpoint).observe(
-            time.perf_counter() - start
-        )
+        REQUEST_LATENCY.labels(endpoint=endpoint).observe(time.perf_counter() - start)
         raise
 
     REQUEST_COUNT.labels(endpoint=endpoint, status=str(status)).inc()
@@ -218,9 +214,7 @@ def time_model(model: str) -> Callable[[F], F]:
                 try:
                     return await func(*args, **kwargs)
                 finally:
-                    MODEL_INFERENCE.labels(model=model).observe(
-                        time.perf_counter() - t0
-                    )
+                    MODEL_INFERENCE.labels(model=model).observe(time.perf_counter() - t0)
 
             return async_wrapper  # type: ignore[return-value]
 
@@ -230,9 +224,7 @@ def time_model(model: str) -> Callable[[F], F]:
             try:
                 return func(*args, **kwargs)
             finally:
-                MODEL_INFERENCE.labels(model=model).observe(
-                    time.perf_counter() - t0
-                )
+                MODEL_INFERENCE.labels(model=model).observe(time.perf_counter() - t0)
 
         return sync_wrapper  # type: ignore[return-value]
 
@@ -280,7 +272,7 @@ def record_agent_trace(trace: list[dict] | None) -> None:
 
         step = entry.get("step")
         duration = entry.get("duration_ms")
-        if isinstance(step, str) and isinstance(duration, (int, float)):
+        if isinstance(step, str) and isinstance(duration, int | float):
             label = _TRACE_STEP_TO_STAGE.get(step, step)
             SEARCH_STAGE_LATENCY.labels(stage=label).observe(float(duration))
 
@@ -291,7 +283,7 @@ def record_agent_trace(trace: list[dict] | None) -> None:
         if not isinstance(retrieve_timings, dict):
             continue
         for key, value in retrieve_timings.items():
-            if not isinstance(value, (int, float)) or not isinstance(key, str):
+            if not isinstance(value, int | float) or not isinstance(key, str):
                 continue
             if not key.endswith("_ms"):
                 continue

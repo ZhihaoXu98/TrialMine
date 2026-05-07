@@ -82,7 +82,7 @@ class FAISSIndex:
         scores, indices = self.index.search(query, k)
 
         results = []
-        for score, idx in zip(scores[0], indices[0]):
+        for score, idx in zip(scores[0], indices[0], strict=False):
             if idx >= 0:  # FAISS returns -1 for missing results
                 results.append((self.trial_ids[idx], float(score)))
 

@@ -51,9 +51,7 @@ _PATHS: dict[str, str] = {
     "faiss_index": os.getenv("TRIALMINE_FAISS_INDEX", "data/faiss_finetuned.index"),
     "faiss_mapping": os.getenv("TRIALMINE_FAISS_MAPPING", "data/faiss_finetuned.json"),
     "embedder": os.getenv("TRIALMINE_EMBEDDER", "models/embeddings/fine-tuned"),
-    "cross_encoder": os.getenv(
-        "TRIALMINE_CROSS_ENCODER", "models/cross-encoder/fine-tuned"
-    ),
+    "cross_encoder": os.getenv("TRIALMINE_CROSS_ENCODER", "models/cross-encoder/fine-tuned"),
     "ranker": os.getenv("TRIALMINE_RANKER", "models/ranker/v2/model.lgb"),
     "db_path": os.getenv("TRIALMINE_DB_PATH", "data/trials.db"),
 }
@@ -73,9 +71,7 @@ def _get_es():
         return _singletons["es"]
     from TrialMine.retrieval.bm25 import ElasticsearchIndex
 
-    _singletons["es"] = ElasticsearchIndex(
-        es_url=_PATHS["es_url"], index_name=_PATHS["es_index"]
-    )
+    _singletons["es"] = ElasticsearchIndex(es_url=_PATHS["es_url"], index_name=_PATHS["es_index"])
     return _singletons["es"]
 
 
@@ -246,7 +242,7 @@ def _serialize_search_result(r: dict) -> dict:
         else r.get("blended_score")
         if r.get("blended_score") is not None
         else r.get("score") or 0.0
-    )
+    ) or 0.0
     return {
         "nct_id": r.get("nct_id"),
         "title": r.get("title", ""),
@@ -256,9 +252,7 @@ def _serialize_search_result(r: dict) -> dict:
         "enrollment": r.get("enrollment"),
         "score": round(float(score), 4),
         "source": r.get("source"),
-        "url": (
-            f"https://clinicaltrials.gov/study/{r['nct_id']}" if r.get("nct_id") else None
-        ),
+        "url": (f"https://clinicaltrials.gov/study/{r['nct_id']}" if r.get("nct_id") else None),
     }
 
 
@@ -359,9 +353,7 @@ def search_trials(
                 "pipeline": pipeline,
                 "total": len(ranked),
                 "results": [_serialize_search_result(r) for r in ranked],
-                "latency_ms": (
-                    round(timings["total_ms"], 1) if timings is not None else None
-                ),
+                "latency_ms": (round(timings["total_ms"], 1) if timings is not None else None),
             }
         )
     except Exception as exc:
@@ -426,9 +418,7 @@ def lookup_medical_concept(term: str) -> str:
 class EligibilityArgs(BaseModel):
     """Arguments for :func:`check_trial_eligibility`."""
 
-    nct_id: str = Field(
-        ..., description="ClinicalTrials.gov ID (e.g. 'NCT04802759')."
-    )
+    nct_id: str = Field(..., description="ClinicalTrials.gov ID (e.g. 'NCT04802759').")
     patient_age: float | None = Field(
         None,
         ge=0,
@@ -467,9 +457,7 @@ def _rollup(verdicts: list[str]) -> str:
     return "Unknown"
 
 
-def _match_age(
-    trial_min: float | None, trial_max: float | None, age: float | None
-) -> dict:
+def _match_age(trial_min: float | None, trial_max: float | None, age: float | None) -> dict:
     if age is None:
         return {"verdict": "Unknown", "reason": "patient_age not provided"}
     if trial_min is None and trial_max is None:
@@ -525,9 +513,7 @@ def _match_sex(trial_sex: str | None, patient_sex: str | None) -> dict:
     }
 
 
-def _any_overlap(
-    needles: list[str], haystack: str | None
-) -> tuple[bool, list[str]]:
+def _any_overlap(needles: list[str], haystack: str | None) -> tuple[bool, list[str]]:
     """Case-insensitive substring scan; returns (found, matched needles)."""
     if not haystack or not needles:
         return False, []
@@ -536,9 +522,7 @@ def _any_overlap(
     return bool(matches), matches
 
 
-def _match_required_conditions(
-    required: list[str], patient_condition: str | None
-) -> dict:
+def _match_required_conditions(required: list[str], patient_condition: str | None) -> dict:
     if not required:
         return {
             "verdict": "Unknown",
@@ -569,9 +553,7 @@ def _match_required_conditions(
     }
 
 
-def _match_excluded_conditions(
-    excluded: list[str], patient_condition: str | None
-) -> dict:
+def _match_excluded_conditions(excluded: list[str], patient_condition: str | None) -> dict:
     if not excluded:
         return {
             "verdict": "Met",
@@ -598,9 +580,7 @@ def _match_excluded_conditions(
     return {"verdict": "Met", "trial": excluded, "patient": patient_condition}
 
 
-def _match_required_treatments(
-    required: list[str], prior_treatments: str | None
-) -> dict:
+def _match_required_treatments(required: list[str], prior_treatments: str | None) -> dict:
     if not required:
         return {
             "verdict": "Met",
@@ -631,9 +611,7 @@ def _match_required_treatments(
     }
 
 
-def _match_excluded_treatments(
-    excluded: list[str], prior_treatments: str | None
-) -> dict:
+def _match_excluded_treatments(excluded: list[str], prior_treatments: str | None) -> dict:
     if not excluded:
         return {
             "verdict": "Met",
@@ -661,17 +639,11 @@ def _match_excluded_treatments(
 
 
 def _load_trial_row(con: sqlite3.Connection, nct_id: str) -> sqlite3.Row | None:
-    return con.execute(
-        "SELECT * FROM trials WHERE nct_id = ?", (nct_id,)
-    ).fetchone()
+    return con.execute("SELECT * FROM trials WHERE nct_id = ?", (nct_id,)).fetchone()
 
 
-def _load_eligibility_row(
-    con: sqlite3.Connection, nct_id: str
-) -> sqlite3.Row | None:
-    return con.execute(
-        "SELECT * FROM parsed_eligibility WHERE nct_id = ?", (nct_id,)
-    ).fetchone()
+def _load_eligibility_row(con: sqlite3.Connection, nct_id: str) -> sqlite3.Row | None:
+    return con.execute("SELECT * FROM parsed_eligibility WHERE nct_id = ?", (nct_id,)).fetchone()
 
 
 @tool("check_trial_eligibility", args_schema=EligibilityArgs)
@@ -737,12 +709,8 @@ def check_trial_eligibility(
                 "min_age_years": elig_row["min_age_years"],
                 "max_age_years": elig_row["max_age_years"],
                 "sex": elig_row["sex"],
-                "required_conditions": json.loads(
-                    elig_row["required_conditions"] or "[]"
-                ),
-                "excluded_conditions": json.loads(
-                    elig_row["excluded_conditions"] or "[]"
-                ),
+                "required_conditions": json.loads(elig_row["required_conditions"] or "[]"),
+                "excluded_conditions": json.loads(elig_row["excluded_conditions"] or "[]"),
                 "required_prior_treatments": json.loads(
                     elig_row["required_prior_treatments"] or "[]"
                 ),
@@ -765,9 +733,7 @@ def check_trial_eligibility(
             profile["source"] = "live_regex_parse"
 
         criteria = {
-            "age": _match_age(
-                profile["min_age_years"], profile["max_age_years"], patient_age
-            ),
+            "age": _match_age(profile["min_age_years"], profile["max_age_years"], patient_age),
             "sex": _match_sex(profile["sex"], patient_sex),
             "required_conditions": _match_required_conditions(
                 profile.get("required_conditions") or [], patient_condition
@@ -787,9 +753,7 @@ def check_trial_eligibility(
         n_met = sum(1 for v in verdicts if v == "Met")
         n_unmet = sum(1 for v in verdicts if v == "Unmet")
         n_unknown = sum(1 for v in verdicts if v == "Unknown")
-        score: float | None = (
-            n_met / (n_met + n_unmet) if (n_met + n_unmet) > 0 else None
-        )
+        score: float | None = n_met / (n_met + n_unmet) if (n_met + n_unmet) > 0 else None
         rollup = _rollup(verdicts)
 
         explanation_bits = [
@@ -798,9 +762,7 @@ def check_trial_eligibility(
             f"{n_unknown} unknown",
         ]
         if profile.get("parse_confidence", 0) < 0.5:
-            explanation_bits.append(
-                "low parse confidence — verdict may be unreliable"
-            )
+            explanation_bits.append("low parse confidence — verdict may be unreliable")
 
         return json.dumps(
             {
@@ -826,9 +788,7 @@ def check_trial_eligibility(
 class TrialDetailsArgs(BaseModel):
     """Arguments for :func:`get_trial_details`."""
 
-    nct_id: str = Field(
-        ..., description="ClinicalTrials.gov ID (e.g. 'NCT04802759')."
-    )
+    nct_id: str = Field(..., description="ClinicalTrials.gov ID (e.g. 'NCT04802759').")
 
 
 @tool("get_trial_details", args_schema=TrialDetailsArgs)
@@ -878,8 +838,7 @@ def get_trial_details(nct_id: str) -> str:
                 "start_date": row["start_date"],
                 "completion_date": row["completion_date"],
                 "sponsor": row["sponsor"],
-                "url": row["url"]
-                or f"https://clinicaltrials.gov/study/{row['nct_id']}",
+                "url": row["url"] or f"https://clinicaltrials.gov/study/{row['nct_id']}",
             }
         )
     except Exception as exc:

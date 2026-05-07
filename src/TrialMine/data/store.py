@@ -31,8 +31,8 @@ class TrialRow(Base):
     title: Mapped[str] = mapped_column(Text, default="")
     brief_summary: Mapped[str | None] = mapped_column(Text)
     detailed_description: Mapped[str | None] = mapped_column(Text)
-    conditions: Mapped[str] = mapped_column(Text, default="[]")       # JSON list
-    interventions: Mapped[str] = mapped_column(Text, default="[]")    # JSON list
+    conditions: Mapped[str] = mapped_column(Text, default="[]")  # JSON list
+    interventions: Mapped[str] = mapped_column(Text, default="[]")  # JSON list
     eligibility_criteria: Mapped[str | None] = mapped_column(Text)
     min_age: Mapped[str | None] = mapped_column(String(50))
     max_age: Mapped[str | None] = mapped_column(String(50))
@@ -43,7 +43,7 @@ class TrialRow(Base):
     start_date: Mapped[str | None] = mapped_column(String(20))
     completion_date: Mapped[str | None] = mapped_column(String(20))
     sponsor: Mapped[str | None] = mapped_column(Text)
-    locations: Mapped[str] = mapped_column(Text, default="[]")        # JSON list of dicts
+    locations: Mapped[str] = mapped_column(Text, default="[]")  # JSON list of dicts
     url: Mapped[str | None] = mapped_column(String(100))
 
 
