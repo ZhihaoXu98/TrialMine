@@ -241,6 +241,29 @@ class HybridRetriever:
         t0 = time.perf_counter()
         fused = reciprocal_rank_fusion(bm25_results, semantic_results)
         bm25_meta = {r["nct_id"]: r for r in bm25_results}
+
+        # FAISS has no native filtering, so any well-embedded trial (COMPLETED,
+        # TERMINATED, etc.) lands in the semantic top-200 regardless of the
+        # caller's filter dict. RRF then mixes those into the candidate pool
+        # and the cross-encoder happily scores them — which is how COMPLETED
+        # trials end up dominating top-10 even when filters={"status": "RECRUITING"}.
+        # Fix: post-RRF, drop semantic-only items whose ES metadata doesn't
+        # match the filter. BM25 hits are already filtered, so they fast-path.
+        if filters:
+            bm25_ids = set(bm25_meta)
+            filtered_fused = []
+            for item in fused:
+                if item["nct_id"] in bm25_ids:
+                    filtered_fused.append(item)
+                    continue
+                doc = self.bm25.get_trial(item["nct_id"])
+                if doc and all(
+                    str(doc.get(k) or "") == str(v) for k, v in filters.items()
+                ):
+                    bm25_meta[item["nct_id"]] = doc  # cache for enrichment below
+                    filtered_fused.append(item)
+            fused = filtered_fused
+
         candidates = []
         for item in fused[:rerank_top_k]:
             meta = bm25_meta.get(item["nct_id"], {})

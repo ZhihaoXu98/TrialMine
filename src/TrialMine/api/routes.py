@@ -18,6 +18,7 @@ from TrialMine.api.schemas import (
     TrialDetailResponse,
     TrialResult,
 )
+from TrialMine.monitoring import record_agent_trace
 
 logger = logging.getLogger(__name__)
 
@@ -164,6 +165,11 @@ async def _search_agent(request: SearchRequest, req: Request) -> SearchResponse:
         for r in raw_results
         if r.get("nct_id")
     ]
+
+    # Feed per-stage durations into the Prometheus histogram so the
+    # "stage latency" Grafana panel is populated. Safe on empty / malformed
+    # traces — record_agent_trace never raises.
+    record_agent_trace(agent_result.get("agent_trace"))
 
     return SearchResponse(
         results=results,

@@ -2,26 +2,41 @@
 
 Creates and configures the FastAPI app:
 - CORS middleware (Streamlit runs on a different port)
+- Prometheus instrumentation (counter + duration histogram + /metrics)
 - Mounts API routes
 - Connects to Elasticsearch, loads FAISS index + embedder on startup
 """
 
 import logging
+import os
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from TrialMine.api.routes import router
 from TrialMine.models.embeddings import TrialEmbedder
+from TrialMine.monitoring import metrics_app, metrics_middleware
 from TrialMine.retrieval.bm25 import ElasticsearchIndex
 from TrialMine.retrieval.hybrid import HybridRetriever
 from TrialMine.retrieval.semantic import FAISSIndex
 
+# Configure root logging at import time so lifespan / middleware logs show up
+# under uvicorn (whose CMD bypasses main()). Idempotent — basicConfig is a
+# no-op if the root logger already has handlers (e.g. when main() runs).
+if not logging.getLogger().handlers:
+    logging.basicConfig(
+        level=os.environ.get("LOG_LEVEL", "INFO"),
+        format="%(asctime)s %(levelname)s %(name)s %(message)s",
+    )
+
 logger = logging.getLogger(__name__)
 
-ES_URL = "http://localhost:9200"
+# Driven by env so Docker can point at the `elasticsearch` service hostname.
+ES_URL = os.environ.get("ELASTICSEARCH_URL", "http://localhost:9200")
 INDEX_NAME = "trials"
 FAISS_INDEX_PATH = "data/trial_embeddings.faiss"
 FAISS_MAPPING_PATH = "data/trial_embeddings.json"
@@ -100,9 +115,8 @@ async def lifespan(app: FastAPI):
     else:
         app.state.hybrid_retriever = None
 
-    # Agent pipeline — lazy-loads its own resources via tools.py singletons
-    # on first /api/v1/search call with use_agent=True. Compiling here is
-    # cheap (<100 ms); the heavy resource loading is deferred.
+    # Agent pipeline — graph compile is cheap (<100 ms); the heavy resources
+    # (cross-encoder, LightGBM blender) lazy-load via tools.py singletons.
     try:
         from TrialMine.agents.pipeline import build_pipeline
 
@@ -111,6 +125,57 @@ async def lifespan(app: FastAPI):
     except Exception as exc:
         logger.warning("Agent pipeline build failed: %s", exc)
         app.state.pipeline = None
+
+    # Pre-warm CE + LightGBM blender on the agent's hybrid retriever. Without
+    # this, the first /api/v1/search call with use_agent=True pays ~12 s of
+    # CE cold-load + first inference inside the 15 s agent budget — works,
+    # but tight enough that one slow Anthropic round-trip tips it into a
+    # timeout. Run a single throwaway retrieval to JIT-warm the inference
+    # path; cost moves from request time into startup time (compose's
+    # start_period: 90s already accommodates a longer lifespan).
+    #
+    # IMPORTANT: warm the SAME singletons the orchestrator will call. The
+    # orchestrator uses ``tools._get_hybrid()``, not ``app.state.hybrid_retriever``
+    # — they share CE + blender singletons but the retriever objects (and
+    # their internal embedder caches) are independent. Warming the wrong
+    # one was the bug in the first version of this code.
+    if app.state.pipeline is not None:
+        try:
+            from TrialMine.agents.tools import (
+                _get_blender_or_none,
+                _get_hybrid,
+                _get_reranker_or_none,
+            )
+
+            t0 = time.perf_counter()
+            hybrid = _get_hybrid()
+            reranker = _get_reranker_or_none()
+            blender = _get_blender_or_none()
+            if reranker is not None and hybrid is not None:
+                hybrid.full_pipeline(
+                    query="warmup",
+                    reranker=reranker,
+                    blender=blender,
+                    top_k=1,
+                    rerank_top_k=5,
+                    filters=None,
+                )
+                logger.info(
+                    "Pre-warmed agent retriever + CE + blender "
+                    "(blender=%s) in %.0f ms",
+                    "loaded" if blender is not None else "missing",
+                    (time.perf_counter() - t0) * 1000,
+                )
+            else:
+                logger.warning(
+                    "Pre-warm skipped: hybrid=%s, reranker=%s. First "
+                    "agent query will pay the cold-load cost.",
+                    "loaded" if hybrid is not None else "None",
+                    "loaded" if reranker is not None else "None",
+                )
+        except Exception as exc:
+            # Non-fatal: first request just pays the cold-load tax instead.
+            logger.warning("Pre-warm failed (non-fatal): %s", exc)
 
     yield
 
@@ -137,6 +202,11 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # Prometheus: per-request counter + latency histogram, then /metrics scrape
+    # endpoint mounted as a sub-asgi app (Starlette / FastAPI native pattern).
+    app.add_middleware(BaseHTTPMiddleware, dispatch=metrics_middleware)
+    app.mount("/metrics", metrics_app())
 
     app.include_router(router)
     return app

@@ -1,0 +1,62 @@
+# Keep the build context lean — the project tree carries multi-GB data
+# files and model weights that are mounted as volumes at runtime, NOT
+# baked into the image.
+
+# ── VCS / IDE ───────────────────────────────────────────────────────────────
+.git
+.gitignore
+.gitattributes
+.github
+
+# ── Python caches ───────────────────────────────────────────────────────────
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+.pytest_cache
+.ruff_cache
+.mypy_cache
+*.egg-info
+build/
+dist/
+
+# ── Virtualenvs ─────────────────────────────────────────────────────────────
+.venv
+venv
+env
+
+# ── Heavy data and models — mounted as compose volumes ──────────────────────
+data/
+models/
+mlflow.db
+mlruns/
+*.faiss
+*.index
+*.lgb
+
+# ── Notebooks ───────────────────────────────────────────────────────────────
+notebooks/
+**/.ipynb_checkpoints
+
+# ── Tests / scripts / docs (not needed for serving) ─────────────────────────
+tests/
+scripts/
+docs/
+
+# ── Docker artefacts ────────────────────────────────────────────────────────
+Dockerfile
+Dockerfile.ui
+.dockerignore
+docker-compose*.yml
+
+# ── Secrets & local config ──────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Misc ────────────────────────────────────────────────────────────────────
+.DS_Store
+*.log
+.vscode
+.idea
+infrastructure/grafana/data

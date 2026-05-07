@@ -1,13 +1,167 @@
+# TrialMine — local demo stack.
+#
+#   docker compose up --build      # bring up all six services
+#   docker compose down            # stop, keep volumes
+#   docker compose down -v         # stop AND wipe volumes (ES, Prom, Grafana)
+#
+# All inter-service traffic uses Docker DNS (service names), not localhost.
+# Host-side ports are published only where the user / browser needs them:
+#   8000  api     · 8501 ui      · 9200 elasticsearch
+#   6379  redis   · 9090 prom    · 3000 grafana
+
 services:
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Elasticsearch — single-node, security off (demo only).
+  # vm.max_map_count=262144 must be set on the *host* on Linux; Docker
+  # Desktop on macOS handles this automatically.
+  # ─────────────────────────────────────────────────────────────────────────
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
+    container_name: trialmine-es
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
+      - xpack.security.http.ssl.enabled=false
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
     ports:
       - "9200:9200"
     volumes:
       - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      # `wait_for_status=yellow` blocks until the cluster is queryable; that's
+      # what `depends_on: condition: service_healthy` below actually waits for.
+      test:
+        - CMD-SHELL
+        - "curl -fsS 'http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=1s' >/dev/null || exit 1"
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 30s
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Redis — kept in the topology for cache / agent-state work; not yet used
+  # by application code, but the API can reach it via REDIS_URL.
+  # ─────────────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: trialmine-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # FastAPI service. data/ and models/ are mounted read-only — kept out of
+  # the image (multi-GB indexes / weights), volume-mounted at runtime.
+  # ─────────────────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: trialmine-api
+    environment:
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      REDIS_URL: redis://redis:6379
+      # Linux container doesn't have the macOS FAISS+LightGBM OpenMP conflict
+      # (libgomp1 + faiss-cpu's libomp coexist fine on glibc) — let PyTorch
+      # use multiple threads so cross-encoder inference is fast (~4s vs ~30s).
+      OMP_NUM_THREADS: "8"
+      PYTHONUNBUFFERED: "1"
+    env_file:
+      - .env  # ANTHROPIC_API_KEY etc. — NEVER commit this file
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data:ro
+      - ./models:/app/models:ro
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      # Use the python that's already in the image — no curl/wget in
+      # the slim runtime layer.
+      test:
+        - CMD-SHELL
+        - "python -c 'import urllib.request, sys; sys.exit(0 if urllib.request.urlopen(\"http://localhost:8000/health\", timeout=2).status == 200 else 1)' || exit 1"
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 90s
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Streamlit UI. Talks to the API over the compose network using the
+  # service hostname; the browser only ever talks to host:8501 -> ui:8501.
+  # ─────────────────────────────────────────────────────────────────────────
+  ui:
+    build:
+      context: .
+      dockerfile: Dockerfile.ui
+    container_name: trialmine-ui
+    environment:
+      API_URL: http://api:8000
+    ports:
+      - "8501:8501"
+    depends_on:
+      api:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8501/_stcore/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Prometheus — scrapes the API's /metrics every 10s.
+  # ─────────────────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: trialmine-prom
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=7d
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prom_data:/prometheus
+    depends_on:
+      - api
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Grafana — admin/trialmind, datasource + dashboard auto-provisioned.
+  # ─────────────────────────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:latest
+    container_name: trialmine-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: trialmind
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_LOG_LEVEL: warn
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infrastructure/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - graf_data:/var/lib/grafana
+    depends_on:
+      - prometheus
 
 volumes:
   es_data:
+  prom_data:
+  graf_data:
