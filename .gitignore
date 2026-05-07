@@ -2,7 +2,13 @@ data/raw/
 data/processed/
 data/training/
 data/*.db
-/models/
+# Ignore everything under models/ (weights are too big for git — tracked via DVC),
+# *except* model directories themselves and their metadata.json files.
+# Git's pattern grammar requires this three-rule form: ignoring "/models/" alone
+# would block "!models/**/metadata.json" because the parent dir is excluded.
+/models/**
+!models/**/
+!models/**/metadata.json
 *.faiss
 data/faiss_*.index
 data/faiss_*.json

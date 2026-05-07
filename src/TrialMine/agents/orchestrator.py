@@ -30,6 +30,7 @@ import time
 from typing import TYPE_CHECKING
 
 from TrialMine.agents.query_parser import PatientProfile
+from TrialMine.config import DegradationConfig, get_default_degradation
 
 if TYPE_CHECKING:
     from TrialMine.features.concepts import ConceptNormalizer
@@ -76,6 +77,7 @@ class SearchOrchestrator:
         concept_normalizer: ConceptNormalizer | None = None,
         top_k: int = DEFAULT_TOP_K,
         eligibility_top_k: int = DEFAULT_ELIGIBILITY_TOP_K,
+        degradation: DegradationConfig | None = None,
     ) -> None:
         """Initialise the orchestrator with shared retrieval resources.
 
@@ -87,6 +89,9 @@ class SearchOrchestrator:
             top_k: Number of trials to return after retrieval.
             eligibility_top_k: Number of *top* trials to run eligibility
                 matching against (must be ≤ ``top_k``).
+            degradation: Override for the runtime degradation policy.
+                ``None`` resolves to the process-wide default — see
+                :func:`TrialMine.config.get_default_degradation`.
         """
         if eligibility_top_k > top_k:
             raise ValueError(
@@ -96,6 +101,7 @@ class SearchOrchestrator:
         self._concept_normalizer = concept_normalizer
         self.top_k = top_k
         self.eligibility_top_k = eligibility_top_k
+        self.degradation = degradation or get_default_degradation()
 
     # ------------------------------------------------------------------ #
     # Lazy dependency resolution                                          #
@@ -190,10 +196,16 @@ class SearchOrchestrator:
         )
 
         # --- Step 4: retrieve (heavy — off-load to thread pool) ---
+        # Two degradation hooks here:
+        #   1. degradation.cross_encoder_enabled — hard toggle. False
+        #      skips full_pipeline entirely and runs hybrid-only.
+        #   2. degradation.skip_cross_encoder_if_slow_s — soft budget.
+        #      asyncio.wait_for cancels the awaited coroutine on timeout
+        #      and we fall back to hybrid-only. The thread that was
+        #      running full_pipeline keeps running until it returns;
+        #      that's acceptable — the caller has already moved on.
         t0 = time.perf_counter()
-        ranked, retrieve_timings, pipeline_kind = await asyncio.to_thread(
-            self._do_retrieve, query, filters
-        )
+        ranked, retrieve_timings, pipeline_kind = await self._retrieve_with_budget(query, filters)
         trace.append(
             {
                 "step": "retrieve",
@@ -211,9 +223,13 @@ class SearchOrchestrator:
         # Each call hits SQLite (concurrent reads are safe). asyncio.gather
         # over asyncio.to_thread runs them in the default thread pool —
         # wall-clock time becomes max(per-call latency), not sum().
+        # Skipped entirely when degradation.eligibility_check_enabled is False.
         t0 = time.perf_counter()
-        n_to_check = min(len(ranked), self.eligibility_top_k)
         eligibility_results: list[dict | None] = [None] * len(ranked)
+        if self.degradation.eligibility_check_enabled:
+            n_to_check = min(len(ranked), self.eligibility_top_k)
+        else:
+            n_to_check = 0
         if n_to_check > 0:
             tasks = [
                 asyncio.to_thread(self._check_eligibility, ranked[i]["nct_id"], profile)
@@ -231,6 +247,7 @@ class SearchOrchestrator:
                     "n_checked": n_to_check,
                     "n_total_results": len(ranked),
                     "concurrent": True,
+                    "skipped_by_degradation": (not self.degradation.eligibility_check_enabled),
                     "verdicts": [
                         (eligibility_results[i] or {}).get("verdict") for i in range(n_to_check)
                     ],
@@ -281,6 +298,51 @@ class SearchOrchestrator:
     # Helpers                                                             #
     # ------------------------------------------------------------------ #
 
+    async def _retrieve_with_budget(
+        self,
+        query: str,
+        filters: dict[str, str],
+    ) -> tuple[list[dict], dict[str, float] | None, str]:
+        """Run retrieval honouring the configured degradation policy.
+
+        Three exit paths:
+
+        1. ``cross_encoder_enabled=False`` — skip CE entirely, return
+           hybrid-only results. ``pipeline_kind = "hybrid_only_disabled"``.
+        2. CE enabled and finishes inside ``skip_cross_encoder_if_slow_s``
+           — full_pipeline result.
+        3. CE enabled but exceeds the budget — soft-timeout and fall back
+           to hybrid-only. ``pipeline_kind = "hybrid_only_after_timeout"``.
+           The full_pipeline thread keeps running in the background; we
+           accept the leak rather than block the user.
+        """
+        if not self.degradation.cross_encoder_enabled:
+            ranked = await asyncio.to_thread(
+                self.retriever.search,
+                query,
+                self.top_k,
+                filters or None,
+            )
+            return ranked, None, "hybrid_only_disabled"
+
+        try:
+            return await asyncio.wait_for(
+                asyncio.to_thread(self._do_retrieve, query, filters),
+                timeout=self.degradation.skip_cross_encoder_if_slow_s,
+            )
+        except TimeoutError:
+            logger.warning(
+                "Cross-encoder budget %.1fs exceeded — degrading to hybrid-only",
+                self.degradation.skip_cross_encoder_if_slow_s,
+            )
+            ranked = await asyncio.to_thread(
+                self.retriever.search,
+                query,
+                self.top_k,
+                filters or None,
+            )
+            return ranked, None, "hybrid_only_after_timeout"
+
     def _do_retrieve(
         self,
         query: str,
@@ -289,8 +351,9 @@ class SearchOrchestrator:
         """Synchronous retrieve — runs the full pipeline or a fallback.
 
         Returns ``(ranked, retrieve_timings, pipeline_kind)``. Called from
-        :meth:`search` via :func:`asyncio.to_thread` so it can do its
-        seconds-long CE inference without blocking the event loop.
+        :meth:`_retrieve_with_budget` via :func:`asyncio.to_thread` so it
+        can do its seconds-long CE inference without blocking the event
+        loop.
         """
         from TrialMine.agents.tools import (
             _get_blender_or_none,

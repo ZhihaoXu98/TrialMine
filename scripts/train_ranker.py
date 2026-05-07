@@ -23,6 +23,7 @@ import logging
 import math
 import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 import lightgbm as lgb
@@ -506,17 +507,21 @@ def main() -> None:
 
     metadata = {
         "model_type": "lightgbm_lambdarank",
+        "model_version": MODEL_DIR.name,
+        # ISO8601 UTC — matches the schema written for embedder + cross-encoder
+        # (see scripts/finetune_*.py) and what scripts/ci_quality_gate.py expects.
+        "training_date": datetime.now(timezone.utc).isoformat(),
         "features": FEATURE_NAMES,
         "n_features": len(FEATURE_NAMES),
         "n_queries": int(df["query_id"].nunique()),
         "n_samples": len(df),
-        "params": {
+        "hyperparameters": {
             "objective": "lambdarank",
             "learning_rate": 0.05,
             "num_leaves": 31,
             "num_boost_round": 200,
         },
-        "cv_metrics": cv_metrics,
+        "eval_metrics": cv_metrics,
     }
     with open(MODEL_DIR / "metadata.json", "w") as f:
         json.dump(metadata, f, indent=2)

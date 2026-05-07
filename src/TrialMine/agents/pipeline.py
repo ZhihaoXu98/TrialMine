@@ -25,12 +25,17 @@ from langgraph.graph import END, StateGraph
 
 from TrialMine.agents.orchestrator import SearchOrchestrator
 from TrialMine.agents.query_parser import PatientProfile, QueryParserAgent
+from TrialMine.config import get_default_degradation
 from TrialMine.monitoring import record_agent_failure, time_stage_cm
 
 logger = logging.getLogger(__name__)
 
 
-DEFAULT_TIMEOUT = 15.0
+# Pulled from DegradationConfig at import time so callers that don't pass
+# an explicit timeout get the configured budget. The runtime
+# get_default_degradation() singleton can still be flipped per-process by
+# tests / future control planes — pass an explicit timeout to override.
+DEFAULT_TIMEOUT = get_default_degradation().skip_agent_if_slow_s
 DEFAULT_FALLBACK_TOP_K = 20
 
 

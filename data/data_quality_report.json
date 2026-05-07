@@ -1,0 +1,113 @@
+{
+  "generated_at_utc": "2026-05-07T22:59:51.307211+00:00",
+  "db_path": "/Users/tonyxu/Desktop/TrialMine/data/trials.db",
+  "table": "trials",
+  "total_rows": 140723,
+  "field_coverage": {
+    "title": {
+      "non_null": 140723,
+      "coverage": 1.0
+    },
+    "brief_summary": {
+      "non_null": 140723,
+      "coverage": 1.0
+    },
+    "conditions": {
+      "non_null": 140723,
+      "coverage": 1.0
+    },
+    "interventions": {
+      "non_null": 140723,
+      "coverage": 1.0
+    },
+    "eligibility_criteria": {
+      "non_null": 140703,
+      "coverage": 0.9998578768218415
+    },
+    "min_age": {
+      "non_null": 131670,
+      "coverage": 0.9356679434065505
+    },
+    "max_age": {
+      "non_null": 52902,
+      "coverage": 0.37593001854707475
+    },
+    "sex": {
+      "non_null": 140649,
+      "coverage": 0.9994741442408135
+    },
+    "phase": {
+      "non_null": 110220,
+      "coverage": 0.7832408348315485
+    },
+    "status": {
+      "non_null": 140723,
+      "coverage": 1.0
+    },
+    "enrollment": {
+      "non_null": 138399,
+      "coverage": 0.9834852866979812
+    },
+    "start_date": {
+      "non_null": 139625,
+      "coverage": 0.9921974375190978
+    },
+    "completion_date": {
+      "non_null": 135210,
+      "coverage": 0.9608237459406067
+    },
+    "sponsor": {
+      "non_null": 140723,
+      "coverage": 1.0
+    },
+    "locations": {
+      "non_null": 140723,
+      "coverage": 1.0
+    }
+  },
+  "freshness": {
+    "max_start_date": "2030-12-18",
+    "max_completion_date": "2100-12-31",
+    "db_mtime_utc": "2026-05-07T18:46:29.042435+00:00"
+  },
+  "suspicious_records": {
+    "missing_title": {
+      "description": "Trials with empty / null title",
+      "count": 0,
+      "examples": []
+    },
+    "empty_conditions": {
+      "description": "Trials with empty conditions field (parser likely failed)",
+      "count": 0,
+      "examples": []
+    },
+    "recruiting_no_eligibility": {
+      "description": "RECRUITING trials with no eligibility criteria text",
+      "count": 0,
+      "examples": []
+    },
+    "missing_age_bounds": {
+      "description": "Both min_age and max_age are null (likely parser miss)",
+      "count": 6814,
+      "examples": [
+        "NCT00096928",
+        "NCT05683236",
+        "NCT02979119"
+      ]
+    },
+    "implausible_enrollment": {
+      "description": "Enrollment outside [1, 100000]",
+      "count": 4703,
+      "examples": [
+        "NCT04043845",
+        "NCT01301612",
+        "NCT03390413"
+      ]
+    },
+    "unknown_status": {
+      "description": "Status is not one of the known ClinicalTrials.gov values",
+      "count": 0,
+      "examples": []
+    }
+  }
+}
