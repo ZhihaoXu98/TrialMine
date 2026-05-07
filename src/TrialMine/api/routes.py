@@ -18,7 +18,7 @@ from TrialMine.api.schemas import (
     TrialDetailResponse,
     TrialResult,
 )
-from TrialMine.monitoring import record_agent_trace
+from TrialMine.monitoring import record_agent_trace, record_search_results
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +105,8 @@ async def search_trials(request: SearchRequest, req: Request) -> SearchResponse:
         for r in raw_results
     ]
 
+    record_search_results(len(results))
+
     return SearchResponse(
         results=results,
         total=len(results),
@@ -170,6 +172,7 @@ async def _search_agent(request: SearchRequest, req: Request) -> SearchResponse:
     # "stage latency" Grafana panel is populated. Safe on empty / malformed
     # traces — record_agent_trace never raises.
     record_agent_trace(agent_result.get("agent_trace"))
+    record_search_results(len(results))
 
     return SearchResponse(
         results=results,

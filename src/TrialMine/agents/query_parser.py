@@ -19,6 +19,8 @@ from typing import Literal
 import anthropic
 from pydantic import BaseModel, Field
 
+from TrialMine.monitoring import time_model_cm
+
 logger = logging.getLogger(__name__)
 
 
@@ -237,21 +239,22 @@ class QueryParserAgent:
 
         t0 = time.perf_counter()
         try:
-            response = self._client.messages.parse(
-                model=self.model,
-                max_tokens=self.max_tokens,
-                system=[
-                    {
-                        "type": "text",
-                        "text": self.SYSTEM_PROMPT,
-                        # No-op until the prompt grows past the model's
-                        # cache-prefix threshold, but harmless to mark.
-                        "cache_control": {"type": "ephemeral"},
-                    }
-                ],
-                messages=[{"role": "user", "content": raw_query}],
-                output_format=_ExtractedFields,
-            )
+            with time_model_cm(self.model):
+                response = self._client.messages.parse(
+                    model=self.model,
+                    max_tokens=self.max_tokens,
+                    system=[
+                        {
+                            "type": "text",
+                            "text": self.SYSTEM_PROMPT,
+                            # No-op until the prompt grows past the model's
+                            # cache-prefix threshold, but harmless to mark.
+                            "cache_control": {"type": "ephemeral"},
+                        }
+                    ],
+                    messages=[{"role": "user", "content": raw_query}],
+                    output_format=_ExtractedFields,
+                )
             elapsed_ms = (time.perf_counter() - t0) * 1000
 
             extracted: _ExtractedFields = response.parsed_output

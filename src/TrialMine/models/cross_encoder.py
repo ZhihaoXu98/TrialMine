@@ -10,7 +10,13 @@ import time
 
 from sentence_transformers import CrossEncoder
 
+from TrialMine.monitoring import time_model_cm
+
 logger = logging.getLogger(__name__)
+
+# Logical model name surfaced to MODEL_INFERENCE — kept stable across HF
+# checkpoint paths so the Grafana panel doesn't re-bucket on a model swap.
+_CE_MODEL_LABEL = "biolinkbert-cross-encoder"
 
 
 class CrossEncoderReranker:
@@ -40,7 +46,8 @@ class CrossEncoderReranker:
         if not trial_texts:
             return []
         pairs = [(query, t) for t in trial_texts]
-        scores = self.model.predict(pairs, convert_to_numpy=True)
+        with time_model_cm(_CE_MODEL_LABEL):
+            scores = self.model.predict(pairs, convert_to_numpy=True)
         return scores.tolist()
 
     def rerank(

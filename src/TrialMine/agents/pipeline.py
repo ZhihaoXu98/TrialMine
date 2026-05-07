@@ -25,6 +25,7 @@ from langgraph.graph import END, StateGraph
 
 from TrialMine.agents.orchestrator import SearchOrchestrator
 from TrialMine.agents.query_parser import PatientProfile, QueryParserAgent
+from TrialMine.monitoring import record_agent_failure, time_stage_cm
 
 logger = logging.getLogger(__name__)
 
@@ -149,11 +150,15 @@ async def execute_search(state: SearchState) -> dict:
 
     try:
         # Orchestrator.search is async — heavy steps internally use
-        # asyncio.to_thread + asyncio.gather, so we await directly.
-        result_dict, trace_entries = await orchestrator.search(profile)
+        # asyncio.to_thread + asyncio.gather, so we await directly. The
+        # context manager records SEARCH_STAGE_LATENCY[stage="agent_search"]
+        # on both success and exception paths.
+        with time_stage_cm("agent_search"):
+            result_dict, trace_entries = await orchestrator.search(profile)
     except Exception as exc:
         elapsed_ms = (time.perf_counter() - t0) * 1000
         logger.exception("execute_search failed; routing to fallback")
+        record_agent_failure("execute_search")
         return {
             "error": f"execute_search failed: {type(exc).__name__}: {exc}",
             "agent_trace": [
@@ -236,6 +241,7 @@ async def fallback_search(state: SearchState) -> dict:
     except Exception as exc:
         elapsed_ms = (time.perf_counter() - t0) * 1000
         logger.exception("fallback_search itself failed")
+        record_agent_failure("fallback_search")
         return {
             "search_results": {
                 "results": [],
@@ -343,6 +349,7 @@ async def search(
         logger.warning(
             "Pipeline exceeded %.1fs budget — returning degraded response", timeout
         )
+        record_agent_failure("timeout")
         return {
             "patient_profile": None,
             "search_results": {
@@ -365,6 +372,7 @@ async def search(
     except Exception as exc:
         elapsed_ms = (time.perf_counter() - t0) * 1000
         logger.exception("Pipeline raised unexpectedly")
+        record_agent_failure("pipeline")
         return {
             "patient_profile": None,
             "search_results": {
