@@ -58,9 +58,9 @@ See README.md for overview. Key directories:
 - docs/ — architecture, design decisions, model cards
 
 ## Current State
-Last updated: 2026-03-28
+Last updated: 2026-05-07
 
-Phase: 6b (expanded training + fair eval v2) — full pipeline working: BM25 + semantic + hybrid + CE + LightGBM v2 (145 queries)
+Phase: 6c (eligibility parsing) — full retrieval pipeline + structured eligibility extraction with SciSpacy + regex hybrid; concept normalizer for query expansion.
 
 ### What's working
 - **Data pipeline**: downloads oncology trials from ClinicalTrials.gov API v2, parses, stores in SQLite
@@ -173,6 +173,27 @@ Phase: 6b (expanded training + fair eval v2) — full pipeline working: BM25 + s
   - NDCG@5 increases monotonically — each stage adds value on unseen queries
   - MRR drops from CE (0.825) to LGB (0.806) — blender optimizes list-level, sometimes at cost of first result
   - Report: `docs/fair-evaluation-report.md`
+- **Eligibility parser** (Phase 6c — Week 5):
+  - `src/TrialMine/features/eligibility.py` (`EligibilityParser`, `EligibilityProfile` Pydantic model, `parse_age_string`)
+  - SciSpacy `en_core_sci_lg` + regex hybrid: regex owns closed-vocab slots (age, ECOG/Karnofsky, sex), SciSpacy owns open-vocab biomedical entities
+  - Output schema: `min_age_years` / `max_age_years` (float, months survive as fractions), `sex`, `required_conditions` / `excluded_conditions` / `required_prior_treatments` / `excluded_prior_treatments` (typed via keyword heuristic ~70% precision), `parse_confidence` (heuristic mean of section / age / sex sub-confidences, NOT calibrated), `section_source`
+  - Section split: 4-tier fallback (`headers` → `single_header` → `variant` → `fallback`)
+  - Age extraction: column-first, regex fallback (12 patterns including unicode ≥/≤ and `\<` escape leak)
+  - Stop-list (~80 boilerplate terms) filters SciSpacy noise; treatment regex routes drug/therapy spans to treatments bucket
+  - Tests: 37 (32 fast regex + 5 slow SciSpacy integration), all passing — `tests/features/test_eligibility.py`
+  - Demo: `scripts/demo_eligibility_parser.py --limit 20 [--show-buckets]`
+  - Batch parse: `scripts/parse_eligibility.py [--limit N] [--resume]` writes to `parsed_eligibility` SQLite table; 23 trials/sec single-process; 1000-trial demo: 94.4% have min_age, 99.7% have conditions, avg conf 0.977, 91% canonical headers
+- **Concept normalizer** (Phase 6c):
+  - `src/TrialMine/features/concepts.py` (`ConceptNormalizer.normalize`, `expand_query`)
+  - 45-entry hand-built lay→medical synonym dict (top 20 cancer sites + metastasis phrasings + stage Roman numerals + treatment vocab)
+  - All mappings broaden to `... neoplasm` forms, never narrow to specific subtypes (e.g. liver cancer → hepatic neoplasm, not HCC)
+  - No chained mappings; replacement is one hop only
+  - `normalise_concept` and `extract_concepts` skeletons remain for future UMLS EntityLinker integration
+
+### Design decisions (Week 5)
+- **Decision 17** — SciSpacy + regex hybrid for eligibility parsing, NOT custom NER. Custom NER ≈ 80–120 hr; hybrid ≈ days at ~70% precision. Best accuracy/effort.
+- **Decision 18** — Hand-built ~45-entry synonym dict, NOT UMLS yet. Covers 23-cancer taxonomy. UMLS via SciSpacy `EntityLinker` is target after dict outgrows ~50 entries. Each entry must be lay→broader medical (never narrower); no chained mappings; no replacements that collide with verbatim trial vocabulary.
+- **Decision 19** — Eligibility checker (future, not yet built) will emit Met / Unmet / **Unknown** verdicts, not binary. Binary on partial info produces confidently-wrong outputs. Trial-level rollup rule: any hard Unmet → trial Unmet; all Met → Met; else Unknown. Distinguish parser-unknown (low parse_confidence) from patient-unknown (missing patient field) — same label, different UX.
 
 ### Key files/data (not in git)
 - `data/trials.db` — SQLite with 140K parsed trials (912 MB)
@@ -189,6 +210,7 @@ Phase: 6b (expanded training + fair eval v2) — full pipeline working: BM25 + s
 - `data/evaluation/train_labels_extra.jsonl` — 2,984 LLM-labeled pairs (75 queries, IDs 200-274)
 - `data/evaluation/test_labels_v2.jsonl` — 1,953 LLM-labeled pairs (50 NEW test queries, IDs 300-349)
 - `data/evaluation/method_comparison.csv` — comparison results from scripts/compare_methods.py
+- `parsed_eligibility` table inside `data/trials.db` — structured eligibility per trial (parser_version 0.1.0); written by `scripts/parse_eligibility.py`
 - `data/evaluation/per_query_*.json` — per-query metrics from compare_embeddings.py
 - `data/training/train_pairs.jsonl` — 586K training triplets (1.0 GB)
 - `data/training/val_pairs.jsonl` — 145K validation triplets (260 MB)
@@ -198,7 +220,10 @@ Phase: 6b (expanded training + fair eval v2) — full pipeline working: BM25 + s
 - `.env` — API keys (ANTHROPIC_API_KEY) — NEVER commit
 
 ### What's next
+- Eligibility checker / matcher: `compute_eligibility_features(trial, patient_profile)` consuming `EligibilityProfile` + a patient profile, emitting per-criterion Met/Unmet/Unknown per Decision 19
+- Wire `ConceptNormalizer.expand_query` into BM25-side retrieval; benchmark vs. semantic-only to confirm it adds value
 - LangGraph agents (query parsing, search orchestration, result explanation)
 - Update FastAPI/Streamlit to use fine-tuned models + full pipeline
 - Optional: retrain CE on graded labels (6,018 pairs) instead of binary — could improve CE feature quality
 - Optional: Optuna hyperparameter tuning for LightGBM (viable now with 145 queries)
+- Optional: UMLS via SciSpacy `EntityLinker` to replace synonym dict + provide typed entities (Decision 18 upgrade path)
