@@ -1,0 +1,258 @@
+{
+  "n_pairs": 99,
+  "exact_agreement": 0.6667,
+  "off_by_one_accuracy": 0.9697,
+  "pearson_r": 0.7758,
+  "kappa_unweighted": {
+    "kappa": 0.4868855033767866,
+    "ci_low": 0.3571428571428571,
+    "ci_high": 0.6205253509112201,
+    "n": 99
+  },
+  "kappa_linear_weighted": {
+    "kappa": 0.607661822985469,
+    "ci_low": 0.48678843902820035,
+    "ci_high": 0.7209564496279273,
+    "n": 99
+  },
+  "kappa_quadratic_weighted": {
+    "kappa": 0.7228,
+    "ci_low": 0.6012254201308358,
+    "ci_high": 0.8188629758724729,
+    "n": 99
+  },
+  "confusion_matrix": {
+    "labels": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "matrix": [
+      [
+        1,
+        2,
+        0,
+        0
+      ],
+      [
+        1,
+        13,
+        0,
+        0
+      ],
+      [
+        0,
+        7,
+        13,
+        0
+      ],
+      [
+        0,
+        3,
+        20,
+        39
+      ]
+    ],
+    "row_label": "LLM score",
+    "col_label": "Human score"
+  },
+  "per_category": {
+    "existing": {
+      "kappa": 0.4,
+      "ci_low": 0.09999999999999998,
+      "ci_high": 0.7030882352941175,
+      "n": 20
+    },
+    "common": {
+      "kappa": 1.0,
+      "ci_low": 1.0,
+      "ci_high": 1.0,
+      "n": 12
+    },
+    "rare": {
+      "kappa": 0.22580645161290314,
+      "ci_low": 0.0,
+      "ci_high": 0.7104166666666648,
+      "n": 12
+    },
+    "pediatric": {
+      "kappa": 0.9367088607594937,
+      "ci_low": 0.6384615384615385,
+      "ci_high": 1.0,
+      "n": 10
+    },
+    "complex": {
+      "kappa": 0.625,
+      "ci_low": 0.0,
+      "ci_high": 0.7692307692307693,
+      "n": 12
+    },
+    "geographic": {
+      "kappa": -0.031746031746031855,
+      "ci_low": -0.22222222222222232,
+      "ci_high": 0.21052631578947378,
+      "n": 10
+    },
+    "vague": {
+      "kappa": 0.4590163934426229,
+      "ci_low": 0.07303164398430317,
+      "ci_high": 0.6349242424242424,
+      "n": 11
+    },
+    "treatment": {
+      "kappa": 0.7,
+      "ci_low": 0.0,
+      "ci_high": 1.0,
+      "n": 12
+    }
+  },
+  "per_llm_score": {
+    "0": {
+      "n": 3,
+      "human_dist": {
+        "0": 1,
+        "1": 2
+      },
+      "mean_human": 0.6666666666666666,
+      "exact_agree_pct": 33.3
+    },
+    "1": {
+      "n": 14,
+      "human_dist": {
+        "0": 1,
+        "1": 13
+      },
+      "mean_human": 0.9285714285714286,
+      "exact_agree_pct": 92.9
+    },
+    "2": {
+      "n": 20,
+      "human_dist": {
+        "1": 7,
+        "2": 13
+      },
+      "mean_human": 1.65,
+      "exact_agree_pct": 65.0
+    },
+    "3": {
+      "n": 62,
+      "human_dist": {
+        "1": 3,
+        "2": 20,
+        "3": 39
+      },
+      "mean_human": 2.5806451612903225,
+      "exact_agree_pct": 62.9
+    }
+  },
+  "biggest_disagreements": [
+    {
+      "query": "trials at MD Anderson",
+      "nct_id": "NCT02106988",
+      "trial_title": "Concurrent Chemotherapy and Radiation Therapy for Newly Diagnosed Patients With Stage I/II Nasal NK Cell Lymphoma",
+      "category": "geographic",
+      "llm": 3,
+      "human": 1,
+      "delta": 2,
+      "llm_reason": "Trial is at MD Anderson (exact location match), recruiting for lymphoma patients, with clearly defined eligibility criteria that can be assessed against patient's medical profile."
+    },
+    {
+      "query": "trials at MD Anderson",
+      "nct_id": "NCT00594230",
+      "trial_title": "A Phase II Trial of LBH589 in Refractory Myelodysplastic Syndromes (MDS) Patients",
+      "category": "geographic",
+      "llm": 3,
+      "human": 1,
+      "delta": 2,
+      "llm_reason": "Trial is for MDS patients at MD Anderson (matching the location query), with specific eligibility criteria for refractory cases that may apply depending on patient's treatment history."
+    },
+    {
+      "query": "experimental treatments",
+      "nct_id": "NCT00004997",
+      "trial_title": "The Experimental Treatment of Transfusion Dependent 5q Minus Syndrome With Leucovorin",
+      "category": "vague",
+      "llm": 3,
+      "human": 1,
+      "delta": 2,
+      "llm_reason": "Directly matches patient's search for experimental treatments with a Phase 2 trial testing an experimental approach (Leucovorin) for a specific myelodysplastic syndrome subtype."
+    },
+    {
+      "query": "immunotherapy for non-small cell lung cancer",
+      "nct_id": "NCT07267000",
+      "trial_title": "Exercise as a Tool to Improve Response to Immunotherapy in Non-small Cell Lung Cancer",
+      "category": "existing",
+      "llm": 3,
+      "human": 2,
+      "delta": 1,
+      "llm_reason": "Exact match for non-small cell lung cancer with immunotherapy treatment, and patient would likely meet the study's inclusion criteria for immunotherapy-receiving NSCLC patients."
+    },
+    {
+      "query": "immunotherapy for non-small cell lung cancer",
+      "nct_id": "NCT02845856",
+      "trial_title": "Combination of Cetuximab and NK Immunotherapy for Recurrent Non-small Cell Lung Cancer",
+      "category": "existing",
+      "llm": 3,
+      "human": 2,
+      "delta": 1,
+      "llm_reason": "Directly addresses immunotherapy (NK cell-based) for non-small cell lung cancer with completed Phase 1/2 data and clear eligibility criteria that can be assessed."
+    },
+    {
+      "query": "prostate cancer trials for men over 65",
+      "nct_id": "NCT06824818",
+      "trial_title": "A Feasibility Trial of LHRH Agonist Discontinuation in Elderly Prostate Cancer Patients",
+      "category": "existing",
+      "llm": 3,
+      "human": 2,
+      "delta": 1,
+      "llm_reason": "Highly relevant match: prostate cancer trial specifically for elderly patients (\u226570 years), directly addresses patient's search for prostate cancer trials in older men, and patient likely meets age an"
+    },
+    {
+      "query": "targeted therapy for EGFR mutated lung cancer",
+      "nct_id": "NCT06971406",
+      "trial_title": "A Multicenter, Prospective Phase II Clinical Study of High-Dose Firmonertinib Combined With Bevacizumab and Intrathecal ",
+      "category": "existing",
+      "llm": 3,
+      "human": 2,
+      "delta": 1,
+      "llm_reason": "Highly relevant match: directly addresses EGFR-mutated lung cancer with targeted therapy (firmonertinib), though specificity to leptomeningeal metastasis may limit applicability if patient lacks this "
+    },
+    {
+      "query": "gallbladder cancer unresectable treatment",
+      "nct_id": "NCT00660140",
+      "trial_title": "A Phase II Study of Gemcitabine and Carboplatin in the Treatment of Metastatic or Recurrent Cholangiocarcinoma/Gallbladd",
+      "category": "existing",
+      "llm": 3,
+      "human": 2,
+      "delta": 1,
+      "llm_reason": "Trial directly addresses unresectable/metastatic gallbladder cancer with chemotherapy treatment, matching the patient's query for unresectable gallbladder cancer treatment options."
+    },
+    {
+      "query": "gallbladder cancer unresectable treatment",
+      "nct_id": "NCT06013943",
+      "trial_title": "Envafolimab Combined With GEMOX in First-line Treatment of Advanced Gallbladder Cancer : A Single Center, Single Arm, Ph",
+      "category": "existing",
+      "llm": 3,
+      "human": 2,
+      "delta": 1,
+      "llm_reason": "Trial directly addresses advanced gallbladder cancer treatment with chemotherapy/immunotherapy combination, matching the patient's query for unresectable disease management."
+    },
+    {
+      "query": "merkel cell carcinoma",
+      "nct_id": "NCT01913691",
+      "trial_title": "Phase II Open-Label Trial of Ipilimumab for Metastatic Merkel Cell Carcinoma",
+      "category": "rare",
+      "llm": 3,
+      "human": 2,
+      "delta": 1,
+      "llm_reason": "Perfect match - trial directly targets metastatic merkel cell carcinoma, the exact condition in the patient's search query, with clear inclusion criteria for this diagnosis."
+    }
+  ],
+  "interpretation_landis_koch": {
+    "<0.2": "poor",
+    "0.2-0.4": "fair",
+    "0.4-0.6": "moderate",
+    "0.6-0.8": "substantial",
+    "0.8-1.0": "almost perfect"
+  }
+}
