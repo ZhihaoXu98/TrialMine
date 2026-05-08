@@ -1,0 +1,422 @@
+{
+  "0": {
+    "category": "existing",
+    "query": "breast cancer hormone receptor positive phase 3",
+    "ndcg5": 0.8415580415114009,
+    "ndcg10": 0.803575086967852,
+    "mrr": 1.0
+  },
+  "1": {
+    "category": "existing",
+    "query": "immunotherapy for non-small cell lung cancer",
+    "ndcg5": 1.0,
+    "ndcg10": 1.0,
+    "mrr": 1.0
+  },
+  "2": {
+    "category": "existing",
+    "query": "CAR-T cell therapy for pediatric leukemia",
+    "ndcg5": 0.8061941684150765,
+    "ndcg10": 0.874233276401097,
+    "mrr": 1.0
+  },
+  "3": {
+    "category": "existing",
+    "query": "clinical trial for glioblastoma that has come back",
+    "ndcg5": 1.0,
+    "ndcg10": 1.0,
+    "mrr": 1.0
+  },
+  "4": {
+    "category": "existing",
+    "query": "melanomt with checkpoint inhibitors",
+    "ndcg5": 1.0,
+    "ndcg10": 1.0,
+    "mrr": 1.0
+  },
+  "5": {
+    "category": "existing",
+    "query": "prostate cancer trials for men over 65",
+    "ndcg5": 0.8747985572776802,
+    "ndcg10": 0.8976873078288305,
+    "mrr": 1.0
+  },
+  "6": {
+    "category": "existing",
+    "query": "pancreatic cancer that has spread to the liver",
+    "ndcg5": 1.0,
+    "ndcg10": 1.0,
+    "mrr": 1.0
+  },
+  "7": {
+    "category": "existing",
+    "query": "triple negative breast cancer neoadjuvant",
+    "ndcg5": 1.0,
+    "ndcg10": 1.0,
+    "mrr": 1.0
+  },
+  "8": {
+    "category": "existing",
+    "query": "colorectal cancer with microsatellite instability",
+    "ndcg5": 1.0,
+    "ndcg10": 0.9432106656105237,
+    "mrr": 1.0
+  },
+  "9": {
+    "category": "existing",
+    "query": "ovarian cancer PARP inhibitor maintenance",
+    "ndcg5": 0.9250256699929476,
+    "ndcg10": 0.9149920538053871,
+    "mrr": 1.0
+  },
+  "10": {
+    "category": "existing",
+    "query": "stage 4 kidney cancer immunotherapy combination",
+    "ndcg5": 0.9165323715184533,
+    "ndcg10": 0.9039129791606223,
+    "mrr": 1.0
+  },
+  "11": {
+    "category": "existing",
+    "query": "newly diagnosed multiple myeloma treatment",
+    "ndcg5": 0.8777221344374128,
+    "ndcg10": 0.9206500320722545,
+    "mrr": 1.0
+  },
+  "12": {
+    "category": "existing",
+    "query": "HPV related head and neck cancer",
+    "ndcg5": 0.9165323715184533,
+    "ndcg10": 0.9094804842465699,
+    "mrr": 1.0
+  },
+  "13": {
+    "category": "existing",
+    "query": "sarcoma clinical trials for young adults",
+    "ndcg5": 1.0,
+    "ndcg10": 1.0,
+    "mrr": 1.0
+  },
+  "14": {
+    "category": "existing",
+    "query": "targeted therapy for EGFR mutated lung cancer",
+    "ndcg5": 1.0,
+    "ndcg10": 1.0,
+    "mrr": 1.0
+  },
+  "15": {
+    "category": "existing",
+    "query": "liver cancer hepatocellular carcinoma systemic therapy",
+    "ndcg5": 0.9030970842075382,
+    "ndcg10": 0.8559628912419045,
+    "mrr": 1.0
+  },
+  "16": {
+    "category": "existing",
+    "query": "bladder cancer BCG unresponsive",
+    "ndcg5": 1.0,
+    "ndcg10": 0.9371166382005486,
+    "mrr": 1.0
+  },
+  "17": {
+    "category": "existing",
+    "query": "chronic lymphocytic leukemia ibrutinib",
+    "ndcg5": 1.0,
+    "ndcg10": 1.0,
+    "mrr": 1.0
+  },
+  "18": {
+    "category": "existing",
+    "query": "neuroblastoma high risk children",
+    "ndcg5": 1.0,
+    "ndcg10": 1.0,
+    "mrr": 1.0
+  },
+  "19": {
+    "category": "existing",
+    "query": "mesothelioma immunotherapy combination",
+    "ndcg5": 1.0,
+    "ndcg10": 1.0,
+    "mrr": 1.0
+  },
+  "300": {
+    "category": "existing",
+    "query": "uterine leiomyosarcoma advanced treatment",
+    "ndcg5": 1.0,
+    "ndcg10": 0.8931264997686913,
+    "mrr": 1.0
+  },
+  "301": {
+    "category": "existing",
+    "query": "gallbladder cancer unresectable treatment",
+    "ndcg5": 1.0,
+    "ndcg10": 1.0,
+    "mrr": 1.0
+  },
+  "302": {
+    "category": "existing",
+    "query": "appendiceal cancer peritoneal metastases HIPEC",
+    "ndcg5": 1.0,
+    "ndcg10": 0.9404875240541909,
+    "mrr": 1.0
+  },
+  "303": {
+    "category": "existing",
+    "query": "gestational trophoblastic neoplasia resistant",
+    "ndcg5": 0.8875385049894211,
+    "ndcg10": 0.8510329654582757,
+    "mrr": 1.0
+  },
+  "304": {
+    "category": "existing",
+    "query": "anal canal squamous cell carcinoma chemoradiation",
+    "ndcg5": 0.9165323715184533,
+    "ndcg10": 0.9039129791606223,
+    "mrr": 1.0
+  },
+  "305": {
+    "category": "existing",
+    "query": "laryngeal cancer organ preservation",
+    "ndcg5": 1.0,
+    "ndcg10": 0.8956885132092335,
+    "mrr": 1.0
+  },
+  "306": {
+    "category": "existing",
+    "query": "pleural mesothelioma pemetrexed cisplatin",
+    "ndcg5": 1.0,
+    "ndcg10": 1.0,
+    "mrr": 1.0
+  },
+  "307": {
+    "category": "existing",
+    "query": "adrenal gland tumor incidentaloma clinical trial",
+    "ndcg5": 0.8281227542004858,
+    "ndcg10": 0.7942563399852195,
+    "mrr": 1.0
+  },
+  "308": {
+    "category": "existing",
+    "query": "orbital rhabdomyosarcoma pediatric",
+    "ndcg5": 0.7442890884191096,
+    "ndcg10": 0.6015850945465323,
+    "mrr": 1.0
+  },
+  "309": {
+    "category": "existing",
+    "query": "desmoid tumor aggressive fibromatosis treatment",
+    "ndcg5": 1.0,
+    "ndcg10": 1.0,
+    "mrr": 1.0
+  },
+  "400": {
+    "category": "common",
+    "query": "breast cancer HR+ CDK4/6 inhibitor",
+    "ndcg5": 1.0,
+    "ndcg10": 1.0,
+    "mrr": 1.0
+  },
+  "401": {
+    "category": "common",
+    "query": "NSCLC brain mets",
+    "ndcg5": 0.9250256699929476,
+    "ndcg10": 0.8582027194159108,
+    "mrr": 1.0
+  },
+  "402": {
+    "category": "common",
+    "query": "colon cancer stage 2 high risk",
+    "ndcg5": 0.8777221344374128,
+    "ndcg10": 0.8066054519559154,
+    "mrr": 1.0
+  },
+  "403": {
+    "category": "common",
+    "query": "prostate CRPC",
+    "ndcg5": 1.0,
+    "ndcg10": 1.0,
+    "mrr": 1.0
+  },
+  "404": {
+    "category": "common",
+    "query": "ovarian BRCA mutation",
+    "ndcg5": 1.0,
+    "ndcg10": 0.8908792425329297,
+    "mrr": 1.0
+  },
+  "405": {
+    "category": "rare",
+    "query": "angiosarcoma scalp",
+    "ndcg5": 0.9030970842075382,
+    "ndcg10": 0.7996808311911535,
+    "mrr": 1.0
+  },
+  "406": {
+    "category": "rare",
+    "query": "cholangiocarcinoma",
+    "ndcg5": 1.0,
+    "ndcg10": 1.0,
+    "mrr": 1.0
+  },
+  "407": {
+    "category": "rare",
+    "query": "merkel cell carcinoma",
+    "ndcg5": 1.0,
+    "ndcg10": 1.0,
+    "mrr": 1.0
+  },
+  "408": {
+    "category": "rare",
+    "query": "GIST imatinib resistant",
+    "ndcg5": 0.8747985572776802,
+    "ndcg10": 0.8180099124812826,
+    "mrr": 1.0
+  },
+  "409": {
+    "category": "rare",
+    "query": "adrenocortical carcinoma",
+    "ndcg5": 1.0,
+    "ndcg10": 1.0,
+    "mrr": 1.0
+  },
+  "410": {
+    "category": "pediatric",
+    "query": "medulloblastoma 6 year old",
+    "ndcg5": 0.3649615013719244,
+    "ndcg10": 0.4242406320681271,
+    "mrr": 1.0
+  },
+  "411": {
+    "category": "pediatric",
+    "query": "wilms tumor relapsed",
+    "ndcg5": 1.0,
+    "ndcg10": 1.0,
+    "mrr": 1.0
+  },
+  "412": {
+    "category": "pediatric",
+    "query": "childhood rhabdomyosarcoma",
+    "ndcg5": 1.0,
+    "ndcg10": 1.0,
+    "mrr": 1.0
+  },
+  "413": {
+    "category": "complex",
+    "query": "58M EGFR exon 19 NSCLC failed osimertinib phase 2-3",
+    "ndcg5": 0.3421635244761441,
+    "ndcg10": 0.4962009971859476,
+    "mrr": 0.3333333333333333
+  },
+  "414": {
+    "category": "complex",
+    "query": "45F TNBC completed AC-T 3mo ago",
+    "ndcg5": 0.8687949224876582,
+    "ndcg10": 0.7791714369672127,
+    "mrr": 0.0
+  },
+  "415": {
+    "category": "complex",
+    "query": "72M myeloma relapsed after lenalidomide bortezomib",
+    "ndcg5": 0.8747985572776802,
+    "ndcg10": 0.7479189160345695,
+    "mrr": 1.0
+  },
+  "416": {
+    "category": "complex",
+    "query": "62F HER2+ metastatic breast post-trastuzumab progression",
+    "ndcg5": 0.503545758578481,
+    "ndcg10": 0.5508820239167009,
+    "mrr": 0.5
+  },
+  "417": {
+    "category": "complex",
+    "query": "55M MSI-high colorectal post-pembrolizumab progression",
+    "ndcg5": 0.5392135232126914,
+    "ndcg10": 0.6789118187405891,
+    "mrr": 1.0
+  },
+  "418": {
+    "category": "geographic",
+    "query": "pancreatic cancer trials Texas",
+    "ndcg5": 0.6886039320648765,
+    "ndcg10": 0.7731227354521711,
+    "mrr": 1.0
+  },
+  "419": {
+    "category": "geographic",
+    "query": "leukemia trials Europe",
+    "ndcg5": 0.5092595013431674,
+    "ndcg10": 0.7064376242334184,
+    "mrr": 1.0
+  },
+  "420": {
+    "category": "geographic",
+    "query": "trials at MD Anderson",
+    "ndcg5": 1.0,
+    "ndcg10": 0.9636452638863133,
+    "mrr": 1.0
+  },
+  "421": {
+    "category": "vague",
+    "query": "I have cancer what trials",
+    "ndcg5": 0.39505717158855047,
+    "ndcg10": 0.4938814293825445,
+    "mrr": 0.5
+  },
+  "422": {
+    "category": "vague",
+    "query": "mom has bone cancer",
+    "ndcg5": 0.8286434871574538,
+    "ndcg10": 0.8371773542619829,
+    "mrr": 1.0
+  },
+  "423": {
+    "category": "vague",
+    "query": "terminal cancer any options",
+    "ndcg5": 0.7906355891969594,
+    "ndcg10": 0.8773345703582903,
+    "mrr": 1.0
+  },
+  "424": {
+    "category": "vague",
+    "query": "just diagnosed need help",
+    "ndcg5": 0.620168892132239,
+    "ndcg10": 0.6816679484361864,
+    "mrr": 1.0
+  },
+  "425": {
+    "category": "vague",
+    "query": "experimental treatments",
+    "ndcg5": 0.8061941684150765,
+    "ndcg10": 0.7124103940341389,
+    "mrr": 1.0
+  },
+  "426": {
+    "category": "treatment",
+    "query": "CAR-T lymphoma",
+    "ndcg5": 0.8027478044303603,
+    "ndcg10": 0.8300745807916939,
+    "mrr": 1.0
+  },
+  "427": {
+    "category": "treatment",
+    "query": "PARP inhibitor ovarian",
+    "ndcg5": 1.0,
+    "ndcg10": 1.0,
+    "mrr": 1.0
+  },
+  "428": {
+    "category": "treatment",
+    "query": "bispecific antibody myeloma",
+    "ndcg5": 1.0,
+    "ndcg10": 0.9216017310213247,
+    "mrr": 1.0
+  },
+  "429": {
+    "category": "treatment",
+    "query": "radioligand therapy prostate",
+    "ndcg5": 1.0,
+    "ndcg10": 1.0,
+    "mrr": 1.0
+  }
+}
