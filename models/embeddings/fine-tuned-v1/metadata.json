@@ -1,0 +1,39 @@
+{
+  "training_date": "2026-03-26T18:19:18.606730+00:00",
+  "base_model": "michiyasunaga/BioLinkBERT-base",
+  "dataset_size": {
+    "train": 585754,
+    "val": 144957
+  },
+  "hyperparameters": {
+    "epochs": 3,
+    "batch_size": 32,
+    "learning_rate": 2e-05,
+    "warmup_ratio": 0.1,
+    "weight_decay": 0.01,
+    "loss": "MultipleNegativesRankingLoss",
+    "loss_scale": 20.0,
+    "max_seq_length": 512,
+    "fp16": true
+  },
+  "device": "cuda",
+  "gpu": "NVIDIA A100-SXM4-40GB",
+  "training_time_minutes": 288.2,
+  "eval_metrics": {
+    "val-retrieval_cosine_accuracy@1": 0.2996,
+    "val-retrieval_cosine_accuracy@3": 0.5126,
+    "val-retrieval_cosine_accuracy@5": 0.5938,
+    "val-retrieval_cosine_accuracy@10": 0.6998,
+    "val-retrieval_cosine_precision@1": 0.2996,
+    "val-retrieval_cosine_precision@3": 0.17086666666666664,
+    "val-retrieval_cosine_precision@5": 0.11875999999999999,
+    "val-retrieval_cosine_precision@10": 0.06998,
+    "val-retrieval_cosine_recall@1": 0.2996,
+    "val-retrieval_cosine_recall@3": 0.5126,
+    "val-retrieval_cosine_recall@5": 0.5938,
+    "val-retrieval_cosine_recall@10": 0.6998,
+    "val-retrieval_cosine_ndcg@10": 0.4919407528458651,
+    "val-retrieval_cosine_mrr@10": 0.426335476190475,
+    "val-retrieval_cosine_map@100": 0.43593194251659095
+  }
+}
