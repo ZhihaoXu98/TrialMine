@@ -4,9 +4,24 @@ sampling:
 
 synthetic:
   model: "claude-haiku-4-5-20251001"
-  sample_count: 1500
+  sample_count: 10000
   max_requests_per_second: 5
   checkpoint_interval: 100
+  # Per-group floors — fill these BEFORE distributing remainder.
+  # Sums to 4,000; remaining ~6,000 distributes across un-floored groups.
+  per_group_floor:
+    mesothelioma: 500
+    neuroblastoma: 500
+    medulloblastoma: 400
+    wilms: 300
+    gist: 400
+    neuroendocrine: 400
+    thyroid: 300
+    sarcoma_bone: 300
+    sarcoma_pediatric: 300
+    sarcoma_soft_tissue: 300
+    sarcoma_other: 200
+  per_group_ceiling: 600
 
 hard_negatives:
   negatives_per_positive: 3
@@ -22,6 +37,21 @@ output:
   checkpoint_file: synthetic_checkpoint.jsonl
 
 cancer_types:
+  # ── Specific subtypes FIRST (order-sensitive, first match wins) ──
+  medulloblastoma: ["medulloblastoma"]
+  wilms: ["wilms"]
+  gist: ["GIST", "gastrointestinal stromal"]
+  neuroendocrine: ["neuroendocrine", "carcinoid"]
+  biliary: ["biliary tract", "cholangio"]
+  mds: ["myelodysplastic syndrome"]
+
+  # ── Sarcoma split — subtypes BEFORE catch-all ──
+  sarcoma_bone: ["osteosarcoma", "chondrosarcoma"]
+  sarcoma_pediatric: ["ewing sarcoma", "rhabdomyosarcoma"]
+  sarcoma_soft_tissue: ["soft tissue sarcoma", "leiomyosarcoma", "liposarcoma", "synovial sarcoma"]
+  sarcoma_other: ["sarcoma"]
+
+  # ── Existing groups (do NOT reorder relative to each other) ──
   breast: ["breast"]
   lung: ["lung", "NSCLC", "SCLC", "non-small cell", "small cell lung"]
   prostate: ["prostate"]
@@ -36,7 +66,6 @@ cancer_types:
   kidney: ["kidney", "renal"]
   bladder: ["bladder", "urothelial"]
   liver: ["hepatocellular", "liver", "HCC"]
-  sarcoma: ["sarcoma"]
   head_neck: ["head and neck", "nasophary", "orophary", "laryn", "oral cavity"]
   gastric: ["gastric", "stomach", "esophag"]
   cervical: ["cervic"]

@@ -259,14 +259,44 @@ def generate_metadata_pairs(
 
 SYSTEM_PROMPT = "You generate realistic patient search queries for clinical trials."
 
-USER_PROMPT_TEMPLATE = """Write a realistic 1-2 sentence search query that a PATIENT (not a doctor) \
-might type when looking for this trial. Use simple patient language. \
-DO NOT use medical jargon or acronyms.
+# Six query "shapes" rotated round-robin per row. Each shape targets a different
+# real-world patient query pattern so the training set covers the long tail of
+# how patients actually phrase searches, not just the most generic template.
+SHAPE_PROMPTS: dict[str, str] = {
+    "failed_treatment": (
+        "Write a 1-2 sentence patient query where the patient's PREVIOUS "
+        "treatment STOPPED WORKING. Name the failed drug/regimen "
+        "explicitly if shown in the trial info."
+    ),
+    "post_progression": (
+        "Write a 1-2 sentence patient query where the patient PROGRESSED "
+        "AFTER a prior therapy. Reference the prior therapy by name if "
+        "shown."
+    ),
+    "biomarker": (
+        "Write a 1-2 sentence patient query that mentions a SPECIFIC "
+        "BIOMARKER OR MUTATION (e.g., EGFR, HER2, MSI-high, BRCA, PD-L1). "
+        "If the trial does not mention one, infer the most likely one for "
+        "this cancer type."
+    ),
+    "multi_constraint": (
+        "Write a 1-2 sentence patient query that combines AT LEAST TWO "
+        "of: age, stage, line of therapy, biomarker, geography."
+    ),
+    "vague": (
+        "Write a 1-2 sentence VAGUE patient query in everyday language "
+        "with NO medical jargon. Paraphrase the condition (e.g., 'a "
+        "problem with my blood' for leukemia)."
+    ),
+    "caregiver": (
+        "Write a 1-2 sentence query from a CAREGIVER (parent, spouse, "
+        "adult child) describing the patient's situation in the third "
+        "person."
+    ),
+}
+SHAPE_ORDER: list[str] = list(SHAPE_PROMPTS.keys())  # deterministic rotation
 
-Good examples:
-- 'lung cancer treatment options after chemo stopped working'
-- 'is there a trial for breast cancer near Chicago'
-- 'my colon cancer came back, what trials can I try'
+USER_PROMPT_TEMPLATE = """{shape_instruction}
 
 Trial: {title}
 Conditions: {conditions}
@@ -295,6 +325,157 @@ def load_checkpoint(checkpoint_path: Path) -> set[str]:
                     continue
         logger.info("Loaded checkpoint: %d queries already generated", len(done))
     return done
+
+
+def quota_sample(
+    trials_by_group: dict[str, list[Trial]],
+    sample_count: int,
+    per_group_floor: dict[str, int],
+    per_group_ceiling: int,
+    rng: random.Random,
+) -> list[tuple[str, Trial]]:
+    """Sample (group, trial) pairs with per-group floors and ceilings.
+
+    Two passes:
+      1. Floor pass — each group in per_group_floor gets at least `floor`
+         samples. If a group has fewer unique trials than its floor, sample
+         WITH replacement and emit a WARN with the unique-trial count.
+      2. Remainder pass — distribute (sample_count - floored_total) over
+         un-floored groups proportionally to their corpus sizes, capped at
+         per_group_ceiling. Redistribute slack from capped groups in
+         successive passes until the budget is exhausted or no headroom
+         remains.
+
+    Args:
+        trials_by_group: cancer group name -> list of Trial objects.
+        sample_count: total number of (group, trial) pairs to return.
+        per_group_floor: minimum sample count per group. Absent groups
+            get no minimum and are eligible for the remainder pass.
+        per_group_ceiling: maximum sample count per group in the
+            remainder pass.
+        rng: deterministic random number generator.
+
+    Returns:
+        Shuffled list of (group, trial) tuples. Length is sample_count
+        unless corpus constraints prevent it (logged as WARN).
+    """
+    samples: list[tuple[str, Trial]] = []
+    floor_stats: list[tuple[str, int, int]] = []  # (group, sampled, unique)
+
+    for group, floor in per_group_floor.items():
+        available = trials_by_group.get(group, [])
+        if not available:
+            logger.warning(
+                "Floor requested for group %s but corpus is empty — skipping",
+                group,
+            )
+            continue
+        if len(available) >= floor:
+            picks = rng.sample(available, floor)
+            unique_count = floor
+        else:
+            picks = rng.choices(available, k=floor)
+            unique_count = len({t.nct_id for t in picks})
+            logger.warning(
+                "Group %s: floor=%d but only %d unique trials available "
+                "(%.2fx with-replacement, %d unique drawn)",
+                group, floor, len(available), floor / len(available),
+                unique_count,
+            )
+        samples.extend((group, t) for t in picks)
+        floor_stats.append((group, len(picks), unique_count))
+
+    floored_total = len(samples)
+    remainder = sample_count - floored_total
+    if remainder <= 0:
+        if remainder < 0:
+            logger.warning(
+                "Floor sum (%d) exceeds sample_count (%d); truncating",
+                floored_total, sample_count,
+            )
+        rng.shuffle(samples)
+        return samples[:sample_count]
+
+    unfloored = {
+        g: ts for g, ts in trials_by_group.items()
+        if g not in per_group_floor and ts
+    }
+    if not unfloored:
+        logger.warning(
+            "No un-floored groups for remainder pass; returning %d samples",
+            len(samples),
+        )
+        rng.shuffle(samples)
+        return samples
+
+    allocations: dict[str, int] = {g: 0 for g in unfloored}
+    headroom: dict[str, int] = {
+        g: min(per_group_ceiling, len(ts)) for g, ts in unfloored.items()
+    }
+    total_size = sum(len(ts) for ts in unfloored.values())
+    for g, ts in unfloored.items():
+        target = round(remainder * len(ts) / total_size)
+        give = min(target, headroom[g])
+        allocations[g] = give
+        headroom[g] -= give
+
+    # Successive passes redistribute slack from capped groups; converges
+    # in <= 3 iterations for the production quotas.
+    for _ in range(8):
+        slack = remainder - sum(allocations.values())
+        if slack <= 0:
+            break
+        expandable = {g: h for g, h in headroom.items() if h > 0}
+        if not expandable:
+            break
+        per_group = max(1, slack // len(expandable))
+        for g, h in expandable.items():
+            if slack <= 0:
+                break
+            give = min(per_group, h, slack)
+            allocations[g] += give
+            headroom[g] -= give
+            slack -= give
+
+    final_short = remainder - sum(allocations.values())
+    if final_short > 0:
+        logger.warning(
+            "Remainder pass short by %d (capacity exhausted across "
+            "un-floored groups)",
+            final_short,
+        )
+
+    for g, n in allocations.items():
+        if n == 0:
+            continue
+        pool = unfloored[g]
+        if n <= len(pool):
+            picks = rng.sample(pool, n)
+        else:
+            picks = rng.choices(pool, k=n)
+            logger.warning(
+                "Group %s: remainder allocation (%d) exceeded pool size "
+                "(%d); used with-replacement",
+                g, n, len(pool),
+            )
+        samples.extend((g, t) for t in picks)
+
+    logger.info(
+        "Quota sample complete: %d total (%d floored across %d groups, "
+        "%d remainder across %d groups)",
+        len(samples), floored_total, len(floor_stats),
+        len(samples) - floored_total,
+        sum(1 for n in allocations.values() if n > 0),
+    )
+    for group, sampled, unique in floor_stats:
+        if unique < sampled:
+            logger.info(
+                "  floor %-22s sampled=%d unique=%d (%.1f%% unique)",
+                group, sampled, unique, 100 * unique / sampled,
+            )
+
+    rng.shuffle(samples)
+    return samples
 
 
 def generate_synthetic_queries(
@@ -332,15 +513,26 @@ def generate_synthetic_queries(
     checkpoint_path = output_dir / config["output"]["checkpoint_file"]
     synthetic_path = output_dir / config["output"]["synthetic_file"]
 
-    # Sample trials for synthetic generation (stratified)
+    # Quota-aware sampling: floor rare groups first, then distribute the
+    # remainder over un-floored groups proportionally (capped per group).
     sample_count = syn_config["sample_count"]
     rng = random.Random(config["sampling"]["random_seed"] + 1)
-    all_trials: list[tuple[str, Trial]] = []
-    for group, group_trials in trials_by_group.items():
-        for trial in group_trials:
-            all_trials.append((group, trial))
-    rng.shuffle(all_trials)
-    all_trials = all_trials[:sample_count]
+    per_group_floor: dict[str, int] = syn_config.get("per_group_floor", {})
+    per_group_ceiling: int = syn_config.get("per_group_ceiling", sample_count)
+    sampled_trials = quota_sample(
+        trials_by_group=trials_by_group,
+        sample_count=sample_count,
+        per_group_floor=per_group_floor,
+        per_group_ceiling=per_group_ceiling,
+        rng=rng,
+    )
+
+    # Pre-assign shape by position so the same trial always gets the same
+    # shape across resumes (rotation is deterministic from sample order).
+    indexed_trials: list[tuple[str, Trial, str]] = [
+        (group, trial, SHAPE_ORDER[i % len(SHAPE_ORDER)])
+        for i, (group, trial) in enumerate(sampled_trials)
+    ]
 
     # Resume support
     done_ids: set[str] = set()
@@ -363,7 +555,11 @@ def generate_synthetic_queries(
                 except json.JSONDecodeError:
                     continue
 
-    pending = [(group, trial) for group, trial in all_trials if trial.nct_id not in done_ids]
+    pending = [
+        (group, trial, shape)
+        for group, trial, shape in indexed_trials
+        if trial.nct_id not in done_ids
+    ]
     logger.info(
         "Source 2: generating %d synthetic queries (%d already done, %d pending)",
         sample_count, len(done_ids), len(pending),
@@ -371,12 +567,13 @@ def generate_synthetic_queries(
 
     checkpoint_file = open(checkpoint_path, "a")
     try:
-        for i, (group, trial) in enumerate(pending, 1):
+        for i, (group, trial, shape) in enumerate(pending, 1):
             trial_text = prepare_trial_text(trial)
             if not trial_text.strip():
                 continue
 
             user_prompt = USER_PROMPT_TEMPLATE.format(
+                shape_instruction=SHAPE_PROMPTS[shape],
                 title=trial.title or "",
                 conditions=", ".join(trial.conditions) if trial.conditions else "N/A",
                 eligibility=(trial.eligibility_criteria or "")[:300],
@@ -400,6 +597,7 @@ def generate_synthetic_queries(
                 "nct_id": trial.nct_id,
                 "source": "synthetic",
                 "cancer_group": group,
+                "shape": shape,
             }
             pairs.append(row)
 

@@ -2,13 +2,21 @@
 
 Usage:
     python scripts/build_index.py [--db PATH] [--es-url URL] [--index NAME]
-                                  [--faiss-path PATH] [--model NAME]
+                                  [--model NAME] [--model-path PATH]
+                                  [--output STEM] [--faiss-path PATH]
                                   [--batch-size N] [--skip-bm25] [--skip-semantic]
+                                  [--dry-run]
 
 Model shortcuts:
     --model off-the-shelf   → michiyasunaga/BioLinkBERT-base  → data/faiss_offshelf.index
     --model fine-tuned      → models/embeddings/fine-tuned    → data/faiss_finetuned.index
-    --model <path>          → custom model path               → --faiss-path required
+    --model <path>          → custom model path               → --output recommended
+
+Output stem (preferred over --faiss-path):
+    --output data/faiss_finetuned_v2 → writes data/faiss_finetuned_v2.index + .json
+
+Custom model dir (overrides --model alias):
+    --model-path models/embeddings/fine-tuned-v2
 """
 
 import argparse
@@ -178,30 +186,42 @@ def _avg_len(texts: list[str]) -> float:
     return sum(len(t) for t in texts) / max(len(texts), 1)
 
 
-def resolve_model(model_arg: str) -> str:
+def resolve_model(model_arg: str, model_path: str | None = None) -> str:
     """Resolve a model alias to its full path/name.
 
     Args:
         model_arg: Model alias ('off-the-shelf', 'fine-tuned') or a direct path.
+        model_path: Explicit model directory; takes precedence over alias.
 
     Returns:
         Resolved model name or path.
     """
+    if model_path is not None:
+        return model_path
     return MODEL_ALIASES.get(model_arg, model_arg)
 
 
-def resolve_faiss_path(model_arg: str, explicit_path: str | None) -> str:
-    """Determine the FAISS output path based on model alias or explicit flag.
+def resolve_faiss_path(
+    model_arg: str,
+    output: str | None = None,
+    legacy_faiss_path: str | None = None,
+) -> str:
+    """Determine the FAISS output path.
+
+    Precedence: --output (stem) > --faiss-path (full) > alias default.
 
     Args:
         model_arg: The raw --model argument (may be an alias).
-        explicit_path: The --faiss-path value, or None if not provided.
+        output: The --output stem (no extension). Produces stem.index.
+        legacy_faiss_path: The --faiss-path value (full path), or None.
 
     Returns:
-        Final FAISS index output path.
+        Final FAISS index output path including .index extension.
     """
-    if explicit_path is not None:
-        return explicit_path
+    if output is not None:
+        return output + ".index"
+    if legacy_faiss_path is not None:
+        return legacy_faiss_path
     if model_arg in DEFAULT_FAISS_PATHS:
         return DEFAULT_FAISS_PATHS[model_arg]
     return "data/trial_embeddings.faiss"
@@ -214,26 +234,48 @@ def main() -> None:
     parser.add_argument("--es-url", default="http://localhost:9200")
     parser.add_argument("--index", default="trials", help="Elasticsearch index name")
     parser.add_argument(
-        "--faiss-path",
-        default=None,
-        help="Output path for FAISS index (auto-set from --model alias if omitted)",
-    )
-    parser.add_argument(
         "--model",
         default="fine-tuned",
-        help="Model: 'off-the-shelf', 'fine-tuned', or a HuggingFace/local path",
+        help="Model alias ('off-the-shelf', 'fine-tuned') or HuggingFace/local path",
+    )
+    parser.add_argument(
+        "--model-path",
+        default=None,
+        help="Explicit model directory; overrides --model alias resolution",
+    )
+    parser.add_argument(
+        "--output",
+        default=None,
+        help="Output STEM for FAISS files; produces <stem>.index + <stem>.json "
+             "(default: derived from --model alias, e.g. data/faiss_finetuned)",
+    )
+    parser.add_argument(
+        "--faiss-path",
+        default=None,
+        help="(Legacy) full path to FAISS index file; prefer --output",
     )
     parser.add_argument("--batch-size", type=int, default=64, help="Encoding batch size")
     parser.add_argument("--skip-bm25", action="store_true", help="Skip BM25 index build")
     parser.add_argument("--skip-semantic", action="store_true", help="Skip semantic index build")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Resolve paths and exit without writing any files",
+    )
     args = parser.parse_args()
 
     db_path = Path(args.db)
-    model_name = resolve_model(args.model)
-    faiss_path = resolve_faiss_path(args.model, args.faiss_path)
+    model_name = resolve_model(args.model, args.model_path)
+    faiss_path = resolve_faiss_path(args.model, args.output, args.faiss_path)
+    mapping_path = str(Path(faiss_path).with_suffix(".json"))
 
-    logger.info("Model: %s (alias=%s)", model_name, args.model)
-    logger.info("FAISS output: %s", faiss_path)
+    logger.info("Model: %s (alias=%s, model_path=%s)", model_name, args.model, args.model_path)
+    logger.info("FAISS index path: %s", faiss_path)
+    logger.info("FAISS mapping path: %s", mapping_path)
+
+    if args.dry_run:
+        logger.info("--dry-run set; exiting before any index build.")
+        return
 
     # BM25 index (needs full Trial objects for structured fields)
     if not args.skip_bm25:

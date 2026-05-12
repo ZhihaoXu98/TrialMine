@@ -60,6 +60,50 @@ def load_config(config_path: Path) -> dict:
         return yaml.safe_load(f)
 
 
+def apply_overrides(config: dict, overrides: list[str]) -> dict:
+    """Apply --override KEY=VALUE strings to a config dict in-place.
+
+    Dotted keys address nested dict paths; intermediate dicts are
+    created if absent. Values are cast best-effort: bool -> int -> float
+    -> str. The string forms "true"/"false" (case-insensitive) become
+    real booleans BEFORE the numeric casts (so "0"/"1" stay int).
+
+    Args:
+        config: The loaded config dict.
+        overrides: List of "key.path=value" strings from --override flags.
+
+    Returns:
+        The (mutated) config dict.
+    """
+    def _cast(s: str):
+        if s.lower() in {"true", "false"}:
+            return s.lower() == "true"
+        for fn in (int, float):
+            try:
+                return fn(s)
+            except ValueError:
+                pass
+        return s
+
+    def _set(d: dict, path: str, value) -> None:
+        keys = path.split(".")
+        cur = d
+        for k in keys[:-1]:
+            cur = cur.setdefault(k, {})
+        cur[keys[-1]] = value
+
+    for spec in overrides:
+        if "=" not in spec:
+            logger.warning("Ignoring malformed --override (no '='): %s", spec)
+            continue
+        key, _, raw = spec.partition("=")
+        value = _cast(raw)
+        _set(config, key, value)
+        logger.info("Override applied: %s = %r (%s)", key, value, type(value).__name__)
+
+    return config
+
+
 # ── Device detection ─────────────────────────────────────────────────────────
 
 
@@ -286,6 +330,15 @@ def parse_args() -> argparse.Namespace:
         "--resume-from-checkpoint", type=str, default=None,
         help="Resume training from a checkpoint directory",
     )
+    parser.add_argument(
+        "--override",
+        action="append",
+        default=[],
+        metavar="KEY=VALUE",
+        help="Override a config field (repeatable). Use dotted keys for "
+             "nesting (e.g. training.learning_rate=4e-5). Values cast as "
+             "bool->int->float->str.",
+    )
     return parser.parse_args()
 
 
@@ -293,6 +346,7 @@ def main() -> None:
     """Run the fine-tuning pipeline."""
     args = parse_args()
     config = load_config(args.config)
+    config = apply_overrides(config, args.override)
 
     # ── Device detection ─────────────────────────────────────────────────
     device = detect_device()

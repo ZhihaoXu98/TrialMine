@@ -1,18 +1,18 @@
 model:
   name: "michiyasunaga/BioLinkBERT-base"
   max_seq_length: 512
-  output_dir: "models/embeddings/fine-tuned"
+  output_dir: "models/embeddings/fine-tuned-v2"
 
 training:
   epochs: 3
-  batch_size: 32
-  learning_rate: 2.0e-5
+  batch_size: 128
+  learning_rate: 4.0e-5   # placeholder, overwritten by select_lr.py after the cloud sweep
   warmup_ratio: 0.1
   weight_decay: 0.01
   fp16: true              # mixed precision — halves memory, faster on CUDA
-  logging_steps: 50
-  eval_steps: 1000
-  save_steps: 1000
+  logging_steps: 20
+  eval_steps: 250
+  save_steps: 250
   save_total_limit: 3
   load_best_model_at_end: true
   metric_for_best_model: "val-retrieval_cosine_ndcg@10"
@@ -31,4 +31,4 @@ data:
 mlflow:
   tracking_uri: "sqlite:///mlflow.db"
   experiment_name: "trialmind-embeddings"
-  run_tag: "fine-tuning-v1"
+  run_tag: "v2-synth10k-bs128-taxfix"
