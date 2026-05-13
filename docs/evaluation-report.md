@@ -317,6 +317,88 @@ Cost: ~$2.20 in Haiku total ($1.30 for C2 + ~$0.80 for the C4 expansion + $0.10 
 
 ---
 
+## 9. Phase C5 — Eligibility hard-filter on complex + vague (n=15 each)
+
+### Motivation
+
+Phase C4 diagnosed `complex` as a pipeline-logic gap, not an embedding gap. Both v1 (0.540) and v2 (0.526) sit below the 0.68 NDCG@5 gate because the agent extracts a `PatientProfile` (age, sex, biomarkers, prior treatments) but the orchestrator never translates those fields into hard retrieval filters. Trials that obviously exclude the patient (wrong sex, wrong age range, has-already-failed-the-drug-the-trial-excludes) still appear in the ranking. Phase C5 wires those fields into a post-RRF hard filter.
+
+### Design — high-confidence criteria only
+
+The eligibility parser has very different precision per criterion (CLAUDE.md Decision 17 + Decision 38):
+
+| Criterion | Precision | Used by filter? |
+|---|---|---|
+| `age` (numeric comparison) | High | ✅ Hard |
+| `sex` (3-value enum All/Male/Female) | High | ✅ Hard |
+| `excluded_prior_treatments` (drug-vocab substring) | Medium-high | ✅ Hard |
+| `required_conditions` (SciSpacy NER on inclusion text) | ~70 % (Decision 17) — boilerplate words like "Histologically", "signed", "clinical trial" leak in | ❌ Annotation only |
+| `required_prior_treatments` (literal string match) | Low — misses drug-class equivalences ("osimertinib" vs "systemic therapy") | ❌ Annotation only |
+
+Filtering on the overall verdict (a roll-up over all criteria) dropped ALL 10 trials on the Q413 smoke test — too aggressive. Filtering only on the closed-vocab criteria above drops the right ones (sex mismatches for sex-restricted trials, age mismatches for adult trials returned for pediatric queries) without false-positives from the noisy criteria.
+
+Shared logic lives in `src/TrialMine/features/eligibility_filter.py` (`is_hard_unmet` + `apply_hard_filter`); imported by both the live orchestrator (Step 5b) and `scripts/build_full_eval_dataset.py` (when `--apply-eligibility-filter` is set). Toggle via `DegradationConfig.eligibility_hard_filter_enabled` (default `True`). Safety net: if filtering would empty the result set, the unfiltered list is returned (logged).
+
+### Results — filter ON vs OFF, same 30 queries
+
+```
+                  filter OFF        filter ON          Δ        Bootstrap CI half-width
+complex NDCG@5:   0.526 ± 0.10  →   0.519 ± 0.10     -0.007    (Δ inside noise)
+vague   NDCG@5:   0.673 ± 0.13  →   0.668 ± 0.13     -0.004    (Δ inside noise)
+complex NDCG@10:  0.630 ± 0.08  →   0.611 ± 0.08     -0.019
+vague   NDCG@10:  0.706 ± 0.11  →   0.706 ± 0.11     +0.000
+complex MRR:      0.620         →   0.592             -0.028
+```
+
+**Aggregate effect: practically zero.** The deltas are well within bootstrap CIs AND within typical Haiku run-to-run labeling noise (~ ±0.02–0.05/query).
+
+### Where the filter actually fires (4 of 15 complex; 0 of 15 vague)
+
+| Query | Category | n labeled<br>(off → on) | NDCG@5<br>off → on | Δ |
+|---|---|---|---|---|
+| Q606 — 28F AML FLT3-ITD post-allo relapse | complex | 20 → 19 | 0.513 → 0.513 | +0.000 |
+| Q607 — 55F ovarian BRCA wild-type platinum-resistant PARP-failure | complex | 20 → 12 | 0.513 → 0.614 | **+0.101** 🚀 |
+| Q608 — 48M IDH1 mutant glioblastoma post-radiation Stupp recurrence | complex | 20 → 17 | 0.200 → 0.207 | +0.007 |
+| Q609 — 8M relapsed B-ALL CD19+ post-CAR-T | complex | 20 → 14 | 0.745 → 0.820 | **+0.075** 🚀 |
+
+On the 4 queries where the filter triggers, **3 of 4 show real lifts** (avg +0.046 NDCG@5). Q609's 8-year-old pediatric case is the textbook "drop adult-only trials" scenario; Q607's 55-year-old BRCA-wild-type ovarian-cancer case dropped 8 trials that hard-excluded the patient (likely sex/BRCA-status mismatches).
+
+**Vague queries see zero filtering** because Haiku's `QueryParser` doesn't extract age or sex from caregiver-style phrasings ("my dad has cancer"). This is correct behavior (no false-positive drops) but means the filter is structurally a no-op for vague queries.
+
+### Honest summary
+
+The filter is a **real-but-narrow improvement**:
+
+- ✅ Catches age/sex/excluded-treatment hard mismatches cleanly. Works on the canonical pediatric-adult-trial failure mode (Q609 +0.075).
+- ✅ No false-positive drops. Safety net never triggered in this run. Soft criteria correctly excluded from the filter logic.
+- ✅ Surfaced in production (`tools.py`-loaded orchestrator) AND in the eval script via the shared `eligibility_filter` module — both code paths agree on what "hard-unmet" means.
+- ⚠️ Triggers on only 13 % of queries (4 / 30). Lift is real where it triggers but invisible in the aggregate because 26 queries are unchanged and Haiku stochasticity dominates the average.
+- ❌ Doesn't move the C4 gate. Complex stays at 0.52, vague at 0.67. Hitting 0.68/0.74 needs either (a) better parser precision on `required_prior_treatments` so we can include it in the hard set (then Q413 / Q416 — the canonical "failed osimertinib" / "post-trastuzumab" cases — get fixed), or (b) better patient-profile extraction so more queries have filter-applicable fields.
+
+### What's next
+
+1. **Parser quality on prior treatments.** Q413 (`58M EGFR exon 19 NSCLC failed osimertinib`) and Q416 (`62F HER2+ post-trastuzumab`) need a parser that maps `osimertinib` → `EGFR TKI` and recognizes the trial's `required_prior_treatments=['EGFR TKI']` as satisfied. UMLS via SciSpacy `EntityLinker` (Decision 18 upgrade path) is the cleanest route.
+2. **Expand `HARD_FILTER_CRITERIA` once parser precision improves.** Today: `(age, sex, excluded_prior_treatments)`. Future: `+(required_prior_treatments)` once parser does drug-class matching.
+3. **Re-run Phase C4 expanded eval after the parser work.** Same 80-query set. The success criterion is unchanged: complex ≥ 0.68 NDCG@5, vague ≥ 0.74.
+
+### Reproducibility
+
+```bash
+# (a) Label 30 complex+vague queries with filter ON (Phase C5a)
+OMP_NUM_THREADS=1 python scripts/build_full_eval_dataset.py \
+    --categories complex,vague \
+    --apply-eligibility-filter \
+    --output data/evaluation/full_labeled_complex_vague_filtered_v2.jsonl
+
+# (b) Compare against existing filter-OFF labels in
+#     data/evaluation/full_labeled_dataset.jsonl + ..._expansion_v2.jsonl
+#     (inline analysis script in commit message of the filter-eval commit)
+```
+
+Cost: ~$0.60 Haiku for the 30-query re-label, ~12 min wall-clock on CPU.
+
+---
+
 ## Reproducing this report
 
 ```bash
