@@ -289,18 +289,49 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--limit", type=int, default=0, help="Limit number of queries (0=all)")
     parser.add_argument("--resume", action="store_true", help="Skip already-labeled pairs")
     parser.add_argument("--new-only", action="store_true", help="Only run the 30 new queries")
-    parser.add_argument("--existing-only", action="store_true", help="Only run the 30 existing queries")
-    parser.add_argument("--rare-explicit-only", action="store_true",
-                        help="Only run the 5 rare_explicit queries (IDs 500-504)")
-    parser.add_argument("--expansion-only", action="store_true",
-                        help="Only run the 20 expansion queries (IDs 600-619), 10 complex + 10 vague")
-    parser.add_argument("--list-queries", action="store_true",
-                        help="Print the (id, category, query) list and exit (no Haiku, no models)")
+    parser.add_argument(
+        "--existing-only", action="store_true", help="Only run the 30 existing queries"
+    )
+    parser.add_argument(
+        "--rare-explicit-only",
+        action="store_true",
+        help="Only run the 5 rare_explicit queries (IDs 500-504)",
+    )
+    parser.add_argument(
+        "--expansion-only",
+        action="store_true",
+        help="Only run the 20 expansion queries (IDs 600-619), 10 complex + 10 vague",
+    )
+    parser.add_argument(
+        "--categories",
+        default=None,
+        help="Comma-separated list of categories to include (e.g. 'complex,vague'). "
+        "Filters the default query set down to matching categories.",
+    )
+    parser.add_argument(
+        "--apply-eligibility-filter",
+        action="store_true",
+        help="Apply the hard eligibility filter (Phase C5 fix): "
+        "parse each query into a PatientProfile, run check_trial_eligibility on each "
+        "retrieved trial, and drop trials with hard-Unmet verdicts (age/sex/excluded "
+        "prior treatments) before labeling. Labels reflect the filtered top-K, not "
+        "the raw pipeline output. Survivors-only — if fewer than top_k survive, fewer "
+        "are labeled.",
+    )
+    parser.add_argument(
+        "--list-queries",
+        action="store_true",
+        help="Print the (id, category, query) list and exit (no Haiku, no models)",
+    )
     parser.add_argument("--top-k", type=int, default=20, help="Top-K from full pipeline to label")
     parser.add_argument("--db", default="data/trials.db", help="SQLite database path")
     parser.add_argument("--rate-limit-s", type=float, default=0.1, help="Sleep between API calls")
-    parser.add_argument("--output", type=Path, default=None,
-                        help="Output path override (default: data/evaluation/full_labeled_dataset.jsonl)")
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=None,
+        help="Output path override (default: data/evaluation/full_labeled_dataset.jsonl)",
+    )
     return parser.parse_args()
 
 
@@ -311,7 +342,19 @@ def build_query_list(args: argparse.Namespace) -> list[tuple[int, str, str]]:
     Default (no flag) includes all 65 queries (30 existing + 30 new + 5 rare_explicit).
     """
     queries: list[tuple[int, str, str]] = []
-    if args.expansion_only:
+    if args.categories:
+        # Category filter: pull from ALL sources (NEW + EXPANSION + RARE_EXPLICIT)
+        # and keep only those matching the requested categories. EXISTING queries
+        # are all category="existing" so they're only included if "existing" is
+        # in --categories.
+        wanted = {c.strip() for c in args.categories.split(",") if c.strip()}
+        for qid, q in EXISTING_QUERIES:
+            if "existing" in wanted:
+                queries.append((qid, "existing", q))
+        for tup in NEW_QUERIES + RARE_EXPLICIT_QUERIES + EXPANSION_QUERIES:
+            if tup[1] in wanted:
+                queries.append(tup)
+    elif args.expansion_only:
         queries = list(EXPANSION_QUERIES)
     elif args.rare_explicit_only:
         queries = list(RARE_EXPLICIT_QUERIES)
@@ -367,12 +410,37 @@ def main() -> None:
     else:
         logger.warning("LightGBM model not found at %s — using CE-blended fallback", RANKER_MODEL)
 
+    # ── Optional: load eligibility filter + query parser ─────────────────────
+    # When --apply-eligibility-filter is set, each query is parsed into a
+    # PatientProfile via QueryParserAgent (Haiku call) before retrieval, and
+    # the resulting trials are hard-filtered via the shared eligibility_filter
+    # module. This mirrors what the production orchestrator does at serving
+    # time — used here to produce a labeled set that reflects the filtered
+    # output rather than the raw pipeline.
+    query_parser = None
+    check_trial_eligibility_fn = None
+    apply_hard_filter_fn = None
+    if args.apply_eligibility_filter:
+        from TrialMine.agents.query_parser import QueryParserAgent
+        from TrialMine.agents.tools import check_trial_eligibility as _check_elig
+        from TrialMine.features.eligibility_filter import apply_hard_filter as _apply_filter
+
+        query_parser = QueryParserAgent()
+        check_trial_eligibility_fn = _check_elig
+        apply_hard_filter_fn = _apply_filter
+        logger.info(
+            "Eligibility hard-filter ENABLED — queries will be parsed via QueryParserAgent + filtered before labeling"
+        )
+
     # ── Load eligibility lookup ───────────────────────────────────────────────
     logger.info("Loading eligibility criteria from SQLite...")
     conn = sqlite3.connect(args.db)
-    elig_lookup = {nct_id: (elig or "") for nct_id, elig in conn.execute(
-        "SELECT nct_id, eligibility_criteria FROM trials"
-    ).fetchall()}
+    elig_lookup = {
+        nct_id: (elig or "")
+        for nct_id, elig in conn.execute(
+            "SELECT nct_id, eligibility_criteria FROM trials"
+        ).fetchall()
+    }
     conn.close()
     logger.info("Loaded eligibility for %d trials", len(elig_lookup))
 
@@ -405,9 +473,49 @@ def main() -> None:
                 logger.error("Pipeline failed for query %d (%s): %s", qid, query, exc)
                 continue
             pipeline_ms = (time.perf_counter() - t0) * 1000
+            n_pre_filter = len(results)
+            n_dropped = 0
+            safety_net = False
+            if args.apply_eligibility_filter and query_parser is not None and results:
+                # Parse query → PatientProfile, run eligibility on each candidate,
+                # drop hard-Unmet trials. Serial loop is fine: SQLite hits are ~5 ms
+                # each, dominating cost is the QueryParser Haiku call (~1.5 s).
+                profile = query_parser.parse(query)
+                elig_list: list[dict | None] = []
+                for trial in results:
+                    try:
+                        elig_json = check_trial_eligibility_fn.invoke(
+                            {
+                                "nct_id": trial["nct_id"],
+                                "patient_age": float(profile.age)
+                                if profile.age is not None
+                                else None,
+                                "patient_sex": profile.sex,
+                                "patient_condition": profile.condition,
+                                "prior_treatments": (
+                                    ", ".join(profile.prior_treatments)
+                                    if profile.prior_treatments
+                                    else None
+                                ),
+                            }
+                        )
+                        elig_list.append(json.loads(elig_json))
+                    except Exception as exc:
+                        logger.warning("Eligibility check failed for %s: %s", trial["nct_id"], exc)
+                        elig_list.append({"verdict": "Unknown", "error": str(exc)})
+                results, _filtered_elig, n_dropped, safety_net = apply_hard_filter_fn(
+                    results, elig_list
+                )
             logger.info(
-                "Q%d [%s] %d results in %.0f ms — %s",
-                qid, category, len(results), pipeline_ms, query[:60],
+                "Q%d [%s] %d→%d results in %.0f ms (filter dropped %d, safety_net=%s) — %s",
+                qid,
+                category,
+                n_pre_filter,
+                len(results),
+                pipeline_ms,
+                n_dropped,
+                safety_net,
+                query[:60],
             )
 
             for rank, trial in enumerate(results):
@@ -442,14 +550,16 @@ def main() -> None:
                 labeled_count += 1
 
                 if labeled_count % 25 == 0:
-                    logger.info("  ... labeled %d pairs (query %d/%d)", labeled_count, i + 1, len(queries))
+                    logger.info(
+                        "  ... labeled %d pairs (query %d/%d)", labeled_count, i + 1, len(queries)
+                    )
 
                 time.sleep(args.rate_limit_s)
 
     # ── Summary ───────────────────────────────────────────────────────────────
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("  FULL EVAL DATASET BUILD COMPLETE")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"  Queries processed : {len(queries)}")
     print(f"  New labels        : {labeled_count}")
     print(f"  Skipped (resume)  : {skipped}")
@@ -463,7 +573,7 @@ def main() -> None:
     errors = score_dist.get(-1, 0)
     if errors:
         print(f"   -1: {errors:>4} (parse/API errors)")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
 
 if __name__ == "__main__":

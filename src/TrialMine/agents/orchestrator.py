@@ -219,7 +219,11 @@ class SearchOrchestrator:
             }
         )
 
-        # --- Step 5: parallel eligibility checks on top eligibility_top_k ---
+        # --- Step 5: parallel eligibility checks ---
+        # When hard-filter is enabled (Phase C4 fix), we check ALL ranked
+        # results because we need a verdict on every candidate to filter out
+        # the Unmet ones. When hard-filter is disabled, fall back to the
+        # original "annotate top eligibility_top_k only" behavior.
         # Each call hits SQLite (concurrent reads are safe). asyncio.gather
         # over asyncio.to_thread runs them in the default thread pool —
         # wall-clock time becomes max(per-call latency), not sum().
@@ -227,7 +231,10 @@ class SearchOrchestrator:
         t0 = time.perf_counter()
         eligibility_results: list[dict | None] = [None] * len(ranked)
         if self.degradation.eligibility_check_enabled:
-            n_to_check = min(len(ranked), self.eligibility_top_k)
+            if self.degradation.eligibility_hard_filter_enabled:
+                n_to_check = len(ranked)
+            else:
+                n_to_check = min(len(ranked), self.eligibility_top_k)
         else:
             n_to_check = 0
         if n_to_check > 0:
@@ -239,17 +246,62 @@ class SearchOrchestrator:
             for i, result in enumerate(partial):
                 eligibility_results[i] = result
         elig_elapsed_ms = round((time.perf_counter() - t0) * 1000, 2)
+
+        # --- Step 5b: hard-filter on HIGH-CONFIDENCE Unmet criteria only ---
+        # The eligibility parser's overall verdict (rolled up across ALL
+        # criteria) has too many false-positive Unmets to filter on directly
+        # — see Decision 17: required_conditions has ~70 % precision (matches
+        # boilerplate text like "Histologically", "signed", "clinical trial"),
+        # and required_prior_treatments uses literal string match (osimertinib
+        # vs "systemic therapy" misses, even though osimertinib IS systemic).
+        # We only filter on the closed-vocab criteria where the regex parser
+        # has high precision:
+        #   - age (numeric comparison, no NLP)
+        #   - sex (3-value enum: All/Male/Female)
+        #   - excluded_prior_treatments (exact drug-name substring match)
+        # required_conditions + required_prior_treatments are still SURFACED
+        # in the annotation (user sees full Met/Unmet/Unknown verdict) but
+        # do NOT trigger drops. Safety net: if the filter would empty the
+        # result set, keep unfiltered (logged) — never return nothing just
+        # because the parser couldn't read the eligibility sections.
+        n_total_before_filter = len(ranked)
+        n_unmet_filtered = 0
+        filter_safety_net_triggered = False
+        if (
+            self.degradation.eligibility_check_enabled
+            and self.degradation.eligibility_hard_filter_enabled
+            and n_to_check > 0
+        ):
+            from TrialMine.features.eligibility_filter import apply_hard_filter
+
+            new_ranked, new_elig, n_unmet_filtered, filter_safety_net_triggered = apply_hard_filter(
+                ranked, eligibility_results
+            )
+            if filter_safety_net_triggered:
+                logger.warning(
+                    "Eligibility hard-filter would drop all %d trials; "
+                    "keeping unfiltered for this query (safety net).",
+                    len(ranked),
+                )
+            ranked = new_ranked
+            eligibility_results = new_elig
+
         trace.append(
             {
                 "step": "check_eligibility",
                 "duration_ms": elig_elapsed_ms,
                 "decisions": {
                     "n_checked": n_to_check,
-                    "n_total_results": len(ranked),
+                    "n_total_results_pre_filter": n_total_before_filter,
+                    "n_unmet_filtered": n_unmet_filtered,
+                    "n_results_post_filter": len(ranked),
+                    "filter_safety_net_triggered": filter_safety_net_triggered,
                     "concurrent": True,
                     "skipped_by_degradation": (not self.degradation.eligibility_check_enabled),
+                    "hard_filter_enabled": self.degradation.eligibility_hard_filter_enabled,
                     "verdicts": [
-                        (eligibility_results[i] or {}).get("verdict") for i in range(n_to_check)
+                        (eligibility_results[i] or {}).get("verdict")
+                        for i in range(min(len(eligibility_results), self.eligibility_top_k))
                     ],
                 },
             }

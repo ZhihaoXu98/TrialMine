@@ -84,6 +84,22 @@ class DegradationConfig(BaseModel):
             "+ regex parses (~50–150 ms typical)."
         ),
     )
+    eligibility_hard_filter_enabled: bool = Field(
+        default=True,
+        description=(
+            "Hard toggle: when True (default), trials whose eligibility "
+            "verdict is 'Unmet' are dropped from the result list. This is "
+            "the Phase C4 fix for `complex` queries — without it, trials "
+            "that require a treatment the patient has already failed, or "
+            "are restricted to a sex/age range the patient doesn't match, "
+            "still appear in the ranking. Requires eligibility_check_enabled "
+            "to also be True. Safety net: if the filter would drop ALL "
+            "results, the orchestrator keeps the unfiltered list (logged). "
+            "Performance cost: eligibility checks run on all ranked results "
+            "instead of just the top eligibility_top_k, adding ~50–150 ms "
+            "to the eligibility step."
+        ),
+    )
     skip_cross_encoder_if_slow_s: float = Field(
         default=5.0,
         gt=0.0,
