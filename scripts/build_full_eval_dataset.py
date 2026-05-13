@@ -35,6 +35,7 @@ Requirements:
 import argparse
 import json
 import logging
+import os
 import sqlite3
 import sys
 import time
@@ -159,14 +160,48 @@ RARE_EXPLICIT_QUERIES: list[tuple[int, str, str]] = [
 ]
 
 
+# ── 20 EXPANSION queries (IDs 600-619) — added Phase C4 to address small-n issue ──
+# Original eval had n=5 per category for complex and vague, with bootstrap CI half-widths
+# of ±0.13 to ±0.15 — wide enough that the decision-gate thresholds fell INSIDE the CIs.
+# Adding 10 more queries to each tightens CIs to roughly ±0.07, making the gate decidable.
+# Used for BOTH v1 and v2 labeling so the comparison stays apples-to-apples on the
+# expanded set.
+EXPANSION_QUERIES: list[tuple[int, str, str]] = [
+    # Complex (10) — multi-fact patient profile, biggest test of agent extraction
+    (600, "complex", "67M BRAF V600E metastatic melanoma post-dabrafenib trametinib progression"),
+    (601, "complex", "45F triple negative breast cancer BRCA1 mutation neoadjuvant phase 2 trial"),
+    (602, "complex", "71M castration-resistant prostate cancer Gleason 9 enzalutamide failure"),
+    (603, "complex", "52F KRAS G12C NSCLC adagrasib resistance phase 2 trial"),
+    (604, "complex", "34F HER2+ metastatic breast cancer brain metastases tucatinib failure"),
+    (605, "complex", "60M MSI-high colorectal cancer pembrolizumab progression second-line"),
+    (606, "complex", "28F AML FLT3-ITD positive post-allo transplant relapse"),
+    (607, "complex", "55F ovarian cancer BRCA wild type platinum-resistant PARP failure"),
+    (608, "complex", "48M IDH1 mutant glioblastoma post-radiation Stupp protocol recurrence"),
+    (609, "complex", "8M relapsed B-ALL CD19+ post-CAR-T phase 2"),
+    # Vague (10) — lay/caregiver phrasing, missing condition specifics
+    (610, "vague", "my dad has cancer what trials should we look at"),
+    (611, "vague", "is there anything experimental for my mother who is dying"),
+    (612, "vague", "any new treatments for advanced cancer"),
+    (613, "vague", "cancer trial please help"),
+    (614, "vague", "i have stage 4 cancer what are my options"),
+    (615, "vague", "need help finding a trial for my husband"),
+    (616, "vague", "my grandma got diagnosed with cancer what's available"),
+    (617, "vague", "anything experimental for terminal cancer"),
+    (618, "vague", "trials for advanced or recurrent cancer"),
+    (619, "vague", "clinical trial for someone dying of cancer"),
+]
+
+
 OUTPUT_DIR = Path("data/evaluation")
 OUTPUT_FILE = OUTPUT_DIR / "full_labeled_dataset.jsonl"
 
-EMBEDDER_MODEL = "models/embeddings/fine-tuned"
-FAISS_INDEX = "data/faiss_finetuned.index"
-FAISS_MAPPING = "data/faiss_finetuned.json"
-CE_MODEL = "models/cross-encoder/fine-tuned"
-RANKER_MODEL = "models/ranker/v2/model.lgb"
+# Path constants now env-var-overridable so we can swap v1 ↔ v2 without code edits.
+# Defaults are v2 (the current production paths after Phase C1).
+EMBEDDER_MODEL = os.environ.get("TRIALMINE_EMBEDDER", "models/embeddings/fine-tuned-v2")
+FAISS_INDEX = os.environ.get("TRIALMINE_FAISS_INDEX", "data/faiss_finetuned_v2.index")
+FAISS_MAPPING = os.environ.get("TRIALMINE_FAISS_MAPPING", "data/faiss_finetuned_v2.json")
+CE_MODEL = os.environ.get("TRIALMINE_CROSS_ENCODER", "models/cross-encoder/fine-tuned")
+RANKER_MODEL = os.environ.get("TRIALMINE_RANKER", "models/ranker/v2/model.lgb")
 
 
 LABELING_PROMPT = """Rate the relevance of this clinical trial to this patient's search query.
@@ -257,11 +292,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--existing-only", action="store_true", help="Only run the 30 existing queries")
     parser.add_argument("--rare-explicit-only", action="store_true",
                         help="Only run the 5 rare_explicit queries (IDs 500-504)")
+    parser.add_argument("--expansion-only", action="store_true",
+                        help="Only run the 20 expansion queries (IDs 600-619), 10 complex + 10 vague")
     parser.add_argument("--list-queries", action="store_true",
                         help="Print the (id, category, query) list and exit (no Haiku, no models)")
     parser.add_argument("--top-k", type=int, default=20, help="Top-K from full pipeline to label")
     parser.add_argument("--db", default="data/trials.db", help="SQLite database path")
     parser.add_argument("--rate-limit-s", type=float, default=0.1, help="Sleep between API calls")
+    parser.add_argument("--output", type=Path, default=None,
+                        help="Output path override (default: data/evaluation/full_labeled_dataset.jsonl)")
     return parser.parse_args()
 
 
@@ -272,7 +311,9 @@ def build_query_list(args: argparse.Namespace) -> list[tuple[int, str, str]]:
     Default (no flag) includes all 65 queries (30 existing + 30 new + 5 rare_explicit).
     """
     queries: list[tuple[int, str, str]] = []
-    if args.rare_explicit_only:
+    if args.expansion_only:
+        queries = list(EXPANSION_QUERIES)
+    elif args.rare_explicit_only:
         queries = list(RARE_EXPLICIT_QUERIES)
     else:
         if not args.new_only:
@@ -336,19 +377,20 @@ def main() -> None:
     logger.info("Loaded eligibility for %d trials", len(elig_lookup))
 
     # ── Resume support ────────────────────────────────────────────────────────
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    existing = load_existing_labels(OUTPUT_FILE) if args.resume else set()
+    output_file = args.output if args.output is not None else OUTPUT_FILE
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    existing = load_existing_labels(output_file) if args.resume else set()
     if args.resume:
         logger.info("Resuming: %d (query_id, nct_id) pairs already labeled", len(existing))
 
     # ── Run full pipeline + label top-K per query ─────────────────────────────
     client = anthropic.Anthropic()
-    mode = "a" if (args.resume or OUTPUT_FILE.exists()) else "w"
+    mode = "a" if (args.resume or output_file.exists()) else "w"
     labeled_count = 0
     skipped = 0
     score_dist = {0: 0, 1: 0, 2: 0, 3: 0, -1: 0}
 
-    with open(OUTPUT_FILE, mode) as f:
+    with open(output_file, mode) as f:
         for i, (qid, category, query) in enumerate(queries):
             t0 = time.perf_counter()
             try:
@@ -411,7 +453,7 @@ def main() -> None:
     print(f"  Queries processed : {len(queries)}")
     print(f"  New labels        : {labeled_count}")
     print(f"  Skipped (resume)  : {skipped}")
-    print(f"  Output file       : {OUTPUT_FILE}")
+    print(f"  Output file       : {output_file}")
     print(f"\n  Score distribution:")
     for score in [0, 1, 2, 3]:
         count = score_dist.get(score, 0)

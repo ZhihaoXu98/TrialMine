@@ -5,14 +5,14 @@ model:
 
 training:
   epochs: 3
-  batch_size: 128
-  learning_rate: 4.0e-5   # placeholder, overwritten by select_lr.py after the cloud sweep
+  batch_size: 64
+  learning_rate: 2.8e-5   # placeholder, overwritten by select_lr.py after the cloud sweep
   warmup_ratio: 0.1
   weight_decay: 0.01
   fp16: true              # mixed precision — halves memory, faster on CUDA
   logging_steps: 20
-  eval_steps: 250
-  save_steps: 250
+  eval_steps: 5000
+  save_steps: 5000
   save_total_limit: 3
   load_best_model_at_end: true
   metric_for_best_model: "val-retrieval_cosine_ndcg@10"
@@ -31,4 +31,4 @@ data:
 mlflow:
   tracking_uri: "sqlite:///mlflow.db"
   experiment_name: "trialmind-embeddings"
-  run_tag: "v2-synth10k-bs128-taxfix"
+  run_tag: "v2-synth10k-bs64-taxfix"

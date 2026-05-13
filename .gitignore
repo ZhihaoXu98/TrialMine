@@ -1,7 +1,9 @@
 data/raw/
 data/processed/
 data/training/
+data/cloud_logs/
 data/*.db
+*.log
 # Ignore everything under models/ (weights are too big for git — tracked via DVC),
 # *except* model directories themselves and their metadata.json files.
 # Git's pattern grammar requires this three-rule form: ignoring "/models/" alone

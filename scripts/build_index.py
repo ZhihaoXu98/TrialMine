@@ -81,6 +81,7 @@ def build_semantic_index(
     faiss_path: str,
     model_name: str,
     batch_size: int,
+    device: str = "cpu",
 ) -> None:
     """Generate embeddings and build the FAISS semantic index.
 
@@ -101,7 +102,7 @@ def build_semantic_index(
     from TrialMine.models.embeddings import TrialEmbedder
 
     # Step 1: Load model
-    embedder = TrialEmbedder(model_name=model_name)
+    embedder = TrialEmbedder(model_name=model_name, device=device)
 
     # Step 2: Get total count, then stream chunks from SQLite
     conn = sqlite3.connect(str(db_path))
@@ -255,6 +256,7 @@ def main() -> None:
         help="(Legacy) full path to FAISS index file; prefer --output",
     )
     parser.add_argument("--batch-size", type=int, default=64, help="Encoding batch size")
+    parser.add_argument("--device", default="cpu", help="Torch device: cpu | mps | cuda")
     parser.add_argument("--skip-bm25", action="store_true", help="Skip BM25 index build")
     parser.add_argument("--skip-semantic", action="store_true", help="Skip semantic index build")
     parser.add_argument(
@@ -298,7 +300,7 @@ def main() -> None:
 
     # Semantic index (queries SQLite directly for minimal memory usage)
     if not args.skip_semantic:
-        build_semantic_index(db_path, faiss_path, model_name, args.batch_size)
+        build_semantic_index(db_path, faiss_path, model_name, args.batch_size, args.device)
 
 
 if __name__ == "__main__":
