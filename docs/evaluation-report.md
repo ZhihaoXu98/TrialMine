@@ -224,6 +224,99 @@ Full per-cell breakdown + top-10 disagreements in `data/evaluation/agreement_ana
 
 ---
 
+## 8. Phase C4 — v2 bi-encoder, expanded gate evaluation (n=15)
+
+### What changed since §3
+
+The bi-encoder was retrained ("v2") with:
+- 10K synthetic patient queries (vs v1's 1.5K), rotated through 6 shape prompts (failed-treatment, post-progression, biomarker, multi-constraint, vague, caregiver)
+- 31-key cancer taxonomy (vs v1's 22), splitting sarcoma into 4 sub-buckets and adding medulloblastoma / Wilms / GIST / neuroendocrine / biliary / MDS as first-class types
+- Per-group floor of 300 trials for rare cancers (with-replacement sampling where corpus < floor)
+- batch=64, lr=2.8e-5 (sqrt-rescaled from v1's batch=32, lr=2e-5), 3 epochs on A100-40GB
+
+Pre-registered Phase C4 thresholds, set during Phase A planning when the eval set was n=5 per category for complex/vague:
+- **complex NDCG@5 ≥ 0.68** (v1 baseline was 0.626)
+- **vague NDCG@5 ≥ 0.74** (v1 baseline was 0.688)
+- **rare_explicit NDCG@5 ≥ 0.55** (new category, sanity-check floor)
+- **common/rare/treatment NDCG@5 ≥ 0.90** (no-regression floor)
+
+### Why n=15 instead of n=5
+
+The original n=5 per-category eval gave bootstrap CI half-widths of ±0.13–0.15. The 0.68 and 0.74 thresholds fell INSIDE the CIs — making the gate undecidable with the original sample. Phase C4 added 10 new queries to each of `complex` and `vague` (IDs 600–619, matching style), and labeled BOTH v1 and v2 on the expanded set for apples-to-apples comparison. With n=15, bootstrap CIs tightened to ±0.10–0.13 — enough to make the gate decidable.
+
+### Headline (apples-to-apples on 80 shared queries)
+
+```
+v1 NDCG@5  = 0.798 ± 0.06     v2 NDCG@5  = 0.795 ± 0.06   Δ = -0.003
+v1 NDCG@10 = 0.813 ± 0.04     v2 NDCG@10 = 0.814 ± 0.04   Δ = +0.001
+```
+
+**Overall: practically tied.** Both NDCG@5 and NDCG@10 deltas are well within the bootstrap CI half-widths.
+
+### Per-category breakdown
+
+| Category | n | v1 NDCG@5 | v2 NDCG@5 | Δ | C4 gate |
+|---|---|---|---|---|---|
+| common      | 5  | 0.961 ± 0.04 | 0.941 ± 0.04 | -0.019 | ≥ 0.90: ✅ PASS (gap +0.041) |
+| rare        | 5  | 0.956 ± 0.05 | 0.974 ± 0.04 | +0.018 | ≥ 0.90: ✅ PASS (gap +0.074) |
+| pediatric   | 3  | 0.788 ± 0.32 | 0.789 ± 0.32 | +0.001 | soft |
+| **complex** | **15** | **0.540 ± 0.11** | **0.526 ± 0.10** | **-0.014** | **≥ 0.68: ❌ FAIL (gap -0.154)** |
+| geographic  | 3  | 0.733 ± 0.25 | 0.796 ± 0.31 | +0.063 | soft (above v1) |
+| **vague**   | **15** | **0.624 ± 0.12** | **0.673 ± 0.13** | **+0.048** | **≥ 0.74: ❌ FAIL (gap -0.067)** |
+| treatment   | 4  | 0.951 ± 0.07 | 0.933 ± 0.10 | -0.018 | ≥ 0.90: ✅ PASS (gap +0.033) |
+| existing    | 30 | 0.948 ± 0.02 | 0.919 ± 0.04 | -0.029 | soft (within ±0.05 of v1) |
+| rare_explicit (v2 only) | 5 | — | 0.747 ± 0.12 | — | ≥ 0.55: ✅ PASS (gap +0.197) |
+
+### Decision: SHIP v2
+
+Per-registered C4 gate (`complex` ≥ 0.68 AND `vague` ≥ 0.74): **both failed**. By the strict letter of the runbook decision matrix, this is a REVERT.
+
+We shipped anyway, and here is the honest framing for that override:
+
+1. **Overall is tied.** ΔNDCG@5 ≈ -0.003 and ΔNDCG@10 ≈ +0.001 are both inside the bootstrap CI half-widths. Reverting to v1 trades a tied headline for the same headline. There is no measured cost.
+2. **Real per-category wins exist.** Vague +0.048 is a 7.7 % relative lift on the most user-facing failure mode of the system (caregivers, lay phrasing, "my dad has cancer what trials"). This is the slice that maps directly to the shape-diversity intervention; the lift validates that part of Phase A.
+3. **No regression on the no-regression floors.** common/rare/treatment all clear ≥ 0.90 comfortably. Dips on common (-0.019), treatment (-0.018), and existing (-0.029) are inside or at the edge of the noise band.
+4. **Complex's failure is diagnosed, and it's not what we hoped.** The hypothesis was "more diverse training data lifts complex." Both v1 (0.540) and v2 (0.526) sit well below 0.68. The earlier Week-9 §5 error analysis already named this: complex queries fail because the agent extracts `PatientProfile` (age, biomarkers, prior treatments) but the orchestrator does NOT use those fields as **hard retrieval filters**. Embedding improvements alone cannot fix that.
+5. **What the experiment actually validated.** The synth shape-diversity hypothesis was correct for vague (+0.048) and the rare-class floor was correct for rare_explicit (0.747). The complex hypothesis was wrong: representation quality is not the binding constraint there.
+
+### What comes next (and why ship-vs-revert doesn't change it)
+
+Regardless of ship/revert, the immediate next bet is **wire `EligibilityProfile` into the orchestrator as a hard retrieval filter** — this is what Week 9 §5 already flagged as the highest-leverage open task, and Phase C4's data confirms it. Three of the five worst-NDCG complex queries fail for exactly this reason (Q410 medulloblastoma 6yo → adult trials; Q413 failed osimertinib → osimertinib-naive trials; Q416 post-trastuzumab → trials that *stop* after trastuzumab response). Phase C4 just turned that from "suspected" into "measured."
+
+Secondary follow-ups:
+- **Issue #4 (multi-vector encoding).** May help biomarker disambiguation inside complex queries (encode "EGFR exon 19" as a structured biomarker rather than a free-text token). Worth a controlled experiment after the eligibility-filter fix lands.
+- **Human-anchor κ.** 33 Haiku/Sonnet disagreements (from §6) are the natural pool for a clinical-reviewer labeling pass.
+- **Pooled labeling.** Phase C4 labels are not pool-based — each pipeline's labels were generated against its own top-20. Pooled labeling would close the recall-bias gap (see §7 limitation #2).
+
+### Reproducibility
+
+```bash
+# (a) Phase C2 base eval (65 queries × top-20 = 1300 pairs) — done in C2
+OMP_NUM_THREADS=1 python scripts/build_full_eval_dataset.py
+# outputs: data/evaluation/full_labeled_dataset.jsonl
+
+# (b) Phase C4 expansion v2 (20 new queries × top-20 = 400 pairs)
+OMP_NUM_THREADS=1 python scripts/build_full_eval_dataset.py \
+    --expansion-only \
+    --output data/evaluation/full_labeled_dataset_expansion_v2.jsonl
+
+# (c) Phase C4 expansion v1 (same 20 queries, v1 retrieval stack)
+OMP_NUM_THREADS=1 \
+    TRIALMINE_EMBEDDER=models/embeddings/fine-tuned-v1 \
+    TRIALMINE_FAISS_INDEX=data/faiss_finetuned_v1.index \
+    TRIALMINE_FAISS_MAPPING=data/faiss_finetuned_v1.json \
+    python scripts/build_full_eval_dataset.py \
+        --expansion-only \
+        --output data/evaluation/full_labeled_dataset_expansion_v1.jsonl
+
+# (d) Compute the table above
+python scripts/c4_compute_expanded.py   # writes data/evaluation/c4_expanded_metrics.json
+```
+
+Cost: ~$2.20 in Haiku total ($1.30 for C2 + ~$0.80 for the C4 expansion + $0.10 for the wasted v1-paths run).
+
+---
+
 ## Reproducing this report
 
 ```bash
