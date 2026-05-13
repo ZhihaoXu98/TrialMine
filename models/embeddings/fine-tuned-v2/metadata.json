@@ -1,0 +1,67 @@
+{
+  "training_date": "2026-05-13T07:28:42.658483+00:00",
+  "base_model": "michiyasunaga/BioLinkBERT-base",
+  "dataset_size": {
+    "train": 713644,
+    "val": 179470
+  },
+  "hyperparameters": {
+    "epochs": 3,
+    "batch_size": 64,
+    "learning_rate": 2.8e-05,
+    "warmup_ratio": 0.1,
+    "weight_decay": 0.01,
+    "loss": "MultipleNegativesRankingLoss",
+    "loss_scale": 20.0,
+    "max_seq_length": 512
+  },
+  "device": "cuda",
+  "eval_metrics": {
+    "val-retrieval_cosine_accuracy@1": 0.3216,
+    "val-retrieval_cosine_accuracy@3": 0.5246,
+    "val-retrieval_cosine_accuracy@5": 0.601,
+    "val-retrieval_cosine_accuracy@10": 0.6934,
+    "val-retrieval_cosine_precision@1": 0.3216,
+    "val-retrieval_cosine_precision@3": 0.17486666666666664,
+    "val-retrieval_cosine_precision@5": 0.1202,
+    "val-retrieval_cosine_precision@10": 0.06934,
+    "val-retrieval_cosine_recall@1": 0.3216,
+    "val-retrieval_cosine_recall@3": 0.5246,
+    "val-retrieval_cosine_recall@5": 0.601,
+    "val-retrieval_cosine_recall@10": 0.6934,
+    "val-retrieval_cosine_ndcg@10": 0.50115156491162,
+    "val-retrieval_cosine_mrr@10": 0.4403308730158718,
+    "val-retrieval_cosine_map@100": 0.45040984026030073
+  },
+  "phase_c_pipeline_metrics": {
+    "comment": "Pipeline-level NDCG (BM25 + v2-FAISS + CE + LightGBM) labeled by Claude Haiku 4.5. Apples-to-apples on 80 shared queries with v1 baseline. See data/evaluation/c4_expanded_metrics.json for full per-category breakdown + bootstrap CIs.",
+    "n_shared_queries": 80,
+    "overall_v2_ndcg5": 0.795,
+    "overall_v1_ndcg5": 0.798,
+    "overall_delta_ndcg5": -0.003,
+    "overall_v2_ndcg10": 0.814,
+    "overall_v1_ndcg10": 0.813,
+    "overall_delta_ndcg10": 0.001,
+    "category_winners_v2_over_v1": {
+      "vague": 0.048,
+      "geographic": 0.063,
+      "rare": 0.018
+    },
+    "category_losers_v2_under_v1": {
+      "existing": -0.029,
+      "common": -0.019,
+      "treatment": -0.018,
+      "complex": -0.014
+    },
+    "c4_gate_verdicts_per_runbook": {
+      "complex_ge_0.68":        "FAIL (0.526)",
+      "vague_ge_0.74":          "FAIL (0.673)",
+      "rare_explicit_ge_0.55":  "PASS (0.747)",
+      "common_ge_0.90":         "PASS (0.941)",
+      "rare_ge_0.90":           "PASS (0.974)",
+      "treatment_ge_0.90":      "PASS (0.933)"
+    },
+    "decision": "SHIP (partial-success / honest-writeup)",
+    "decision_rationale": "Pre-registered complex/vague gates missed. But overall ~tied with v1 (Δ ≈ 0 on both NDCG@5 and NDCG@10). v2 has real wins on vague (+0.048) and geographic (+0.063), and a new rare_explicit slice passes its sanity floor at 0.747. Complex failure is a pipeline-logic gap (eligibility-filter not used as hard retrieval filter), not an embedding-representation gap — confirmed by both v1 (0.540) and v2 (0.526) being well below the 0.68 target. Next dollar to eligibility-filter wiring / Issue #4 (multi-vector encoding)."
+  }
+}
