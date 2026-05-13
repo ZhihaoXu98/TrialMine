@@ -768,17 +768,23 @@ scripts only — never data/ or models/).
 
 # ⏸ STOP — Cloud session needed
 
-Phase B requires a GPU. Decide between:
+**Provider: Lambda Cloud.** GPU: **A100 80GB SXM4** (`gpu_1x_a100_sxm4`). Budget: ~$7.20 (4 hr × $1.79/hr).
 
-| Option | Cost | Friction | Recommended when |
-|---|---|---|---|
-| **Lambda Labs A100 80GB** | $1.79/hr × 4 hr ≈ $7 | Medium (account + SSH) | You want reliability |
-| **RunPod A100 80GB** | $1.89/hr × 4 hr ≈ $8 | Low (web UI) | You want Jupyter |
-| **Colab Pro+ A100** | $0 if subscribed | Low | You already have Pro+ AND the existing `notebooks/finetune_biolinkbert.ipynb` |
+Why this combo:
+- Single-GPU, single-host, ~4 hr unattended — exactly what Lambda is built for.
+- A100 80GB has comfortable VRAM headroom for `batch_size=128` in fp16 with BioLinkBERT-base. 40GB *might* fit but the OOM probe (Step A6) is the deciding probe; sizing for 80GB removes the risk.
+- H100 80GB finishes ~30% faster at ~40–80% higher hourly — not worth it for one 4-hr run.
 
-**My recommendation:** Lambda. Colab's A100 availability has been unreliable, and a 4-hr run with a 12-hr session cap leaves no headroom if something fails.
+Availability note: if your default region shows the A100 80GB as **Unavailable**, try us-east-1, us-west-1, us-west-2, us-midwest-1 before falling back. Do **not** pre-pay reserved capacity for a one-shot run.
 
-Before starting Phase B, decide which provider and tell me — Phase B steps differ slightly per provider.
+## Billing — read before you provision
+
+Lambda on-demand instances have **two states only: `Running` and `Terminated`**. There is no Stop / Pause verb in the web UI or API. Billing is per-minute the whole time the instance is `Running`. Four gotchas worth internalising:
+
+1. **Only `Terminate` stops billing.** `sudo shutdown -h now` from inside the VM, `exit` from your SSH session, closing the browser tab, or just walking away — none of these stop the meter. The instance stays `Running` (or `Off` but still allocated) and you keep paying. You **must** click **Terminate** in the web UI: Cloud → Instances → the row's action menu → Terminate. The instance disappears and the disk is wiped.
+2. **There is no "pause and resume" workflow.** If you Terminate, the boot disk is gone — you'll have to re-rsync your code + training data on the next run. That's why Phase B is designed as one ~4-hr session, not an interactive notebook.
+3. **Persistent Storage filesystems are billed separately** (~$0.20/GB/month) and survive termination. You don't need one for this run — the ephemeral instance disk is fine. If you create one anyway, delete it after Step B3 sync completes.
+4. **Set a calendar reminder for `now + 5 hr` titled "TERMINATE LAMBDA INSTANCE"** before disconnecting in Step B2. There is no auto-shutoff — if `cloud_run.sh` errors at minute 30, you'll burn money until you notice.
 
 ---
 
@@ -787,17 +793,23 @@ Before starting Phase B, decide which provider and tell me — Phase B steps dif
 > **Re-read this whole section before starting**, then send the prompts one
 > at a time. Phase B is sequential — don't parallelize.
 
-## Step B0 — Choose provider and write `cloud_run.sh` (30 min)
+## Step B0 — Write `cloud_run.sh` for Lambda (30 min)
 
 ### Prompt to send
 
 ```
 Write Phase B0 of docs/fix_bi-encoder.md: create a cloud_run.sh in the
-repo root that orchestrates the full cloud session. Target provider:
-[FILL IN: lambda | runpod | colab].
+repo root that orchestrates the full cloud session on Lambda Cloud
+(Ubuntu 22.04 image with Lambda Stack — NVIDIA driver, CUDA 12.x,
+PyTorch already preinstalled at the system level).
 
 Script must:
-1. pip install -r requirements.txt
+1. pip install -r requirements.txt -- BUT FIRST: if requirements.txt
+   pins torch/torchvision/torchaudio, drop those lines into a temp
+   filtered file and install from that, so we don't clobber the
+   Lambda Stack PyTorch (which is matched to the host CUDA build).
+   Verify with `python -c "import torch; print(torch.cuda.is_available())"`
+   → must print True before continuing.
 2. Run scripts/oom_probe.py --batch 128; exit if it fails
 3. Run an LR sweep: for lr in 2e-5 4e-5 8e-5: run
    finetune_embeddings.py with --override training.learning_rate=$lr,
@@ -809,11 +821,14 @@ Script must:
 6. Run OMP_NUM_THREADS=1 scripts/build_index.py --skip-bm25 \
      --model-path models/embeddings/fine-tuned-v2 \
      --output data/faiss_finetuned_v2
+7. As a safety tripwire, after step 6 succeeds, write a sentinel file
+   ~/CLOUD_RUN_DONE so we can see at a glance over SSH that the run
+   finished cleanly. Do NOT auto-terminate the instance from the
+   script — termination is a manual click in the Lambda web UI
+   (see Step B4) so we don't lose logs / partial artefacts on failure.
 
 Use set -euo pipefail. Log to cloud_run.log. Show me the final script.
 ```
-
-For Colab, this becomes a notebook cell pasted into a new section of `notebooks/finetune_biolinkbert.ipynb`. Adapt accordingly.
 
 ### Verify
 
@@ -829,41 +844,47 @@ Show me the final cloud_run.sh contents. Confirm:
 
 - Script is self-contained and re-runnable
 - No paths that exist only on local Mac
-- Env vars expected: `ANTHROPIC_API_KEY` (for re-label later, not needed during train), `MLFLOW_TRACKING_URI` (if remote tracking)
+- No env vars required on the cloud box. `ANTHROPIC_API_KEY` is **not** needed during training (Step C2 re-label runs locally). `MLFLOW_TRACKING_URI` only if you want remote tracking — otherwise the local `sqlite:///mlflow.db` on the cloud box is fine and gets rsynced back in Step B3.
 
 ---
 
-## Step B1 — Provision GPU + sync data (20 min)
+## Step B1 — Provision Lambda instance + sync data (20 min)
 
 This is a **manual** step — you, not Claude, do this. Claude doesn't have credentials.
 
 ### What to do
 
-**For Lambda or RunPod:**
-1. Provision an A100 80GB instance
-2. From your local Mac, sync the repo + training data:
+1. Log in to https://cloud.lambdalabs.com → **Instances** → **Launch instance**.
+   - **Instance type:** `gpu_1x_a100_sxm4` (A100 80GB SXM4, $1.79/hr). If that SKU shows Unavailable in your region, scan us-east-1, us-west-1, us-west-2, us-midwest-1 before picking a different SKU.
+   - **Region:** whichever has stock; latency to your Mac doesn't matter for an rsync.
+   - **Filesystem:** **do NOT attach** a Persistent Storage filesystem (it bills separately and survives termination — you don't need it for a 4-hr run).
+   - **SSH key:** select one already registered, or paste your `~/.ssh/id_ed25519.pub`.
+   - Wait ~2 min for the instance to show `Running` and copy the public IP.
+2. **Set a calendar reminder for `now + 5 hr` titled "TERMINATE LAMBDA INSTANCE"** before doing anything else. This is your backstop against forgetting.
+3. From your local Mac, sync the repo + training data (replace `<ip>` with the instance public IP; default user on Lambda's Ubuntu images is `ubuntu`):
    ```bash
    # From /Users/tonyxu/Desktop/TrialMine
-   rsync -avz --exclude='data/trials.db' --exclude='models/' \
-         --exclude='data/faiss_*' --exclude='.git/' \
-         ./ <user>@<host>:~/TrialMine/
+   # NOTE: .env is explicitly excluded — training never calls Anthropic,
+   # and the Step C2 re-label runs locally. Keep API keys off the cloud box.
+   rsync -avz --exclude='.env' --exclude='data/trials.db' \
+         --exclude='models/' --exclude='data/faiss_*' \
+         --exclude='.git/' --exclude='mlflow.db' \
+         --exclude='__pycache__/' \
+         ./ ubuntu@<ip>:~/TrialMine/
    # Then explicitly sync the training files (large but needed)
    rsync -avz data/training/train_pairs.jsonl \
               data/training/val_pairs.jsonl \
-              <user>@<host>:~/TrialMine/data/training/
+              ubuntu@<ip>:~/TrialMine/data/training/
    ```
-
-**For Colab:**
-1. `!git pull` your branch in the notebook
-2. Upload `train_pairs.jsonl` and `val_pairs.jsonl` to Drive, mount, copy into the runtime
 
 ### Verify
 
-On the cloud box:
+SSH in and check:
 ```bash
+ssh ubuntu@<ip>
 ls -la ~/TrialMine/data/training/  # should show train_pairs.jsonl ~1.1 GB
 ls -la ~/TrialMine/scripts/         # should show oom_probe.py, select_lr.py
-nvidia-smi                          # should show A100 80GB
+nvidia-smi                          # should show A100-SXM4-80GB
 ```
 
 ### Acceptance criteria
@@ -879,13 +900,21 @@ nvidia-smi                          # should show A100 80GB
 ### What to do (manual)
 
 ```bash
+# SSH'd into the Lambda box
 cd ~/TrialMine
 chmod +x cloud_run.sh
 nohup ./cloud_run.sh > cloud_run.log 2>&1 &
 disown
+# Optional but recommended — confirm it's running before you leave:
+sleep 5 && tail -20 cloud_run.log && ps -p $(pgrep -f cloud_run.sh)
 ```
 
-Then disconnect. Come back in 4 hours.
+Then disconnect (`exit` or `Ctrl-D`). Come back in ~4 hours. The calendar reminder you set in Step B1 is the safety net.
+
+To peek mid-run without interrupting it:
+```bash
+ssh ubuntu@<ip> "tail -50 ~/TrialMine/cloud_run.log; ls ~/CLOUD_RUN_DONE 2>/dev/null && echo DONE || echo STILL_RUNNING"
+```
 
 ### Verify (after ~4 hours)
 
@@ -912,21 +941,112 @@ ls -la data/faiss_finetuned_v2.index
 
 ---
 
+## Step B2.5 — Monitor progress mid-run
+
+`cloud_run.sh` is unattended — there is **no live progress bar in your terminal** because it was launched with `nohup` and you disconnected SSH. Output goes to `cloud_run.log`.
+
+**Recommended workflow:**
+
+1. **During the run (hours 0–4):** run the log-tail one-liner below every 30–60 min from your Mac.
+2. **Only if the one-liner looks off** (no epoch advancing, GPU util at 0, errors in the tail): upgrade to the MLflow UI fallback for charts.
+3. **Once at the end (~hour 4):** run the five-signal "is it done?" check to gate Step B3.
+
+### Default check — log-tail one-liner (use this 4–5 times across the run)
+
+Total expected training steps for the full 3-epoch run on ~760K pairs at batch 128:
+
+```
+steps_per_epoch = ceil(760K / 128) ≈ 5,940
+total_steps     = 5,940 × 3        ≈ 17,800
+```
+
+Run this from your Mac whenever you want a quick check (replace `<ip>`):
+
+```bash
+ssh ubuntu@<ip> '
+  cur=$(grep -oE "\"epoch\": [0-9.]+" ~/TrialMine/cloud_run.log | tail -1 | grep -oE "[0-9.]+")
+  echo "epoch: ${cur:-?}/3   (≈ $(awk -v c=${cur:-0} "BEGIN{printf \"%.0f\", c/3*100}")% of full training)"
+  echo "--- last 5 log lines ---"
+  tail -5 ~/TrialMine/cloud_run.log
+  echo "--- GPU ---"
+  nvidia-smi --query-gpu=utilization.gpu,memory.used --format=csv,noheader
+'
+```
+
+What "healthy" looks like:
+
+- `epoch` is advancing between checks (e.g. 0.42 → 0.78 → 1.15). If it's stuck or empty for two consecutive checks, training has stalled.
+- Last 5 log lines show recent `{'loss': ..., 'learning_rate': ..., 'epoch': ...}` dicts. No `Traceback`, `Killed`, `OOM`, `NaN`.
+- GPU util 80–100 % while the long training run is going (drops near 0 between the LR-sweep runs and at the very end after FAISS build — that's normal).
+
+If anything looks off → fall back to the MLflow UI.
+
+### Fallback — MLflow UI over an SSH tunnel (only if the one-liner looks off)
+
+The training script logs loss + NDCG@10 to MLflow every `eval_steps: 250`. View the live charts on your Mac:
+
+```bash
+# Terminal 1 on your Mac — open the tunnel
+ssh -L 5001:localhost:5001 ubuntu@<ip>
+
+# On the cloud box (in the tunneled SSH session):
+cd ~/TrialMine
+pip install mlflow >/dev/null 2>&1   # if not already installed in cloud_run.sh
+mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5001 --host 127.0.0.1
+```
+
+Open `http://localhost:5001` on your Mac. The active run is tagged `v2-synth10k-bs128-taxfix`. Loss should be trending down; `val_retrieval_cosine_ndcg@10` should be trending up. **Leave the tunnel SSH session open** — closing it kills the UI but does NOT touch `cloud_run.sh` (which is `disown`ed in its own session).
+
+### End-of-run gate — five-signal "is it done?" check (run exactly once)
+
+When the log-tail one-liner shows epoch close to 3.0 and `pgrep` likely empty, run this from your Mac. **All five signals must hold** before starting Step B3:
+
+```bash
+ssh ubuntu@<ip> '
+  echo "=== 1. Sentinel ==="
+  ls ~/CLOUD_RUN_DONE 2>/dev/null && echo DONE || echo STILL_RUNNING
+  echo "=== 2. Log tail (look for FAISS build success, no Traceback/Killed/OOM) ==="
+  tail -30 ~/TrialMine/cloud_run.log
+  echo "=== 3. Model dir ==="
+  ls -lh ~/TrialMine/models/embeddings/fine-tuned-v2/ 2>/dev/null | head
+  echo "=== 4. FAISS file (~412 MB) ==="
+  ls -lh ~/TrialMine/data/faiss_finetuned_v2.index 2>/dev/null
+  echo "=== 5. Process still running? ==="
+  pgrep -af cloud_run.sh || echo "no cloud_run.sh process"
+'
+```
+
+| Signal | Good |
+|---|---|
+| 1. Sentinel | `~/CLOUD_RUN_DONE` exists |
+| 2. Log tail | Ends with FAISS build success; no `Traceback` / `Killed` / `OOM` / `NaN` |
+| 3. Model dir | Contains `model.safetensors` (or `pytorch_model.bin`) + `config.json` + `metadata.json` (~430 MB total) |
+| 4. FAISS file | ~412 MB; `.json` sidecar also present |
+| 5. Process | `pgrep` returns empty (cloud_run.sh exited) |
+
+Failure modes:
+
+- **Sentinel missing + process gone** → run failed mid-way. Read the log tail. **Do not run B3 rsync over partial outputs** — investigate first.
+- **Sentinel missing + process running** → just wait. Starting B3 now would race with active writes and corrupt the rsync.
+- **All five hold** → safe to proceed to Step B3.
+
+---
+
 ## Step B3 — Download artefacts back to local Mac (10 min)
 
 ### What to do
 
 ```bash
-# On local Mac
-rsync -avz <user>@<host>:~/TrialMine/models/embeddings/fine-tuned-v2/ \
+# On local Mac — replace <ip> with the Lambda instance IP
+rsync -avz ubuntu@<ip>:~/TrialMine/models/embeddings/fine-tuned-v2/ \
        models/embeddings/fine-tuned-v2/
-rsync -avz <user>@<host>:~/TrialMine/data/faiss_finetuned_v2.index \
-       <user>@<host>:~/TrialMine/data/faiss_finetuned_v2.json \
+rsync -avz ubuntu@<ip>:~/TrialMine/data/faiss_finetuned_v2.index \
+           ubuntu@<ip>:~/TrialMine/data/faiss_finetuned_v2.json \
        data/
-rsync -avz <user>@<host>:~/TrialMine/cloud_run.log .
-rsync -avz <user>@<host>:~/TrialMine/configs/training/embeddings.yaml \
+rsync -avz ubuntu@<ip>:~/TrialMine/cloud_run.log .
+rsync -avz ubuntu@<ip>:~/TrialMine/configs/training/embeddings.yaml \
        configs/training/embeddings.yaml  # picks up the winning LR
-rsync -avz <user>@<host>:~/TrialMine/mlflow.db mlflow_cloud.db  # for inspection
+rsync -avz ubuntu@<ip>:~/TrialMine/mlflow.db mlflow_cloud.db  # for inspection
 ```
 
 ### Verify (with Claude's help)
@@ -950,12 +1070,17 @@ If anything is missing or wrong, tell me what to re-sync.
 
 ---
 
-## Step B4 — Shut down cloud instance (manual, 2 min)
+## Step B4 — Terminate the Lambda instance (manual, 2 min)
 
-**Do not skip this step.** A100s cost $1.79/hr whether you use them or not.
+**Do not skip this step.** A100 80GB costs $1.79/hr whether you use it or not, and Lambda has no auto-shutoff and no Stop/Pause state — only `Running` and `Terminated`.
 
-For Lambda/RunPod: terminate the instance from the web UI.
-For Colab: disconnect runtime.
+### What to do
+
+1. https://cloud.lambdalabs.com → **Instances** → find the row for the running instance → click **Terminate** (or the row's action menu → Terminate) → confirm in the dialog.
+2. **Verify the row disappeared from the Instances list.** Closing your browser, running `shutdown -h now` from inside the VM, or just exiting SSH does **not** stop billing — only **Terminate** does.
+3. Wait ~10 min, then open **Usage** in the Lambda console and confirm there are no active instance-hours accruing. The Instances list updates immediately on Terminate; Usage is the authoritative ledger.
+4. If you accidentally created a Persistent Storage filesystem in Step B1 despite the warning: **Filesystems** → select it → **Delete**. It bills at ~$0.20/GB/month and survives instance termination.
+5. Dismiss the "TERMINATE LAMBDA INSTANCE" calendar reminder.
 
 ---
 

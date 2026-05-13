@@ -1,8 +1,9 @@
-"""Build the full 60-query labeled evaluation dataset (interview-proof).
+"""Build the full 65-query labeled evaluation dataset (interview-proof).
 
-For each of 60 queries (30 existing + 30 NEW across 7 categories), runs the
-full production pipeline (BM25 + Semantic + RRF + Cross-Encoder + LightGBM)
-and labels the top-K results with Claude Haiku on a 0-3 relevance scale.
+For each of 65 queries (30 existing + 30 NEW across 7 categories + 5 rare_explicit
+from Phase A11), runs the full production pipeline (BM25 + Semantic + RRF +
+Cross-Encoder + LightGBM) and labels the top-K results with Claude Haiku on a 0-3
+relevance scale.
 
 Why this dataset matters:
     - Diverse: 7 categories (common, rare, pediatric, complex multi-fact,
@@ -16,10 +17,11 @@ Why this dataset matters:
 Output: data/evaluation/full_labeled_dataset.jsonl
 
 Usage:
-    python scripts/build_full_eval_dataset.py                # full run (60 queries)
+    python scripts/build_full_eval_dataset.py                # full run (65 queries)
     python scripts/build_full_eval_dataset.py --limit 5      # preview first 5 queries
     python scripts/build_full_eval_dataset.py --resume       # skip already-labeled
     python scripts/build_full_eval_dataset.py --new-only     # just the 30 new queries
+    python scripts/build_full_eval_dataset.py --rare-explicit-only  # just the 5 IDs 500-504
     python scripts/build_full_eval_dataset.py --top-k 10     # label top-10 instead of top-20
 
 Requirements:
@@ -139,6 +141,24 @@ NEW_QUERIES: list[tuple[int, str, str]] = [
 ]
 
 
+# ── 5 RARE-EXPLICIT queries (IDs 500-504) — added Phase A11 of fix_bi-encoder.md ──
+# Targeted probes for the new taxonomy buckets (medulloblastoma, wilms, gist,
+# neuroendocrine, biliary) + mesothelioma/neuroblastoma. These queries make the
+# rare-cancer-floor + sarcoma-split interventions VISIBLE in aggregate metrics —
+# without them, improvements in rare buckets would be drowned out by the 60 other
+# queries. Category is the single string "rare_explicit" for slicing in Phase C3.
+# Secondary semantic tags (informational only, not used for slicing):
+#   500 → [rare, treatment]   501 → [pediatric, rare]   502 → [pediatric, rare]
+#   503 → [rare, treatment]   504 → [rare, treatment]
+RARE_EXPLICIT_QUERIES: list[tuple[int, str, str]] = [
+    (500, "rare_explicit", "pleural mesothelioma immunotherapy trial after pemetrexed failure"),
+    (501, "rare_explicit", "high-risk neuroblastoma trial for my 4-year-old"),
+    (502, "rare_explicit", "medulloblastoma group 3 trial after surgery and radiation"),
+    (503, "rare_explicit", "GIST trial after imatinib resistance"),
+    (504, "rare_explicit", "metastatic midgut neuroendocrine tumor trial somatostatin refractory"),
+]
+
+
 OUTPUT_DIR = Path("data/evaluation")
 OUTPUT_FILE = OUTPUT_DIR / "full_labeled_dataset.jsonl"
 
@@ -235,6 +255,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--resume", action="store_true", help="Skip already-labeled pairs")
     parser.add_argument("--new-only", action="store_true", help="Only run the 30 new queries")
     parser.add_argument("--existing-only", action="store_true", help="Only run the 30 existing queries")
+    parser.add_argument("--rare-explicit-only", action="store_true",
+                        help="Only run the 5 rare_explicit queries (IDs 500-504)")
+    parser.add_argument("--list-queries", action="store_true",
+                        help="Print the (id, category, query) list and exit (no Haiku, no models)")
     parser.add_argument("--top-k", type=int, default=20, help="Top-K from full pipeline to label")
     parser.add_argument("--db", default="data/trials.db", help="SQLite database path")
     parser.add_argument("--rate-limit-s", type=float, default=0.1, help="Sleep between API calls")
@@ -245,19 +269,33 @@ def build_query_list(args: argparse.Namespace) -> list[tuple[int, str, str]]:
     """Construct the (query_id, category, query) list per the CLI flags.
 
     Existing queries get category 'existing' since the user didn't tag them.
+    Default (no flag) includes all 65 queries (30 existing + 30 new + 5 rare_explicit).
     """
     queries: list[tuple[int, str, str]] = []
-    if not args.new_only:
-        queries.extend([(qid, "existing", q) for qid, q in EXISTING_QUERIES])
-    if not args.existing_only:
-        queries.extend(NEW_QUERIES)
+    if args.rare_explicit_only:
+        queries = list(RARE_EXPLICIT_QUERIES)
+    else:
+        if not args.new_only:
+            queries.extend([(qid, "existing", q) for qid, q in EXISTING_QUERIES])
+        if not args.existing_only:
+            queries.extend(NEW_QUERIES)
+            queries.extend(RARE_EXPLICIT_QUERIES)
     if args.limit > 0:
         queries = queries[: args.limit]
     return queries
 
 
 def main() -> None:
-    """Run the full pipeline + Haiku labeling for the 60-query dataset."""
+    """Run the full pipeline + Haiku labeling for the 65-query dataset."""
+    args = parse_args()
+    queries = build_query_list(args)
+
+    if args.list_queries:
+        for qid, cat, q in queries:
+            print(f"{qid}\t{cat}\t{q}")
+        return
+
+    # Heavy imports deferred — only loaded when we actually run the pipeline.
     import anthropic
 
     from TrialMine.models.cross_encoder import CrossEncoderReranker
@@ -267,8 +305,6 @@ def main() -> None:
     from TrialMine.retrieval.hybrid import HybridRetriever
     from TrialMine.retrieval.semantic import FAISSIndex
 
-    args = parse_args()
-    queries = build_query_list(args)
     logger.info("Building eval set for %d queries (top-%d each)", len(queries), args.top_k)
 
     # ── Load full pipeline components ─────────────────────────────────────────
