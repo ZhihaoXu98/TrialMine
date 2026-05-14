@@ -100,6 +100,21 @@ class DegradationConfig(BaseModel):
             "to the eligibility step."
         ),
     )
+    umls_drug_class_matching_enabled: bool = Field(
+        default=False,
+        description=(
+            "Hard toggle: when True, _match_required_treatments "
+            "and _match_excluded_treatments use UMLS CUI matching "
+            "(via TrialMine.features.concepts.match_via_cui) "
+            "instead of literal substring matching. Resolves "
+            "drug-name <-> drug-class equivalences "
+            "(osimertinib <-> EGFR TKI, trastuzumab <-> "
+            "HER2-targeted therapy) backed by a hand-curated "
+            "DRUG_TO_CLASS_CUIS table. Per-query latency cost: "
+            "~50-200 ms warm (LRU cache) / ~1-2 s cold. Default "
+            "is False until Phase D ships per fix_parser_umls.md."
+        ),
+    )
     skip_cross_encoder_if_slow_s: float = Field(
         default=5.0,
         gt=0.0,

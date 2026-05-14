@@ -33,6 +33,7 @@ from typing import Any
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
+from TrialMine.config import get_default_degradation
 from TrialMine.features.concepts import ConceptNormalizer
 from TrialMine.features.eligibility import EligibilityParser
 
@@ -522,6 +523,45 @@ def _any_overlap(needles: list[str], haystack: str | None) -> tuple[bool, list[s
     return bool(matches), matches
 
 
+def _any_overlap_cui(
+    needles: list[str],
+    haystack: str | None,
+) -> tuple[bool, list[str]]:
+    """Like :func:`_any_overlap` but uses UMLS CUI matching.
+
+    Each needle is tested for CUI overlap (direct OR via the hand-curated
+    ``DRUG_TO_CLASS_CUIS`` table) against the haystack via
+    :func:`TrialMine.features.concepts.match_via_cui`. Falls back to
+    ``(False, [])`` on :class:`ImportError` so the wider matcher path stays
+    robust if scispacy / the UMLS linker aren't available in this
+    environment.
+
+    Used by :func:`_match_required_treatments` and
+    :func:`_match_excluded_treatments` when
+    :attr:`TrialMine.config.DegradationConfig.umls_drug_class_matching_enabled`
+    is True. The condition matchers (:func:`_match_required_conditions`,
+    :func:`_match_excluded_conditions`) intentionally do NOT call this —
+    UMLS on free-text conditions is out of scope (over-linking risk).
+    """
+    if not haystack or not needles:
+        return False, []
+    try:
+        from TrialMine.features.concepts import match_via_cui
+    except ImportError:
+        logger.warning(
+            "scispacy / UMLS linker not available; _any_overlap_cui falling back to no-match"
+        )
+        return False, []
+    matches: list[str] = []
+    for needle in needles:
+        if not needle:
+            continue
+        ok, _via = match_via_cui(needle, haystack)
+        if ok:
+            matches.append(needle)
+    return bool(matches), matches
+
+
 def _match_required_conditions(required: list[str], patient_condition: str | None) -> dict:
     if not required:
         return {
@@ -595,7 +635,10 @@ def _match_required_treatments(required: list[str], prior_treatments: str | None
             "patient": None,
             "reason": "prior_treatments not provided",
         }
-    found, matches = _any_overlap(required, prior_treatments)
+    if get_default_degradation().umls_drug_class_matching_enabled:
+        found, matches = _any_overlap_cui(required, prior_treatments)
+    else:
+        found, matches = _any_overlap(required, prior_treatments)
     if found:
         return {
             "verdict": "Met",
@@ -626,7 +669,10 @@ def _match_excluded_treatments(excluded: list[str], prior_treatments: str | None
             "patient": None,
             "reason": "prior_treatments not provided",
         }
-    found, matches = _any_overlap(excluded, prior_treatments)
+    if get_default_degradation().umls_drug_class_matching_enabled:
+        found, matches = _any_overlap_cui(excluded, prior_treatments)
+    else:
+        found, matches = _any_overlap(excluded, prior_treatments)
     if found:
         return {
             "verdict": "Unmet",
@@ -667,6 +713,18 @@ def check_trial_eligibility(
     Distinguish between *patient-unknown* (a missing ``patient_*`` arg)
     and *parser-unknown* (low ``parse_confidence``) — both surface as
     ``Unknown`` but with different reason strings.
+
+    The ``required_prior_treatments`` and ``excluded_prior_treatments``
+    criteria use case-insensitive substring matching by default. When
+    :attr:`TrialMine.config.DegradationConfig.umls_drug_class_matching_enabled`
+    is ``True``, those two criteria switch to UMLS CUI matching via
+    :func:`TrialMine.features.concepts.match_via_cui`, which resolves
+    drug-name ↔ drug-class equivalences (e.g. osimertinib ↔ EGFR TKI;
+    trastuzumab ↔ HER2 inhibitor) through the hand-curated
+    :data:`TrialMine.features.drug_classes.DRUG_TO_CLASS_CUIS` table.
+    Condition matching (``required_conditions`` / ``excluded_conditions``)
+    always uses substring matching regardless of the toggle — UMLS on
+    free-text conditions is out of scope (over-linking risk).
 
     Use this tool *after* :func:`search_trials` to score the top candidates
     against a patient profile. Pass only the fields you have; missing
