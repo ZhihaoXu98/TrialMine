@@ -56,7 +56,10 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 LABELS_FILE = Path("data/evaluation/labeled_queries.jsonl")
-REPORT_FILE = Path("docs/evaluation-report.md")
+# Auto-generated ablation table only. The curated evaluation narrative
+# (which references this auto-table) lives at docs/evaluation-report.md
+# and is hand-maintained — don't have this script overwrite it.
+REPORT_FILE = Path("docs/ablation_auto.md")
 MLFLOW_TRACKING_URI = "sqlite:///mlflow.db"
 MLFLOW_EXPERIMENT = "trialmind-ablation"
 
