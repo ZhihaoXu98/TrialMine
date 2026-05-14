@@ -4,6 +4,14 @@ Computes retrieval + metadata features for each labeled (query, trial) pair,
 trains a LambdaRank model with leave-one-query-out cross-validation,
 and saves the model + feature importance chart.
 
+v3 retrain (2026-05-13): the upstream stack swapped to v2 across the board
+(bi-encoder → models/embeddings/fine-tuned-v2, FAISS → data/faiss_finetuned_v2,
+cross-encoder → models/cross-encoder/fine-tuned-v2). v2 ranker was trained on
+features from the v1 bi-encoder + v1 FAISS + v1 CE — that feature space no
+longer matches what the production pipeline emits, especially since
+cross_encoder_score is the top-importance feature. v3 recomputes all features
+against the full v2 stack so the LGB learns on the live distribution.
+
 Usage:
     python scripts/train_ranker.py
     python scripts/train_ranker.py --features-only   # just build features CSV
@@ -12,9 +20,9 @@ Usage:
 
 Requirements:
     - Elasticsearch running with `trials` index
-    - FAISS index: data/faiss_finetuned.index + .json
-    - Labels: data/evaluation/labeled_queries.jsonl
-    - Cross-encoder model: models/cross-encoder/fine-tuned/
+    - FAISS index: data/faiss_finetuned_v2.index + .json
+    - Labels: data/evaluation/labeled_queries.jsonl + test_labels.jsonl + train_labels_extra.jsonl
+    - Cross-encoder model: models/cross-encoder/fine-tuned-v2/
 """
 
 import argparse
@@ -56,15 +64,15 @@ LABELS_FILES = [
     Path("data/evaluation/test_labels.jsonl"),           # 50 queries (IDs 100-149)
     Path("data/evaluation/train_labels_extra.jsonl"),    # 80 queries (IDs 200-279)
 ]
-FEATURES_FILE = Path("data/evaluation/ranking_features_v2.csv")
-MODEL_DIR = Path("models/ranker/v2")
+FEATURES_FILE = Path("data/evaluation/ranking_features_v3.csv")
+MODEL_DIR = Path("models/ranker/v3")
 MLFLOW_TRACKING_URI = "sqlite:///mlflow.db"
 MLFLOW_EXPERIMENT = "trialmind-ranker"
 
-EMBEDDER_MODEL = "models/embeddings/fine-tuned"
-FAISS_INDEX = "data/faiss_finetuned.index"
-FAISS_MAPPING = "data/faiss_finetuned.json"
-CE_MODEL = "models/cross-encoder/fine-tuned"
+EMBEDDER_MODEL = "models/embeddings/fine-tuned-v2"
+FAISS_INDEX = "data/faiss_finetuned_v2.index"
+FAISS_MAPPING = "data/faiss_finetuned_v2.json"
+CE_MODEL = "models/cross-encoder/fine-tuned-v2"
 
 
 def load_labels(labels_files: list[Path]) -> list[dict]:
@@ -255,11 +263,18 @@ def build_features(
 
 def train_lgbm(
     df: pd.DataFrame,
+    params: dict | None = None,
+    num_boost_round: int = 200,
 ) -> tuple[lgb.Booster, dict]:
     """Train LightGBM LambdaRank with leave-one-query-out CV.
 
     Args:
         df: Feature DataFrame from build_features().
+        params: LightGBM hyperparameters. If None, the v3 defaults are used
+            (no anti-concentration regularization). Pass a regularized dict
+            for Path-1 experiments (see ``REGULARIZED_PARAMS`` in main()).
+        num_boost_round: Maximum boosting rounds. v3 default 200; regularized
+            variants typically use 100 + early stopping.
 
     Returns:
         Tuple of (model trained on all data, CV metrics dict).
@@ -267,19 +282,20 @@ def train_lgbm(
     query_ids = sorted(df["query_id"].unique())
     n_queries = len(query_ids)
 
-    params = {
-        "objective": "lambdarank",
-        "metric": "ndcg",
-        "eval_at": [5, 10],
-        "learning_rate": 0.05,
-        "num_leaves": 31,
-        "min_data_in_leaf": 5,
-        "feature_fraction": 0.8,
-        "bagging_fraction": 0.8,
-        "bagging_freq": 5,
-        "verbose": -1,
-        "seed": 42,
-    }
+    if params is None:
+        params = {
+            "objective": "lambdarank",
+            "metric": "ndcg",
+            "eval_at": [5, 10],
+            "learning_rate": 0.05,
+            "num_leaves": 31,
+            "min_data_in_leaf": 5,
+            "feature_fraction": 0.8,
+            "bagging_fraction": 0.8,
+            "bagging_freq": 5,
+            "verbose": -1,
+            "seed": 42,
+        }
 
     # Leave-one-query-out cross-validation
     fold_ndcg5 = []
@@ -313,7 +329,7 @@ def train_lgbm(
         model = lgb.train(
             params,
             train_data,
-            num_boost_round=200,
+            num_boost_round=num_boost_round,
             valid_sets=[val_data],
             valid_names=["val"],
             callbacks=[lgb.log_evaluation(period=0)],
@@ -353,7 +369,7 @@ def train_lgbm(
     final_model = lgb.train(
         params,
         all_data,
-        num_boost_round=200,
+        num_boost_round=num_boost_round,
         callbacks=[lgb.log_evaluation(period=0)],
     )
 
@@ -406,6 +422,21 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--load-features", action="store_true",
         help="Load features from CSV instead of recomputing",
+    )
+    parser.add_argument(
+        "--regularize", action="store_true",
+        help=(
+            "Use Path-1 anti-concentration hyperparameters: feature_fraction=0.5, "
+            "feature_fraction_bynode=0.5, lambda_l2=1.0, min_data_in_leaf=50, "
+            "num_boost_round=100. Pair with --output-suffix to avoid overwriting v3."
+        ),
+    )
+    parser.add_argument(
+        "--output-suffix", type=str, default="",
+        help=(
+            "Suffix appended to MODEL_DIR (default 'models/ranker/v3'). "
+            "Example: --output-suffix=-regularized → models/ranker/v3-regularized/."
+        ),
     )
     return parser.parse_args()
 
@@ -485,13 +516,43 @@ def main() -> None:
         count = (df["relevance"] == score).sum()
         print(f"    Score {score}: {count} ({count/len(df)*100:.1f}%)")
 
+    # ── Resolve hyperparameters + output dir based on CLI flags ───────────
+    if args.regularize:
+        # Path-1 anti-concentration regularization. The single biggest lever
+        # is column subsampling (feature_fraction) — at 0.5 each tree only
+        # sees half the features, so ~half the trees can't use CE at all and
+        # must learn to use metadata. L2 + larger min_data_in_leaf + early-
+        # stopping shape complement this.
+        train_params = {
+            "objective": "lambdarank",
+            "metric": "ndcg",
+            "eval_at": [5, 10],
+            "learning_rate": 0.05,
+            "num_leaves": 31,
+            "min_data_in_leaf": 50,          # was 5 — require evidence per split
+            "feature_fraction": 0.5,         # was 0.8 — half features per tree
+            "feature_fraction_bynode": 0.5,  # NEW — half features per split
+            "bagging_fraction": 0.7,         # was 0.8 — more row variance
+            "bagging_freq": 5,
+            "lambda_l2": 1.0,                # NEW — weight penalty
+            "verbose": -1,
+            "seed": 42,
+        }
+        train_rounds = 100                   # was 200 — anti-overfit
+    else:
+        train_params = None                  # train_lgbm uses its v3 defaults
+        train_rounds = 200
+
+    model_dir = MODEL_DIR if not args.output_suffix else MODEL_DIR.parent / (MODEL_DIR.name + args.output_suffix)
+    logger.info("Training variant: %s → %s", "regularized" if args.regularize else "v3-default", model_dir)
+
     # ── Train LightGBM ────────────────────────────────────────────────────
     print(f"\n{'='*62}")
-    print(f"  Training LightGBM LambdaRank")
+    print(f"  Training LightGBM LambdaRank ({'regularized' if args.regularize else 'v3-default'})")
     print(f"{'='*62}")
 
     t0 = time.time()
-    model, cv_metrics = train_lgbm(df)
+    model, cv_metrics = train_lgbm(df, params=train_params, num_boost_round=train_rounds)
     train_time = time.time() - t0
 
     print(f"\n  Leave-one-query-out CV results:")
@@ -500,14 +561,14 @@ def main() -> None:
     print(f"  Training time: {train_time:.1f}s")
 
     # ── Save model ────────────────────────────────────────────────────────
-    MODEL_DIR.mkdir(parents=True, exist_ok=True)
-    model_path = MODEL_DIR / "model.lgb"
+    model_dir.mkdir(parents=True, exist_ok=True)
+    model_path = model_dir / "model.lgb"
     model.save_model(str(model_path))
     logger.info("Model saved to %s", model_path)
 
     metadata = {
         "model_type": "lightgbm_lambdarank",
-        "model_version": MODEL_DIR.name,
+        "model_version": model_dir.name,
         # ISO8601 UTC — matches the schema written for embedder + cross-encoder
         # (see scripts/finetune_*.py) and what scripts/ci_quality_gate.py expects.
         "training_date": datetime.now(timezone.utc).isoformat(),
@@ -515,15 +576,21 @@ def main() -> None:
         "n_features": len(FEATURE_NAMES),
         "n_queries": int(df["query_id"].nunique()),
         "n_samples": len(df),
-        "hyperparameters": {
-            "objective": "lambdarank",
-            "learning_rate": 0.05,
-            "num_leaves": 31,
-            "num_boost_round": 200,
-        },
+        "regularize_flag": bool(args.regularize),
+        "hyperparameters": (
+            train_params or {
+                "objective": "lambdarank",
+                "learning_rate": 0.05,
+                "num_leaves": 31,
+                "min_data_in_leaf": 5,
+                "feature_fraction": 0.8,
+                "bagging_fraction": 0.8,
+                "bagging_freq": 5,
+            }
+        ) | {"num_boost_round": train_rounds},
         "eval_metrics": cv_metrics,
     }
-    with open(MODEL_DIR / "metadata.json", "w") as f:
+    with open(model_dir / "metadata.json", "w") as f:
         json.dump(metadata, f, indent=2)
 
     # ── Feature importance chart ──────────────────────────────────────────

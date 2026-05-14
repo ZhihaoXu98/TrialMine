@@ -1,7 +1,4 @@
 {
-  "superseded_by": "v3-regularized",
-  "deprecation_date": "2026-05-14",
-  "deprecation_reason": "Stale features — trained on v1 bi-encoder + v1 FAISS + v1 CE; ranks v2-stack features sub-optimally. Held-out 65q NDCG@5 0.783 (pre-Phase-11 stack) -> 0.761 (after Phase 11 CE swap, same v2 LGB, features changed under it). v3-regularized (anti-concentration regularization on v2-stack features) restores +LGB monotonic improvement: 65q NDCG@5 0.794. See docs/evaluation-report.md section 11 and CLAUDE.md Decision 40.",
   "model_type": "lightgbm_lambdarank",
   "model_version": "v2",
   "training_date": "2026-03-28T22:25:48.419934+00:00",
