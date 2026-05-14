@@ -1,0 +1,32 @@
+{
+  "training_date": "2026-05-13T22:17:17.643085+00:00",
+  "base_model": "michiyasunaga/BioLinkBERT-base",
+  "model_type": "cross-encoder",
+  "num_labels": 1,
+  "dataset_size": {
+    "train": 58336,
+    "val": 13252
+  },
+  "hyperparameters": {
+    "epochs": 3,
+    "batch_size": 32,
+    "learning_rate": 2e-05,
+    "warmup_ratio": 0.1,
+    "weight_decay": 0.01,
+    "loss": "MarginMSELoss",
+    "max_length": 512
+  },
+  "evaluator": {
+    "type": "pooled",
+    "pool_top_k": 20
+  },
+  "metric_for_best_model": "pooled_ndcg@10",
+  "device": "cuda",
+  "training_time_minutes": 36.2,
+  "eval_metrics": {
+    "pooled_ndcg@5": 0.9558970416774001,
+    "pooled_ndcg@10": 0.9426617246731613,
+    "pooled_mrr": 1.0
+  },
+  "gpu": "NVIDIA A100-SXM4-40GB"
+}

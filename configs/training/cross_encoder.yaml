@@ -1,37 +1,41 @@
 model:
-  name: "michiyasunaga/BioLinkBERT-base"
-  num_labels: 1           # single logit output for binary relevance
-  max_length: 512         # max sequence length for concatenated (query, trial) pair
-  output_dir: "models/cross-encoder/fine-tuned"
+  name: "michiyasunaga/BioLinkBERT-base"   # cold-start winner (sweep: 0.9429 vs warm 0.9426)
+  num_labels: 1
+  max_length: 512
+  output_dir: "models/cross-encoder/fine-tuned-v2"
 
 training:
-  epochs: 3
-  batch_size: 16          # smaller than bi-encoder (32) — cross-encoder processes pairs jointly
-  learning_rate: 2.0e-5
+  epochs: 3                  # graded data is ~4x smaller than binary; more epochs needed
+  batch_size: 32             # bumped from v1's 16 — A100 40GB has the headroom and halves wall-clock
+  learning_rate: 2.0e-5      # placeholder; sweep in Phase B may overwrite
   warmup_ratio: 0.1
   weight_decay: 0.01
   fp16: true
-  logging_steps: 100
-  eval_steps: 2000
-  save_steps: 2000
+  logging_steps: 25
+  eval_steps: 200
+  save_steps: 200
   save_total_limit: 3
   load_best_model_at_end: true
-  metric_for_best_model: "CERerankingEvaluator_ndcg@10"
+  metric_for_best_model: "pooled_ndcg@10"   # NEW — was CERerankingEvaluator_ndcg@10 (saturated at 0.993)
 
 loss:
-  type: "BinaryCrossEntropyLoss"
+  type: "MarginMSELoss"      # CHANGED — was BinaryCrossEntropyLoss
 
 evaluation:
-  max_val_samples: 5000   # subsample val triplets for CERerankingEvaluator
+  max_val_samples: 5000      # preserved from v1; pooled evaluator caps via pool_top_k anyway
+
+evaluator:                   # NEW — production-shaped pooled evaluator, see A5
+  type: "pooled"
+  pool_top_k: 20             # candidates per val query (val pool ~30/q in source files)
 
 data:
-  train_file: "data/training/train_pairs.jsonl"
-  val_file: "data/training/val_pairs.jsonl"
+  train_file: "data/training/ce_graded_train.jsonl"   # v2 path; v1 was train_pairs.jsonl
+  val_file: "data/training/ce_graded_val.jsonl"       # v2 path; v1 was val_pairs.jsonl
 
 inference:
-  rerank_top_k: 50
+  rerank_top_k: 50           # preserved from v1; production reranks top 50 candidates
 
 mlflow:
   tracking_uri: "sqlite:///mlflow.db"
   experiment_name: "trialmind-cross-encoder"
-  run_tag: "fine-tuning-v1"
+  run_tag: "v2-margin-mse-coldstart"

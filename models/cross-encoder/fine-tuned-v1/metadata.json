@@ -1,0 +1,31 @@
+{
+  "superseded_by_v2": true,
+  "superseded_at": "2026-05-13",
+  "superseded_note": "v2 (graded MarginMSELoss, cold-start) ships as production default per Phase 11. v1 binary-CE preserved for revert. See docs/evaluation-report.md §10 and CLAUDE.md Decision 39. Headline lift on the same held-out 65-query benchmark: pure CE NDCG@5 0.789 -> 0.898 (+0.109, non-overlapping bootstrap CIs).",
+  "training_date": "2026-03-27T18:37:02.914298+00:00",
+  "base_model": "michiyasunaga/BioLinkBERT-base",
+  "model_type": "cross-encoder",
+  "num_labels": 1,
+  "dataset_size": {
+    "train": 200000,
+    "val": 10000
+  },
+  "hyperparameters": {
+    "epochs": 1,
+    "batch_size": 16,
+    "learning_rate": 2e-05,
+    "warmup_ratio": 0.1,
+    "weight_decay": 0.01,
+    "loss": "BinaryCrossEntropyLoss",
+    "max_length": 512,
+    "fp16": true
+  },
+  "device": "cuda",
+  "gpu": "Tesla T4",
+  "training_time_minutes": 73.2,
+  "eval_metrics": {
+    "CERerankingEvaluator_map": 0.9905,
+    "CERerankingEvaluator_mrr@10": 0.9905,
+    "CERerankingEvaluator_ndcg@10": 0.9929876653178578
+  }
+}

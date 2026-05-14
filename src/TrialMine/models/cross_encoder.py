@@ -56,24 +56,50 @@ class CrossEncoderReranker:
         candidates: list[dict],
         top_k: int = 20,
         text_key: str = "trial_text",
+        rrf_weight: float | None = None,
     ) -> list[dict]:
-        """Re-rank candidates by cross-encoder score.
+        """Re-rank candidates by a blend of RRF rank and cross-encoder score.
 
         Scores each candidate with the cross-encoder, attaches
-        ``cross_encoder_score`` to each dict, sorts descending,
-        and returns the top-k.
+        ``cross_encoder_score`` (sigmoid of the logit) to each dict, and
+        produces a ``blended_score`` of::
+
+            blended = rrf_weight * rrf_norm + (1 − rrf_weight) * ce_sigmoid
+
+        where ``rrf_norm`` is min-max normalised within the candidate pool.
+        Sorts by blended_score descending and returns the top-k.
+
+        Default ``rrf_weight = 0.3`` (CE-dominant) was selected by the Phase
+        C3 blender sweep on the held-out 65-query benchmark — NDCG@5 0.861
+        at α=0.3 vs 0.842 at the previous α=0.7 (RRF-dominant). The flip
+        only became safe with the v2 (graded MarginMSELoss) CE; v1's binary
+        CE was a worse ranker than RRF alone and required the 0.7/0.3 RRF
+        floor as a quality-preserving cap (see Decision 39 + §10 of
+        docs/evaluation-report.md). Pure-CE re-ranking (`rrf_weight=0.0`)
+        hits NDCG@5=0.898 on the same benchmark — an even larger lift,
+        deferred to a future architectural step.
 
         Args:
             query: Patient query string.
             candidates: List of candidate dicts from hybrid retriever.
+                Each must carry the trial text under ``text_key`` and the
+                RRF ``score`` (the hybrid retriever's per-candidate score).
             top_k: Number of top candidates to return.
             text_key: Key in candidate dict containing the trial text.
+            rrf_weight: Optional override for the blend weight (α). If
+                None, uses the production default (0.3, CE-dominant).
 
         Returns:
-            Re-ranked list of candidates with ``cross_encoder_score`` added.
+            Re-ranked list of candidates with ``cross_encoder_score`` +
+            ``blended_score`` fields added.
         """
         if not candidates:
             return []
+
+        if rrf_weight is None:
+            rrf_weight = 0.3
+        if not 0.0 <= rrf_weight <= 1.0:
+            raise ValueError(f"rrf_weight must be in [0, 1]; got {rrf_weight!r}")
 
         texts = [c[text_key] for c in candidates]
         ce_scores = self.score(query, texts)
@@ -90,11 +116,11 @@ class CrossEncoderReranker:
         rrf_min = min(rrf_scores) if rrf_scores else 0.0
         rrf_range = rrf_max - rrf_min if rrf_max > rrf_min else 1.0
 
+        ce_weight = 1.0 - rrf_weight
         for candidate in candidates:
             rrf_norm = (candidate.get("score", 0.0) - rrf_min) / rrf_range
             ce_norm = candidate["cross_encoder_score"]
-            # Blend: keep RRF as primary signal, CE as boost
-            candidate["blended_score"] = 0.7 * rrf_norm + 0.3 * ce_norm
+            candidate["blended_score"] = rrf_weight * rrf_norm + ce_weight * ce_norm
 
         ranked = sorted(candidates, key=lambda x: x["blended_score"], reverse=True)
         return ranked[:top_k]
