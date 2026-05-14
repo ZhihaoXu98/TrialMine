@@ -2,8 +2,8 @@
   {
     "query_id": 0,
     "query": "breast cancer hormone receptor positive phase 3",
-    "ndcg5": 0.3801,
-    "ndcg10": 0.5639,
+    "ndcg5": 0.3384,
+    "ndcg10": 0.5644,
     "mrr": 1.0
   },
   {
@@ -24,28 +24,28 @@
     "query_id": 3,
     "query": "clinical trial for glioblastoma that has come back",
     "ndcg5": 0.786,
-    "ndcg10": 0.6197,
+    "ndcg10": 0.5602,
     "mrr": 1.0
   },
   {
     "query_id": 4,
     "query": "melanomt with checkpoint inhibitors",
-    "ndcg5": 0.3801,
-    "ndcg10": 0.5977,
+    "ndcg5": 0.6839,
+    "ndcg10": 0.5624,
     "mrr": 1.0
   },
   {
     "query_id": 5,
     "query": "prostate cancer trials for men over 65",
-    "ndcg5": 0.6574,
-    "ndcg10": 0.7715,
+    "ndcg5": 0.6962,
+    "ndcg10": 0.8013,
     "mrr": 1.0
   },
   {
     "query_id": 6,
     "query": "pancreatic cancer that has spread to the liver",
     "ndcg5": 1.0,
-    "ndcg10": 0.8974,
+    "ndcg10": 0.8377,
     "mrr": 1.0
   },
   {
@@ -72,43 +72,43 @@
   {
     "query_id": 10,
     "query": "stage 4 kidney cancer immunotherapy combination",
-    "ndcg5": 0.5841,
-    "ndcg10": 0.5824,
-    "mrr": 0.5
+    "ndcg5": 0.6914,
+    "ndcg10": 0.7619,
+    "mrr": 1.0
   },
   {
     "query_id": 11,
     "query": "newly diagnosed multiple myeloma treatment",
     "ndcg5": 1.0,
-    "ndcg10": 0.9603,
+    "ndcg10": 0.9581,
     "mrr": 1.0
   },
   {
     "query_id": 12,
     "query": "HPV related head and neck cancer",
     "ndcg5": 0.8166,
-    "ndcg10": 0.8264,
+    "ndcg10": 0.7669,
     "mrr": 1.0
   },
   {
     "query_id": 13,
     "query": "sarcoma clinical trials for young adults",
-    "ndcg5": 0.5588,
-    "ndcg10": 0.4628,
+    "ndcg5": 0.617,
+    "ndcg10": 0.5611,
     "mrr": 1.0
   },
   {
     "query_id": 14,
     "query": "targeted therapy for EGFR mutated lung cancer",
-    "ndcg5": 0.8875,
-    "ndcg10": 0.8328,
+    "ndcg5": 0.8748,
+    "ndcg10": 0.874,
     "mrr": 1.0
   },
   {
     "query_id": 15,
     "query": "liver cancer hepatocellular carcinoma systemic therapy",
-    "ndcg5": 0.9031,
-    "ndcg10": 0.7916,
+    "ndcg5": 1.0,
+    "ndcg10": 0.849,
     "mrr": 1.0
   },
   {
@@ -129,14 +129,14 @@
     "query_id": 18,
     "query": "neuroblastoma high risk children",
     "ndcg5": 1.0,
-    "ndcg10": 1.0,
+    "ndcg10": 0.9621,
     "mrr": 1.0
   },
   {
     "query_id": 19,
     "query": "mesothelioma immunotherapy combination",
-    "ndcg5": 0.7093,
-    "ndcg10": 0.7694,
-    "mrr": 0.5
+    "ndcg5": 1.0,
+    "ndcg10": 0.8621,
+    "mrr": 1.0
   }
 ]

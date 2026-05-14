@@ -1,0 +1,2385 @@
+{
+  "alphas": [
+    0.3,
+    0.4,
+    0.5,
+    0.6,
+    0.7
+  ],
+  "n_queries": 65,
+  "winner_alpha": 0.3,
+  "headline": {
+    "alpha=0.3": {
+      "ndcg5_mean": 0.8607632936437656,
+      "ndcg5_ci": [
+        0.8055376377574733,
+        0.911387366808517
+      ],
+      "ndcg10_mean": 0.8804661207049278,
+      "ndcg10_ci": [
+        0.8401745768286994,
+        0.9177380808319524
+      ],
+      "mrr_mean": 1.0,
+      "mrr_ci": [
+        1.0,
+        1.0
+      ]
+    },
+    "alpha=0.4": {
+      "ndcg5_mean": 0.8517151339707727,
+      "ndcg5_ci": [
+        0.7971953097518446,
+        0.9018538160869386
+      ],
+      "ndcg10_mean": 0.8736859556578838,
+      "ndcg10_ci": [
+        0.8331911811684887,
+        0.9130613905068656
+      ],
+      "mrr_mean": 1.0,
+      "mrr_ci": [
+        1.0,
+        1.0
+      ]
+    },
+    "alpha=0.5": {
+      "ndcg5_mean": 0.849905916588647,
+      "ndcg5_ci": [
+        0.7940709420121389,
+        0.9008759561886956
+      ],
+      "ndcg10_mean": 0.8689146915069669,
+      "ndcg10_ci": [
+        0.8276422322915371,
+        0.9096141359845072
+      ],
+      "mrr_mean": 1.0,
+      "mrr_ci": [
+        1.0,
+        1.0
+      ]
+    },
+    "alpha=0.6": {
+      "ndcg5_mean": 0.8441577417547016,
+      "ndcg5_ci": [
+        0.7900147903234828,
+        0.8967588959918087
+      ],
+      "ndcg10_mean": 0.8606068255143349,
+      "ndcg10_ci": [
+        0.8179043552194307,
+        0.9025116224587303
+      ],
+      "mrr_mean": 1.0,
+      "mrr_ci": [
+        1.0,
+        1.0
+      ]
+    },
+    "alpha=0.7": {
+      "ndcg5_mean": 0.8416109720953138,
+      "ndcg5_ci": [
+        0.7866739964550115,
+        0.8943831329858631
+      ],
+      "ndcg10_mean": 0.8576399309325368,
+      "ndcg10_ci": [
+        0.814901181956168,
+        0.8978446082052557
+      ],
+      "mrr_mean": 1.0,
+      "mrr_ci": [
+        1.0,
+        1.0
+      ]
+    }
+  },
+  "per_query": {
+    "alpha=0.3": [
+      {
+        "ndcg5": 0.5120390570529751,
+        "ndcg10": 0.7284498010194081,
+        "mrr": 1.0,
+        "qid": 0,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 1,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.9636452638863133,
+        "mrr": 1.0,
+        "qid": 2,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 3,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.9371166382005486,
+        "mrr": 1.0,
+        "qid": 4,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 0.9278257471613418,
+        "ndcg10": 0.9434152258155099,
+        "mrr": 1.0,
+        "qid": 5,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 6,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 7,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 8,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.9621404437403491,
+        "mrr": 1.0,
+        "qid": 9,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 0.5508492941340157,
+        "ndcg10": 0.6721771887672893,
+        "mrr": 1.0,
+        "qid": 10,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 11,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 12,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.9636452638863133,
+        "mrr": 1.0,
+        "qid": 13,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 14,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 0.9250256699929476,
+        "ndcg10": 0.9513467899190737,
+        "mrr": 1.0,
+        "qid": 15,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 16,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 17,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 18,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 19,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.932801483732564,
+        "mrr": 1.0,
+        "qid": 300,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 301,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 0.7092912526226147,
+        "ndcg10": 0.7734903583419945,
+        "mrr": 1.0,
+        "qid": 302,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.8800913525000883,
+        "mrr": 1.0,
+        "qid": 303,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.9580777588003657,
+        "mrr": 1.0,
+        "qid": 304,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 305,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 306,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.9257857076266625,
+        "mrr": 1.0,
+        "qid": 307,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 0.7227265726449517,
+        "ndcg10": 0.7801373573943082,
+        "mrr": 1.0,
+        "qid": 308,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 309,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.9636452638863133,
+        "mrr": 1.0,
+        "qid": 400,
+        "category": "common"
+      },
+      {
+        "ndcg5": 0.8777221344374128,
+        "ndcg10": 0.9206500320722545,
+        "mrr": 1.0,
+        "qid": 401,
+        "category": "common"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.9404875240541909,
+        "mrr": 1.0,
+        "qid": 402,
+        "category": "common"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 403,
+        "category": "common"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 404,
+        "category": "common"
+      },
+      {
+        "ndcg5": 0.6343169226155623,
+        "ndcg10": 0.7479665913722777,
+        "mrr": 1.0,
+        "qid": 405,
+        "category": "rare"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 406,
+        "category": "rare"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 407,
+        "category": "rare"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 408,
+        "category": "rare"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 409,
+        "category": "rare"
+      },
+      {
+        "ndcg5": 0.41341295926815524,
+        "ndcg10": 0.5600532147709515,
+        "mrr": 1.0,
+        "qid": 410,
+        "category": "pediatric"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 411,
+        "category": "pediatric"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 412,
+        "category": "pediatric"
+      },
+      {
+        "ndcg5": 0.43447718296225046,
+        "ndcg10": 0.5833596703580932,
+        "mrr": 1.0,
+        "qid": 413,
+        "category": "complex"
+      },
+      {
+        "ndcg5": 0.5958337834156117,
+        "ndcg10": 0.7863639746437395,
+        "mrr": 1.0,
+        "qid": 414,
+        "category": "complex"
+      },
+      {
+        "ndcg5": 0.58776119948588,
+        "ndcg10": 0.7189473842392311,
+        "mrr": 1.0,
+        "qid": 415,
+        "category": "complex"
+      },
+      {
+        "ndcg5": 0.4285714285714286,
+        "ndcg10": 0.49910007888634306,
+        "mrr": 1.0,
+        "qid": 416,
+        "category": "complex"
+      },
+      {
+        "ndcg5": 0.5193626944299344,
+        "ndcg10": 0.6242397891961335,
+        "mrr": 1.0,
+        "qid": 417,
+        "category": "complex"
+      },
+      {
+        "ndcg5": 0.8869465982421278,
+        "ndcg10": 0.9266360779006398,
+        "mrr": 1.0,
+        "qid": 418,
+        "category": "geographic"
+      },
+      {
+        "ndcg5": 0.4105526808159494,
+        "ndcg10": 0.5922232819881186,
+        "mrr": 1.0,
+        "qid": 419,
+        "category": "geographic"
+      },
+      {
+        "ndcg5": 0.9030970842075382,
+        "ndcg10": 0.8273979799875019,
+        "mrr": 1.0,
+        "qid": 420,
+        "category": "geographic"
+      },
+      {
+        "ndcg5": 0.7738931964842558,
+        "ndcg10": 0.8532721558012798,
+        "mrr": 1.0,
+        "qid": 421,
+        "category": "vague"
+      },
+      {
+        "ndcg5": 0.6243301834327712,
+        "ndcg10": 0.6491434586363488,
+        "mrr": 1.0,
+        "qid": 422,
+        "category": "vague"
+      },
+      {
+        "ndcg5": 0.22879576575689994,
+        "ndcg10": 0.42382217107220055,
+        "mrr": 1.0,
+        "qid": 423,
+        "category": "vague"
+      },
+      {
+        "ndcg5": 0.748254747534684,
+        "ndcg10": 0.7018486590599923,
+        "mrr": 1.0,
+        "qid": 424,
+        "category": "vague"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 425,
+        "category": "vague"
+      },
+      {
+        "ndcg5": 0.9250256699929476,
+        "ndcg10": 0.9094245487194395,
+        "mrr": 1.0,
+        "qid": 426,
+        "category": "treatment"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 427,
+        "category": "treatment"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 428,
+        "category": "treatment"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 429,
+        "category": "treatment"
+      },
+      {
+        "ndcg5": 0.24788784864631105,
+        "ndcg10": 0.4770802230182427,
+        "mrr": 1.0,
+        "qid": 500,
+        "category": "rare_explicit"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.8390644555820708,
+        "mrr": 1.0,
+        "qid": 501,
+        "category": "rare_explicit"
+      },
+      {
+        "ndcg5": 0.9026211001048622,
+        "ndcg10": 0.8013151345851656,
+        "mrr": 1.0,
+        "qid": 502,
+        "category": "rare_explicit"
+      },
+      {
+        "ndcg5": 0.8875385049894211,
+        "ndcg10": 0.8598216686111745,
+        "mrr": 1.0,
+        "qid": 503,
+        "category": "rare_explicit"
+      },
+      {
+        "ndcg5": 0.5714548078419106,
+        "ndcg10": 0.6521138737478126,
+        "mrr": 1.0,
+        "qid": 504,
+        "category": "rare_explicit"
+      }
+    ],
+    "alpha=0.4": [
+      {
+        "ndcg5": 0.5120390570529751,
+        "ndcg10": 0.7301480313937613,
+        "mrr": 1.0,
+        "qid": 0,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 1,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.9636452638863133,
+        "mrr": 1.0,
+        "qid": 2,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 3,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 0.8747985572776802,
+        "ndcg10": 0.918752830540385,
+        "mrr": 1.0,
+        "qid": 4,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 0.8387358373645061,
+        "ndcg10": 0.9378821264335633,
+        "mrr": 1.0,
+        "qid": 5,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 6,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 7,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 8,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.9621404437403491,
+        "mrr": 1.0,
+        "qid": 9,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 0.5508492941340157,
+        "ndcg10": 0.7085319248809759,
+        "mrr": 1.0,
+        "qid": 10,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 11,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.94546789582947,
+        "mrr": 1.0,
+        "qid": 12,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.921723022686679,
+        "mrr": 1.0,
+        "qid": 13,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 14,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 0.9250256699929476,
+        "ndcg10": 0.9513467899190737,
+        "mrr": 1.0,
+        "qid": 15,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 16,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 17,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 18,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 19,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 0.8875385049894211,
+        "ndcg10": 0.9270201848786105,
+        "mrr": 1.0,
+        "qid": 300,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 301,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 0.7092912526226147,
+        "ndcg10": 0.7694276734020112,
+        "mrr": 1.0,
+        "qid": 302,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.8702314295783172,
+        "mrr": 1.0,
+        "qid": 303,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.9580777588003657,
+        "mrr": 1.0,
+        "qid": 304,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 305,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 306,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.9257857076266625,
+        "mrr": 1.0,
+        "qid": 307,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 0.6992148198508501,
+        "ndcg10": 0.7655654585383879,
+        "mrr": 1.0,
+        "qid": 308,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 309,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.9636452638863133,
+        "mrr": 1.0,
+        "qid": 400,
+        "category": "common"
+      },
+      {
+        "ndcg5": 0.8777221344374128,
+        "ndcg10": 0.9206500320722545,
+        "mrr": 1.0,
+        "qid": 401,
+        "category": "common"
+      },
+      {
+        "ndcg5": 0.8875385049894211,
+        "ndcg10": 0.9270201848786105,
+        "mrr": 1.0,
+        "qid": 402,
+        "category": "common"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 403,
+        "category": "common"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 404,
+        "category": "common"
+      },
+      {
+        "ndcg5": 0.6343169226155623,
+        "ndcg10": 0.7479665913722777,
+        "mrr": 1.0,
+        "qid": 405,
+        "category": "rare"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 406,
+        "category": "rare"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 407,
+        "category": "rare"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 408,
+        "category": "rare"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 409,
+        "category": "rare"
+      },
+      {
+        "ndcg5": 0.4006730115564141,
+        "ndcg10": 0.48067053510557645,
+        "mrr": 1.0,
+        "qid": 410,
+        "category": "pediatric"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 411,
+        "category": "pediatric"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 412,
+        "category": "pediatric"
+      },
+      {
+        "ndcg5": 0.43447718296225046,
+        "ndcg10": 0.5794130470276615,
+        "mrr": 1.0,
+        "qid": 413,
+        "category": "complex"
+      },
+      {
+        "ndcg5": 0.5958337834156117,
+        "ndcg10": 0.7907759102206743,
+        "mrr": 1.0,
+        "qid": 414,
+        "category": "complex"
+      },
+      {
+        "ndcg5": 0.58776119948588,
+        "ndcg10": 0.7189473842392311,
+        "mrr": 1.0,
+        "qid": 415,
+        "category": "complex"
+      },
+      {
+        "ndcg5": 0.4285714285714286,
+        "ndcg10": 0.4627453427726564,
+        "mrr": 1.0,
+        "qid": 416,
+        "category": "complex"
+      },
+      {
+        "ndcg5": 0.5078773851194693,
+        "ndcg10": 0.6114800974824482,
+        "mrr": 1.0,
+        "qid": 417,
+        "category": "complex"
+      },
+      {
+        "ndcg5": 0.8869465982421278,
+        "ndcg10": 0.8824665955977138,
+        "mrr": 1.0,
+        "qid": 418,
+        "category": "geographic"
+      },
+      {
+        "ndcg5": 0.4105526808159494,
+        "ndcg10": 0.5628873146009327,
+        "mrr": 1.0,
+        "qid": 419,
+        "category": "geographic"
+      },
+      {
+        "ndcg5": 0.9030970842075382,
+        "ndcg10": 0.8223636331081865,
+        "mrr": 1.0,
+        "qid": 420,
+        "category": "geographic"
+      },
+      {
+        "ndcg5": 0.7738931964842558,
+        "ndcg10": 0.8108582970019786,
+        "mrr": 1.0,
+        "qid": 421,
+        "category": "vague"
+      },
+      {
+        "ndcg5": 0.6186273431640669,
+        "ndcg10": 0.6126524041278367,
+        "mrr": 1.0,
+        "qid": 422,
+        "category": "vague"
+      },
+      {
+        "ndcg5": 0.19130860075337372,
+        "ndcg10": 0.4216473868533406,
+        "mrr": 1.0,
+        "qid": 423,
+        "category": "vague"
+      },
+      {
+        "ndcg5": 0.7572758949402995,
+        "ndcg10": 0.6649685702140847,
+        "mrr": 1.0,
+        "qid": 424,
+        "category": "vague"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.9621404437403491,
+        "mrr": 1.0,
+        "qid": 425,
+        "category": "vague"
+      },
+      {
+        "ndcg5": 0.9250256699929476,
+        "ndcg10": 0.9094245487194395,
+        "mrr": 1.0,
+        "qid": 426,
+        "category": "treatment"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 427,
+        "category": "treatment"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 428,
+        "category": "treatment"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 429,
+        "category": "treatment"
+      },
+      {
+        "ndcg5": 0.2421850083776067,
+        "ndcg10": 0.4707281813458108,
+        "mrr": 1.0,
+        "qid": 500,
+        "category": "rare_explicit"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.8413117128178323,
+        "mrr": 1.0,
+        "qid": 501,
+        "category": "rare_explicit"
+      },
+      {
+        "ndcg5": 0.8869465982421278,
+        "ndcg10": 0.7890254564105805,
+        "mrr": 1.0,
+        "qid": 502,
+        "category": "rare_explicit"
+      },
+      {
+        "ndcg5": 0.8546456263113074,
+        "ndcg10": 0.8384764410333868,
+        "mrr": 1.0,
+        "qid": 503,
+        "category": "rare_explicit"
+      },
+      {
+        "ndcg5": 0.5587148601301696,
+        "ndcg10": 0.7415752009983374,
+        "mrr": 1.0,
+        "qid": 504,
+        "category": "rare_explicit"
+      }
+    ],
+    "alpha=0.5": [
+      {
+        "ndcg5": 0.5120390570529751,
+        "ndcg10": 0.7301480313937613,
+        "mrr": 1.0,
+        "qid": 0,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 1,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.9636452638863133,
+        "mrr": 1.0,
+        "qid": 2,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 3,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 0.8546456263113074,
+        "ndcg10": 0.9056749573008228,
+        "mrr": 1.0,
+        "qid": 4,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 0.8387358373645061,
+        "ndcg10": 0.9378821264335633,
+        "mrr": 1.0,
+        "qid": 5,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 6,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 7,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 8,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.9621404437403491,
+        "mrr": 1.0,
+        "qid": 9,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 0.5508492941340157,
+        "ndcg10": 0.6706723686213251,
+        "mrr": 1.0,
+        "qid": 10,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 11,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.932801483732564,
+        "mrr": 1.0,
+        "qid": 12,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.9155260051911699,
+        "mrr": 1.0,
+        "qid": 13,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 14,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 0.9250256699929476,
+        "ndcg10": 0.9513467899190737,
+        "mrr": 1.0,
+        "qid": 15,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 16,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 17,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 18,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 19,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 0.8747985572776802,
+        "ndcg10": 0.8823980944266984,
+        "mrr": 1.0,
+        "qid": 300,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 301,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 0.6343169226155623,
+        "ndcg10": 0.70318422857491,
+        "mrr": 1.0,
+        "qid": 302,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.8702314295783172,
+        "mrr": 1.0,
+        "qid": 303,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.9580777588003657,
+        "mrr": 1.0,
+        "qid": 304,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 305,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 306,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.9257857076266625,
+        "mrr": 1.0,
+        "qid": 307,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 0.6843515475204854,
+        "ndcg10": 0.7524176248292017,
+        "mrr": 1.0,
+        "qid": 308,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 309,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.9636452638863133,
+        "mrr": 1.0,
+        "qid": 400,
+        "category": "common"
+      },
+      {
+        "ndcg5": 0.8777221344374128,
+        "ndcg10": 0.9206500320722545,
+        "mrr": 1.0,
+        "qid": 401,
+        "category": "common"
+      },
+      {
+        "ndcg5": 0.8875385049894211,
+        "ndcg10": 0.9270201848786105,
+        "mrr": 1.0,
+        "qid": 402,
+        "category": "common"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 403,
+        "category": "common"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 404,
+        "category": "common"
+      },
+      {
+        "ndcg5": 0.7092912526226147,
+        "ndcg10": 0.7519661951480752,
+        "mrr": 1.0,
+        "qid": 405,
+        "category": "rare"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 406,
+        "category": "rare"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 407,
+        "category": "rare"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 408,
+        "category": "rare"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 409,
+        "category": "rare"
+      },
+      {
+        "ndcg5": 0.2882115165458355,
+        "ndcg10": 0.4536325292774083,
+        "mrr": 1.0,
+        "qid": 410,
+        "category": "pediatric"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 411,
+        "category": "pediatric"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 412,
+        "category": "pediatric"
+      },
+      {
+        "ndcg5": 0.43447718296225046,
+        "ndcg10": 0.5794130470276615,
+        "mrr": 1.0,
+        "qid": 413,
+        "category": "complex"
+      },
+      {
+        "ndcg5": 0.5958337834156117,
+        "ndcg10": 0.8032285550939752,
+        "mrr": 1.0,
+        "qid": 414,
+        "category": "complex"
+      },
+      {
+        "ndcg5": 0.58776119948588,
+        "ndcg10": 0.7189473842392311,
+        "mrr": 1.0,
+        "qid": 415,
+        "category": "complex"
+      },
+      {
+        "ndcg5": 0.4285714285714286,
+        "ndcg10": 0.4612405226266922,
+        "mrr": 1.0,
+        "qid": 416,
+        "category": "complex"
+      },
+      {
+        "ndcg5": 0.4583059070429662,
+        "ndcg10": 0.6224366479115283,
+        "mrr": 1.0,
+        "qid": 417,
+        "category": "complex"
+      },
+      {
+        "ndcg5": 0.8869465982421278,
+        "ndcg10": 0.880348596609455,
+        "mrr": 1.0,
+        "qid": 418,
+        "category": "geographic"
+      },
+      {
+        "ndcg5": 0.4105526808159494,
+        "ndcg10": 0.5599711135752201,
+        "mrr": 1.0,
+        "qid": 419,
+        "category": "geographic"
+      },
+      {
+        "ndcg5": 0.9030970842075382,
+        "ndcg10": 0.8223636331081865,
+        "mrr": 1.0,
+        "qid": 420,
+        "category": "geographic"
+      },
+      {
+        "ndcg5": 0.7738931964842558,
+        "ndcg10": 0.8043628744017064,
+        "mrr": 1.0,
+        "qid": 421,
+        "category": "vague"
+      },
+      {
+        "ndcg5": 0.6186273431640669,
+        "ndcg10": 0.5795744278568393,
+        "mrr": 1.0,
+        "qid": 422,
+        "category": "vague"
+      },
+      {
+        "ndcg5": 0.19130860075337372,
+        "ndcg10": 0.4216473868533406,
+        "mrr": 1.0,
+        "qid": 423,
+        "category": "vague"
+      },
+      {
+        "ndcg5": 0.7572758949402995,
+        "ndcg10": 0.6634519249918144,
+        "mrr": 1.0,
+        "qid": 424,
+        "category": "vague"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.9603250160361273,
+        "mrr": 1.0,
+        "qid": 425,
+        "category": "vague"
+      },
+      {
+        "ndcg5": 0.9165323715184533,
+        "ndcg10": 0.9039129791606223,
+        "mrr": 1.0,
+        "qid": 426,
+        "category": "treatment"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 427,
+        "category": "treatment"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 428,
+        "category": "treatment"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.94546789582947,
+        "mrr": 1.0,
+        "qid": 429,
+        "category": "treatment"
+      },
+      {
+        "ndcg5": 0.34286830110948346,
+        "ndcg10": 0.44589362444200886,
+        "mrr": 1.0,
+        "qid": 500,
+        "category": "rare_explicit"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.8791712690774832,
+        "mrr": 1.0,
+        "qid": 501,
+        "category": "rare_explicit"
+      },
+      {
+        "ndcg5": 0.8869465982421278,
+        "ndcg10": 0.7856692251577037,
+        "mrr": 1.0,
+        "qid": 502,
+        "category": "rare_explicit"
+      },
+      {
+        "ndcg5": 0.8546456263113074,
+        "ndcg10": 0.8384764410333868,
+        "mrr": 1.0,
+        "qid": 503,
+        "category": "rare_explicit"
+      },
+      {
+        "ndcg5": 0.5587148601301696,
+        "ndcg10": 0.7247058636026363,
+        "mrr": 1.0,
+        "qid": 504,
+        "category": "rare_explicit"
+      }
+    ],
+    "alpha=0.6": [
+      {
+        "ndcg5": 0.5120390570529751,
+        "ndcg10": 0.7301480313937613,
+        "mrr": 1.0,
+        "qid": 0,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 1,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.9636452638863133,
+        "mrr": 1.0,
+        "qid": 2,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 3,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 0.8546456263113074,
+        "ndcg10": 0.9056749573008228,
+        "mrr": 1.0,
+        "qid": 4,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 0.8387358373645061,
+        "ndcg10": 0.9378821264335633,
+        "mrr": 1.0,
+        "qid": 5,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 6,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 7,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 8,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.9621404437403491,
+        "mrr": 1.0,
+        "qid": 9,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 0.5508492941340157,
+        "ndcg10": 0.6706723686213251,
+        "mrr": 1.0,
+        "qid": 10,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.9636452638863133,
+        "mrr": 1.0,
+        "qid": 11,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.932801483732564,
+        "mrr": 1.0,
+        "qid": 12,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.8587366708016935,
+        "mrr": 1.0,
+        "qid": 13,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 14,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 0.9250256699929476,
+        "ndcg10": 0.9513467899190737,
+        "mrr": 1.0,
+        "qid": 15,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 16,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 17,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 18,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 19,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 0.8747985572776802,
+        "ndcg10": 0.8808932742807342,
+        "mrr": 1.0,
+        "qid": 300,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 301,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 0.6343169226155623,
+        "ndcg10": 0.6387088538638069,
+        "mrr": 1.0,
+        "qid": 302,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 0.8875385049894211,
+        "ndcg10": 0.9184893828144173,
+        "mrr": 1.0,
+        "qid": 303,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.9580777588003657,
+        "mrr": 1.0,
+        "qid": 304,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.9621404437403491,
+        "mrr": 1.0,
+        "qid": 305,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 306,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.9257857076266625,
+        "mrr": 1.0,
+        "qid": 307,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 0.6843515475204854,
+        "ndcg10": 0.7035046601929869,
+        "mrr": 1.0,
+        "qid": 308,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 309,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.9636452638863133,
+        "mrr": 1.0,
+        "qid": 400,
+        "category": "common"
+      },
+      {
+        "ndcg5": 0.8777221344374128,
+        "ndcg10": 0.9206500320722545,
+        "mrr": 1.0,
+        "qid": 401,
+        "category": "common"
+      },
+      {
+        "ndcg5": 0.8875385049894211,
+        "ndcg10": 0.8724880807080804,
+        "mrr": 1.0,
+        "qid": 402,
+        "category": "common"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 403,
+        "category": "common"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 404,
+        "category": "common"
+      },
+      {
+        "ndcg5": 0.7092912526226147,
+        "ndcg10": 0.7519661951480752,
+        "mrr": 1.0,
+        "qid": 405,
+        "category": "rare"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 406,
+        "category": "rare"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 407,
+        "category": "rare"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 408,
+        "category": "rare"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 409,
+        "category": "rare"
+      },
+      {
+        "ndcg5": 0.2882115165458355,
+        "ndcg10": 0.40578698503794947,
+        "mrr": 1.0,
+        "qid": 410,
+        "category": "pediatric"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 411,
+        "category": "pediatric"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 412,
+        "category": "pediatric"
+      },
+      {
+        "ndcg5": 0.43447718296225046,
+        "ndcg10": 0.484067134692053,
+        "mrr": 1.0,
+        "qid": 413,
+        "category": "complex"
+      },
+      {
+        "ndcg5": 0.5958337834156117,
+        "ndcg10": 0.8032285550939752,
+        "mrr": 1.0,
+        "qid": 414,
+        "category": "complex"
+      },
+      {
+        "ndcg5": 0.58776119948588,
+        "ndcg10": 0.6590736418945646,
+        "mrr": 1.0,
+        "qid": 415,
+        "category": "complex"
+      },
+      {
+        "ndcg5": 0.4285714285714286,
+        "ndcg10": 0.4612405226266922,
+        "mrr": 1.0,
+        "qid": 416,
+        "category": "complex"
+      },
+      {
+        "ndcg5": 0.4365241264703061,
+        "ndcg10": 0.603197100652221,
+        "mrr": 1.0,
+        "qid": 417,
+        "category": "complex"
+      },
+      {
+        "ndcg5": 0.8869465982421278,
+        "ndcg10": 0.880348596609455,
+        "mrr": 1.0,
+        "qid": 418,
+        "category": "geographic"
+      },
+      {
+        "ndcg5": 0.4105526808159494,
+        "ndcg10": 0.5599711135752201,
+        "mrr": 1.0,
+        "qid": 419,
+        "category": "geographic"
+      },
+      {
+        "ndcg5": 0.9030970842075382,
+        "ndcg10": 0.8223636331081865,
+        "mrr": 1.0,
+        "qid": 420,
+        "category": "geographic"
+      },
+      {
+        "ndcg5": 0.7738931964842558,
+        "ndcg10": 0.8043628744017064,
+        "mrr": 1.0,
+        "qid": 421,
+        "category": "vague"
+      },
+      {
+        "ndcg5": 0.6186273431640669,
+        "ndcg10": 0.580761778619965,
+        "mrr": 1.0,
+        "qid": 422,
+        "category": "vague"
+      },
+      {
+        "ndcg5": 0.19130860075337372,
+        "ndcg10": 0.4216473868533406,
+        "mrr": 1.0,
+        "qid": 423,
+        "category": "vague"
+      },
+      {
+        "ndcg5": 0.5810801326595151,
+        "ndcg10": 0.6521460856206325,
+        "mrr": 1.0,
+        "qid": 424,
+        "category": "vague"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.9580777588003657,
+        "mrr": 1.0,
+        "qid": 425,
+        "category": "vague"
+      },
+      {
+        "ndcg5": 0.9030970842075382,
+        "ndcg10": 0.8951943970009143,
+        "mrr": 1.0,
+        "qid": 426,
+        "category": "treatment"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 427,
+        "category": "treatment"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 428,
+        "category": "treatment"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.94546789582947,
+        "mrr": 1.0,
+        "qid": 429,
+        "category": "treatment"
+      },
+      {
+        "ndcg5": 0.34286830110948346,
+        "ndcg10": 0.44589362444200886,
+        "mrr": 1.0,
+        "qid": 500,
+        "category": "rare_explicit"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.8791712690774832,
+        "mrr": 1.0,
+        "qid": 501,
+        "category": "rare_explicit"
+      },
+      {
+        "ndcg5": 0.8573424901769816,
+        "ndcg10": 0.7664581846746942,
+        "mrr": 1.0,
+        "qid": 502,
+        "category": "rare_explicit"
+      },
+      {
+        "ndcg5": 0.8546456263113074,
+        "ndcg10": 0.8384764410333868,
+        "mrr": 1.0,
+        "qid": 503,
+        "category": "rare_explicit"
+      },
+      {
+        "ndcg5": 0.5385619291637966,
+        "ndcg10": 0.6994656259376633,
+        "mrr": 1.0,
+        "qid": 504,
+        "category": "rare_explicit"
+      }
+    ],
+    "alpha=0.7": [
+      {
+        "ndcg5": 0.5120390570529751,
+        "ndcg10": 0.7301480313937613,
+        "mrr": 1.0,
+        "qid": 0,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 1,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.9636452638863133,
+        "mrr": 1.0,
+        "qid": 2,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 3,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 0.8546456263113074,
+        "ndcg10": 0.9056749573008228,
+        "mrr": 1.0,
+        "qid": 4,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 0.8387358373645061,
+        "ndcg10": 0.9305260588737396,
+        "mrr": 1.0,
+        "qid": 5,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 6,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 7,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 8,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.9636452638863133,
+        "mrr": 1.0,
+        "qid": 9,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 0.5508492941340157,
+        "ndcg10": 0.6706723686213251,
+        "mrr": 1.0,
+        "qid": 10,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.9636452638863133,
+        "mrr": 1.0,
+        "qid": 11,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.932801483732564,
+        "mrr": 1.0,
+        "qid": 12,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.8537662720095992,
+        "mrr": 1.0,
+        "qid": 13,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 14,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 0.9250256699929476,
+        "ndcg10": 0.9513467899190737,
+        "mrr": 1.0,
+        "qid": 15,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 16,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 17,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 18,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 19,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 0.8747985572776802,
+        "ndcg10": 0.8404758532270641,
+        "mrr": 1.0,
+        "qid": 300,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.94546789582947,
+        "mrr": 1.0,
+        "qid": 301,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 0.596829757612036,
+        "ndcg10": 0.5822496500752924,
+        "mrr": 1.0,
+        "qid": 302,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 0.8747985572776802,
+        "ndcg10": 0.8509783482400006,
+        "mrr": 1.0,
+        "qid": 303,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.9202182025407148,
+        "mrr": 1.0,
+        "qid": 304,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.9257857076266625,
+        "mrr": 1.0,
+        "qid": 305,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 306,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.9257857076266625,
+        "mrr": 1.0,
+        "qid": 307,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 0.6843515475204854,
+        "ndcg10": 0.7035046601929869,
+        "mrr": 1.0,
+        "qid": 308,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 309,
+        "category": "existing"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.9636452638863133,
+        "mrr": 1.0,
+        "qid": 400,
+        "category": "common"
+      },
+      {
+        "ndcg5": 0.8777221344374128,
+        "ndcg10": 0.9206500320722545,
+        "mrr": 1.0,
+        "qid": 401,
+        "category": "common"
+      },
+      {
+        "ndcg5": 0.8875385049894211,
+        "ndcg10": 0.8891606286189596,
+        "mrr": 1.0,
+        "qid": 402,
+        "category": "common"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 403,
+        "category": "common"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 404,
+        "category": "common"
+      },
+      {
+        "ndcg5": 0.7092912526226147,
+        "ndcg10": 0.7519661951480752,
+        "mrr": 1.0,
+        "qid": 405,
+        "category": "rare"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 406,
+        "category": "rare"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 407,
+        "category": "rare"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 408,
+        "category": "rare"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 409,
+        "category": "rare"
+      },
+      {
+        "ndcg5": 0.2882115165458355,
+        "ndcg10": 0.44681429138112544,
+        "mrr": 1.0,
+        "qid": 410,
+        "category": "pediatric"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 411,
+        "category": "pediatric"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 412,
+        "category": "pediatric"
+      },
+      {
+        "ndcg5": 0.43447718296225046,
+        "ndcg10": 0.484067134692053,
+        "mrr": 1.0,
+        "qid": 413,
+        "category": "complex"
+      },
+      {
+        "ndcg5": 0.5958337834156117,
+        "ndcg10": 0.8032285550939752,
+        "mrr": 1.0,
+        "qid": 414,
+        "category": "complex"
+      },
+      {
+        "ndcg5": 0.58776119948588,
+        "ndcg10": 0.6948634410027117,
+        "mrr": 1.0,
+        "qid": 415,
+        "category": "complex"
+      },
+      {
+        "ndcg5": 0.4285714285714286,
+        "ndcg10": 0.4612405226266922,
+        "mrr": 1.0,
+        "qid": 416,
+        "category": "complex"
+      },
+      {
+        "ndcg5": 0.4365241264703061,
+        "ndcg10": 0.603197100652221,
+        "mrr": 1.0,
+        "qid": 417,
+        "category": "complex"
+      },
+      {
+        "ndcg5": 0.8869465982421278,
+        "ndcg10": 0.880348596609455,
+        "mrr": 1.0,
+        "qid": 418,
+        "category": "geographic"
+      },
+      {
+        "ndcg5": 0.4105526808159494,
+        "ndcg10": 0.5579061642339935,
+        "mrr": 1.0,
+        "qid": 419,
+        "category": "geographic"
+      },
+      {
+        "ndcg5": 0.9030970842075382,
+        "ndcg10": 0.8223636331081865,
+        "mrr": 1.0,
+        "qid": 420,
+        "category": "geographic"
+      },
+      {
+        "ndcg5": 0.7738931964842558,
+        "ndcg10": 0.7568371608459036,
+        "mrr": 1.0,
+        "qid": 421,
+        "category": "vague"
+      },
+      {
+        "ndcg5": 0.6186273431640669,
+        "ndcg10": 0.5795744278568393,
+        "mrr": 1.0,
+        "qid": 422,
+        "category": "vague"
+      },
+      {
+        "ndcg5": 0.19130860075337372,
+        "ndcg10": 0.3775469413599277,
+        "mrr": 1.0,
+        "qid": 423,
+        "category": "vague"
+      },
+      {
+        "ndcg5": 0.5782287125251628,
+        "ndcg10": 0.6955402950031883,
+        "mrr": 1.0,
+        "qid": 424,
+        "category": "vague"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.9552009891550426,
+        "mrr": 1.0,
+        "qid": 425,
+        "category": "vague"
+      },
+      {
+        "ndcg5": 0.9030970842075382,
+        "ndcg10": 0.8951943970009143,
+        "mrr": 1.0,
+        "qid": 426,
+        "category": "treatment"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 427,
+        "category": "treatment"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 1.0,
+        "mrr": 1.0,
+        "qid": 428,
+        "category": "treatment"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.94546789582947,
+        "mrr": 1.0,
+        "qid": 429,
+        "category": "treatment"
+      },
+      {
+        "ndcg5": 0.34286830110948346,
+        "ndcg10": 0.44589362444200886,
+        "mrr": 1.0,
+        "qid": 500,
+        "category": "rare_explicit"
+      },
+      {
+        "ndcg5": 1.0,
+        "ndcg10": 0.9155260051911699,
+        "mrr": 1.0,
+        "qid": 501,
+        "category": "rare_explicit"
+      },
+      {
+        "ndcg5": 0.8573424901769816,
+        "ndcg10": 0.7638363845663055,
+        "mrr": 1.0,
+        "qid": 502,
+        "category": "rare_explicit"
+      },
+      {
+        "ndcg5": 0.8546456263113074,
+        "ndcg10": 0.8384764410333868,
+        "mrr": 1.0,
+        "qid": 503,
+        "category": "rare_explicit"
+      },
+      {
+        "ndcg5": 0.426100434153218,
+        "ndcg10": 0.7377116103360363,
+        "mrr": 1.0,
+        "qid": 504,
+        "category": "rare_explicit"
+      }
+    ]
+  }
+}
