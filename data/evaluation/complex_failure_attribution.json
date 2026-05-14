@@ -1,0 +1,1473 @@
+{
+  "metadata": {
+    "n_queries": 15,
+    "n_relevant_total": 144,
+    "relevant_grade_threshold": 2,
+    "retrieval_recall_k": 200,
+    "rerank_top_k": 50,
+    "final_top_k": 10,
+    "category": "complex"
+  },
+  "failure_distribution": {
+    "in_top_10": 50,
+    "rerank_bound": 90,
+    "eligibility_bound": 4
+  },
+  "per_query": [
+    {
+      "qid": 413,
+      "query": "58M EGFR exon 19 NSCLC failed osimertinib phase 2-3",
+      "n_relevant": 4,
+      "n_dropped_by_filter": 0,
+      "safety_net_triggered": false,
+      "parser_profile": {
+        "condition": "non-small cell lung cancer",
+        "age": 58,
+        "sex": "Male",
+        "biomarkers": [
+          "EGFR exon 19 deletion"
+        ],
+        "prior_treatments": [
+          "osimertinib"
+        ]
+      },
+      "per_trial": [
+        {
+          "nct_id": "NCT04772235",
+          "grade": 3,
+          "hybrid_rank": 3,
+          "ce_lgb_rank": 8,
+          "post_filter_rank": 8,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT05773092",
+          "grade": 2,
+          "hybrid_rank": 1,
+          "ce_lgb_rank": 0,
+          "post_filter_rank": 0,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT04001777",
+          "grade": 3,
+          "hybrid_rank": 49,
+          "ce_lgb_rank": 7,
+          "post_filter_rank": 7,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT04676477",
+          "grade": 3,
+          "hybrid_rank": 32,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        }
+      ]
+    },
+    {
+      "qid": 414,
+      "query": "45F TNBC completed AC-T 3mo ago",
+      "n_relevant": 1,
+      "n_dropped_by_filter": 0,
+      "safety_net_triggered": false,
+      "parser_profile": {
+        "condition": "triple negative breast cancer",
+        "age": 45,
+        "sex": "Female",
+        "biomarkers": [
+          "triple negative"
+        ],
+        "prior_treatments": [
+          "doxorubicin",
+          "cyclophosphamide",
+          "paclitaxel"
+        ]
+      },
+      "per_trial": [
+        {
+          "nct_id": "NCT07441512",
+          "grade": 2,
+          "hybrid_rank": 10,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        }
+      ]
+    },
+    {
+      "qid": 415,
+      "query": "72M myeloma relapsed after lenalidomide bortezomib",
+      "n_relevant": 11,
+      "n_dropped_by_filter": 0,
+      "safety_net_triggered": false,
+      "parser_profile": {
+        "condition": "multiple myeloma",
+        "age": 72,
+        "sex": "Male",
+        "biomarkers": [],
+        "prior_treatments": [
+          "lenalidomide",
+          "bortezomib"
+        ]
+      },
+      "per_trial": [
+        {
+          "nct_id": "NCT02158702",
+          "grade": 3,
+          "hybrid_rank": 23,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT01965353",
+          "grade": 3,
+          "hybrid_rank": 0,
+          "ce_lgb_rank": 0,
+          "post_filter_rank": 0,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT07018050",
+          "grade": 3,
+          "hybrid_rank": 24,
+          "ce_lgb_rank": 1,
+          "post_filter_rank": 1,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT01160484",
+          "grade": 3,
+          "hybrid_rank": 45,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT02461888",
+          "grade": 3,
+          "hybrid_rank": 36,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT01484626",
+          "grade": 2,
+          "hybrid_rank": 28,
+          "ce_lgb_rank": 8,
+          "post_filter_rank": 8,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT05519085",
+          "grade": 3,
+          "hybrid_rank": 12,
+          "ce_lgb_rank": 7,
+          "post_filter_rank": 7,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT02718833",
+          "grade": 3,
+          "hybrid_rank": 33,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT01647165",
+          "grade": 2,
+          "hybrid_rank": 9,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT01359657",
+          "grade": 3,
+          "hybrid_rank": 11,
+          "ce_lgb_rank": 6,
+          "post_filter_rank": 6,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT01080391",
+          "grade": 3,
+          "hybrid_rank": 19,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        }
+      ]
+    },
+    {
+      "qid": 416,
+      "query": "62F HER2+ metastatic breast post-trastuzumab progression",
+      "n_relevant": 16,
+      "n_dropped_by_filter": 0,
+      "safety_net_triggered": false,
+      "parser_profile": {
+        "condition": "breast cancer",
+        "age": 62,
+        "sex": "Female",
+        "biomarkers": [
+          "HER2-positive"
+        ],
+        "prior_treatments": [
+          "trastuzumab"
+        ]
+      },
+      "per_trial": [
+        {
+          "nct_id": "NCT00567879",
+          "grade": 3,
+          "hybrid_rank": 41,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT01238029",
+          "grade": 3,
+          "hybrid_rank": 40,
+          "ce_lgb_rank": 4,
+          "post_filter_rank": 4,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT02536339",
+          "grade": 2,
+          "hybrid_rank": 2,
+          "ce_lgb_rank": 1,
+          "post_filter_rank": 1,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT04307329",
+          "grade": 3,
+          "hybrid_rank": 46,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT06100874",
+          "grade": 3,
+          "hybrid_rank": 22,
+          "ce_lgb_rank": 3,
+          "post_filter_rank": 3,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT00148876",
+          "grade": 3,
+          "hybrid_rank": 27,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT01026142",
+          "grade": 3,
+          "hybrid_rank": 45,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT05955170",
+          "grade": 3,
+          "hybrid_rank": 36,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT02025192",
+          "grade": 2,
+          "hybrid_rank": 16,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT02066532",
+          "grade": 3,
+          "hybrid_rank": 12,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT05041842",
+          "grade": 2,
+          "hybrid_rank": 5,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT02129556",
+          "grade": 3,
+          "hybrid_rank": 28,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT00810017",
+          "grade": 2,
+          "hybrid_rank": 26,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT03368729",
+          "grade": 2,
+          "hybrid_rank": 6,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT07136428",
+          "grade": 2,
+          "hybrid_rank": 44,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT05346861",
+          "grade": 3,
+          "hybrid_rank": 4,
+          "ce_lgb_rank": 9,
+          "post_filter_rank": 9,
+          "failure": "in_top_10"
+        }
+      ]
+    },
+    {
+      "qid": 417,
+      "query": "55M MSI-high colorectal post-pembrolizumab progression",
+      "n_relevant": 4,
+      "n_dropped_by_filter": 0,
+      "safety_net_triggered": false,
+      "parser_profile": {
+        "condition": "colorectal cancer",
+        "age": 55,
+        "sex": "Male",
+        "biomarkers": [
+          "MSI-high"
+        ],
+        "prior_treatments": [
+          "pembrolizumab"
+        ]
+      },
+      "per_trial": [
+        {
+          "nct_id": "NCT05426005",
+          "grade": 3,
+          "hybrid_rank": 5,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT03638297",
+          "grade": 2,
+          "hybrid_rank": 40,
+          "ce_lgb_rank": 5,
+          "post_filter_rank": 5,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT06152523",
+          "grade": 2,
+          "hybrid_rank": 6,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT04895722",
+          "grade": 2,
+          "hybrid_rank": 8,
+          "ce_lgb_rank": 8,
+          "post_filter_rank": 8,
+          "failure": "in_top_10"
+        }
+      ]
+    },
+    {
+      "qid": 600,
+      "query": "67M BRAF V600E metastatic melanoma post-dabrafenib trametinib progression",
+      "n_relevant": 6,
+      "n_dropped_by_filter": 0,
+      "safety_net_triggered": false,
+      "parser_profile": {
+        "condition": "melanoma",
+        "age": 67,
+        "sex": "Male",
+        "biomarkers": [
+          "BRAF V600E"
+        ],
+        "prior_treatments": [
+          "dabrafenib",
+          "trametinib"
+        ]
+      },
+      "per_trial": [
+        {
+          "nct_id": "NCT04903119",
+          "grade": 3,
+          "hybrid_rank": 0,
+          "ce_lgb_rank": 0,
+          "post_filter_rank": 0,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT02257424",
+          "grade": 2,
+          "hybrid_rank": 11,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT01989585",
+          "grade": 3,
+          "hybrid_rank": 19,
+          "ce_lgb_rank": 4,
+          "post_filter_rank": 4,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT04557956",
+          "grade": 3,
+          "hybrid_rank": 10,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT02097225",
+          "grade": 2,
+          "hybrid_rank": 5,
+          "ce_lgb_rank": 5,
+          "post_filter_rank": 5,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT02625337",
+          "grade": 3,
+          "hybrid_rank": 42,
+          "ce_lgb_rank": 7,
+          "post_filter_rank": 7,
+          "failure": "in_top_10"
+        }
+      ]
+    },
+    {
+      "qid": 601,
+      "query": "45F triple negative breast cancer BRCA1 mutation neoadjuvant phase 2 trial",
+      "n_relevant": 20,
+      "n_dropped_by_filter": 0,
+      "safety_net_triggered": false,
+      "parser_profile": {
+        "condition": "triple negative breast cancer",
+        "age": 45,
+        "sex": "Female",
+        "biomarkers": [
+          "BRCA1 mutation",
+          "triple negative"
+        ],
+        "prior_treatments": []
+      },
+      "per_trial": [
+        {
+          "nct_id": "NCT02978495",
+          "grade": 3,
+          "hybrid_rank": 0,
+          "ce_lgb_rank": 0,
+          "post_filter_rank": 0,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT01672671",
+          "grade": 3,
+          "hybrid_rank": 5,
+          "ce_lgb_rank": 3,
+          "post_filter_rank": 3,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT02203513",
+          "grade": 2,
+          "hybrid_rank": 27,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT03499353",
+          "grade": 3,
+          "hybrid_rank": 47,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT06175390",
+          "grade": 3,
+          "hybrid_rank": 40,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT01074970",
+          "grade": 3,
+          "hybrid_rank": 35,
+          "ce_lgb_rank": 5,
+          "post_filter_rank": 5,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT05485766",
+          "grade": 3,
+          "hybrid_rank": 1,
+          "ce_lgb_rank": 1,
+          "post_filter_rank": 1,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT05750719",
+          "grade": 3,
+          "hybrid_rank": 19,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT04083963",
+          "grade": 2,
+          "hybrid_rank": 11,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT00813956",
+          "grade": 2,
+          "hybrid_rank": 20,
+          "ce_lgb_rank": 7,
+          "post_filter_rank": 7,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT07283692",
+          "grade": 2,
+          "hybrid_rank": 12,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT01969032",
+          "grade": 2,
+          "hybrid_rank": 34,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT06407310",
+          "grade": 2,
+          "hybrid_rank": 15,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT05209529",
+          "grade": 3,
+          "hybrid_rank": 7,
+          "ce_lgb_rank": 4,
+          "post_filter_rank": 4,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT05872412",
+          "grade": 2,
+          "hybrid_rank": 22,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT03554109",
+          "grade": 2,
+          "hybrid_rank": 49,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT02789332",
+          "grade": 3,
+          "hybrid_rank": 6,
+          "ce_lgb_rank": 2,
+          "post_filter_rank": 2,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT05761470",
+          "grade": 3,
+          "hybrid_rank": 2,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT02670668",
+          "grade": 2,
+          "hybrid_rank": 26,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT05447702",
+          "grade": 2,
+          "hybrid_rank": 41,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        }
+      ]
+    },
+    {
+      "qid": 602,
+      "query": "71M castration-resistant prostate cancer Gleason 9 enzalutamide failure",
+      "n_relevant": 13,
+      "n_dropped_by_filter": 0,
+      "safety_net_triggered": false,
+      "parser_profile": {
+        "condition": "castration-resistant prostate cancer",
+        "age": 71,
+        "sex": "Male",
+        "biomarkers": [
+          "Gleason 9"
+        ],
+        "prior_treatments": [
+          "enzalutamide"
+        ]
+      },
+      "per_trial": [
+        {
+          "nct_id": "NCT02125357",
+          "grade": 3,
+          "hybrid_rank": 46,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT03016312",
+          "grade": 2,
+          "hybrid_rank": 6,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT03709550",
+          "grade": 2,
+          "hybrid_rank": 2,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT02339168",
+          "grade": 3,
+          "hybrid_rank": 42,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT01949337",
+          "grade": 3,
+          "hybrid_rank": 45,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT02207504",
+          "grade": 2,
+          "hybrid_rank": 17,
+          "ce_lgb_rank": 2,
+          "post_filter_rank": 2,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT06616155",
+          "grade": 3,
+          "hybrid_rank": 1,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT04471974",
+          "grade": 2,
+          "hybrid_rank": 3,
+          "ce_lgb_rank": 0,
+          "post_filter_rank": 0,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT06551324",
+          "grade": 2,
+          "hybrid_rank": 44,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT02532114",
+          "grade": 2,
+          "hybrid_rank": 4,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT04419402",
+          "grade": 2,
+          "hybrid_rank": 33,
+          "ce_lgb_rank": 7,
+          "post_filter_rank": 7,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT03751436",
+          "grade": 2,
+          "hybrid_rank": 9,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT01981707",
+          "grade": 2,
+          "hybrid_rank": 25,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        }
+      ]
+    },
+    {
+      "qid": 603,
+      "query": "52F KRAS G12C NSCLC adagrasib resistance phase 2 trial",
+      "n_relevant": 11,
+      "n_dropped_by_filter": 0,
+      "safety_net_triggered": false,
+      "parser_profile": {
+        "condition": "non-small cell lung cancer",
+        "age": 52,
+        "sex": "Female",
+        "biomarkers": [
+          "KRAS G12C"
+        ],
+        "prior_treatments": [
+          "adagrasib"
+        ]
+      },
+      "per_trial": [
+        {
+          "nct_id": "NCT05375994",
+          "grade": 3,
+          "hybrid_rank": 3,
+          "ce_lgb_rank": 0,
+          "post_filter_rank": 0,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT07382726",
+          "grade": 3,
+          "hybrid_rank": 47,
+          "ce_lgb_rank": 1,
+          "post_filter_rank": 1,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT05673187",
+          "grade": 2,
+          "hybrid_rank": 4,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT06130254",
+          "grade": 2,
+          "hybrid_rank": 14,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT05272423",
+          "grade": 3,
+          "hybrid_rank": 24,
+          "ce_lgb_rank": 9,
+          "post_filter_rank": 9,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT04418661",
+          "grade": 2,
+          "hybrid_rank": 20,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT06024174",
+          "grade": 3,
+          "hybrid_rank": 32,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT05074810",
+          "grade": 3,
+          "hybrid_rank": 16,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT06497556",
+          "grade": 3,
+          "hybrid_rank": 9,
+          "ce_lgb_rank": 5,
+          "post_filter_rank": 5,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT05492045",
+          "grade": 2,
+          "hybrid_rank": 6,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT05786924",
+          "grade": 2,
+          "hybrid_rank": 31,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        }
+      ]
+    },
+    {
+      "qid": 604,
+      "query": "34F HER2+ metastatic breast cancer brain metastases tucatinib failure",
+      "n_relevant": 8,
+      "n_dropped_by_filter": 0,
+      "safety_net_triggered": false,
+      "parser_profile": {
+        "condition": "breast cancer",
+        "age": 34,
+        "sex": "Female",
+        "biomarkers": [
+          "HER2-positive"
+        ],
+        "prior_treatments": [
+          "tucatinib"
+        ]
+      },
+      "per_trial": [
+        {
+          "nct_id": "NCT06016387",
+          "grade": 2,
+          "hybrid_rank": 5,
+          "ce_lgb_rank": 5,
+          "post_filter_rank": 5,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT05800275",
+          "grade": 2,
+          "hybrid_rank": 8,
+          "ce_lgb_rank": 3,
+          "post_filter_rank": 3,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT04856475",
+          "grade": 3,
+          "hybrid_rank": 48,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT05769010",
+          "grade": 3,
+          "hybrid_rank": 43,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT07136428",
+          "grade": 3,
+          "hybrid_rank": 19,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT07413939",
+          "grade": 3,
+          "hybrid_rank": 17,
+          "ce_lgb_rank": 8,
+          "post_filter_rank": 8,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT03691051",
+          "grade": 2,
+          "hybrid_rank": 29,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT05673928",
+          "grade": 2,
+          "hybrid_rank": 4,
+          "ce_lgb_rank": 1,
+          "post_filter_rank": 1,
+          "failure": "in_top_10"
+        }
+      ]
+    },
+    {
+      "qid": 605,
+      "query": "60M MSI-high colorectal cancer pembrolizumab progression second-line",
+      "n_relevant": 8,
+      "n_dropped_by_filter": 0,
+      "safety_net_triggered": false,
+      "parser_profile": {
+        "condition": "colorectal cancer",
+        "age": 60,
+        "sex": "Male",
+        "biomarkers": [
+          "MSI-high"
+        ],
+        "prior_treatments": [
+          "pembrolizumab"
+        ]
+      },
+      "per_trial": [
+        {
+          "nct_id": "NCT06006923",
+          "grade": 2,
+          "hybrid_rank": 0,
+          "ce_lgb_rank": 1,
+          "post_filter_rank": 1,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT06152523",
+          "grade": 2,
+          "hybrid_rank": 5,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT05426005",
+          "grade": 3,
+          "hybrid_rank": 3,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT03638297",
+          "grade": 2,
+          "hybrid_rank": 40,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT04895722",
+          "grade": 3,
+          "hybrid_rank": 12,
+          "ce_lgb_rank": 8,
+          "post_filter_rank": 8,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT02563002",
+          "grade": 2,
+          "hybrid_rank": 19,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT03186326",
+          "grade": 2,
+          "hybrid_rank": 8,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT04118933",
+          "grade": 3,
+          "hybrid_rank": 41,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        }
+      ]
+    },
+    {
+      "qid": 606,
+      "query": "28F AML FLT3-ITD positive post-allo transplant relapse",
+      "n_relevant": 15,
+      "n_dropped_by_filter": 0,
+      "safety_net_triggered": false,
+      "parser_profile": {
+        "condition": "acute myeloid leukemia",
+        "age": 28,
+        "sex": "Female",
+        "biomarkers": [
+          "FLT3-ITD positive"
+        ],
+        "prior_treatments": [
+          "allogeneic stem cell transplantation"
+        ]
+      },
+      "per_trial": [
+        {
+          "nct_id": "NCT02474290",
+          "grade": 3,
+          "hybrid_rank": 19,
+          "ce_lgb_rank": 3,
+          "post_filter_rank": 3,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT02997202",
+          "grade": 3,
+          "hybrid_rank": 46,
+          "ce_lgb_rank": 9,
+          "post_filter_rank": 9,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT00553202",
+          "grade": 2,
+          "hybrid_rank": 49,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT01565668",
+          "grade": 3,
+          "hybrid_rank": 40,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT03989713",
+          "grade": 3,
+          "hybrid_rank": 29,
+          "ce_lgb_rank": 2,
+          "post_filter_rank": 2,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT06022003",
+          "grade": 3,
+          "hybrid_rank": 4,
+          "ce_lgb_rank": 8,
+          "post_filter_rank": 8,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT05596968",
+          "grade": 2,
+          "hybrid_rank": 18,
+          "ce_lgb_rank": 6,
+          "post_filter_rank": 6,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT05596981",
+          "grade": 2,
+          "hybrid_rank": 21,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT05226455",
+          "grade": 3,
+          "hybrid_rank": 48,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT05199051",
+          "grade": 3,
+          "hybrid_rank": 7,
+          "ce_lgb_rank": 5,
+          "post_filter_rank": 5,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT07463651",
+          "grade": 2,
+          "hybrid_rank": 6,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT06664879",
+          "grade": 2,
+          "hybrid_rank": 33,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT03491579",
+          "grade": 2,
+          "hybrid_rank": 22,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT03622541",
+          "grade": 3,
+          "hybrid_rank": 2,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT03013998",
+          "grade": 2,
+          "hybrid_rank": 24,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        }
+      ]
+    },
+    {
+      "qid": 607,
+      "query": "55F ovarian cancer BRCA wild type platinum-resistant PARP failure",
+      "n_relevant": 6,
+      "n_dropped_by_filter": 4,
+      "safety_net_triggered": false,
+      "parser_profile": {
+        "condition": "ovarian cancer",
+        "age": 55,
+        "sex": "Female",
+        "biomarkers": [
+          "BRCA wild type",
+          "platinum-resistant"
+        ],
+        "prior_treatments": [
+          "PARP inhibitor"
+        ]
+      },
+      "per_trial": [
+        {
+          "nct_id": "NCT01690598",
+          "grade": 2,
+          "hybrid_rank": 40,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT05672095",
+          "grade": 2,
+          "hybrid_rank": 23,
+          "ce_lgb_rank": 2,
+          "post_filter_rank": 1,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT03944902",
+          "grade": 2,
+          "hybrid_rank": 1,
+          "ce_lgb_rank": 0,
+          "post_filter_rank": -1,
+          "failure": "eligibility_bound"
+        },
+        {
+          "nct_id": "NCT03699449",
+          "grade": 2,
+          "hybrid_rank": 22,
+          "ce_lgb_rank": 5,
+          "post_filter_rank": 3,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT03509246",
+          "grade": 3,
+          "hybrid_rank": 15,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT04149145",
+          "grade": 2,
+          "hybrid_rank": 47,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        }
+      ]
+    },
+    {
+      "qid": 608,
+      "query": "48M IDH1 mutant glioblastoma post-radiation Stupp protocol recurrence",
+      "n_relevant": 7,
+      "n_dropped_by_filter": 3,
+      "safety_net_triggered": false,
+      "parser_profile": {
+        "condition": "glioblastoma",
+        "age": 48,
+        "sex": "Male",
+        "biomarkers": [
+          "IDH1 mutation"
+        ],
+        "prior_treatments": [
+          "radiation",
+          "Stupp protocol"
+        ]
+      },
+      "per_trial": [
+        {
+          "nct_id": "NCT05076513",
+          "grade": 2,
+          "hybrid_rank": 26,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT04547855",
+          "grade": 3,
+          "hybrid_rank": 30,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT03749187",
+          "grade": 3,
+          "hybrid_rank": 2,
+          "ce_lgb_rank": 1,
+          "post_filter_rank": -1,
+          "failure": "eligibility_bound"
+        },
+        {
+          "nct_id": "NCT03914742",
+          "grade": 3,
+          "hybrid_rank": 1,
+          "ce_lgb_rank": 0,
+          "post_filter_rank": 0,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT02770378",
+          "grade": 3,
+          "hybrid_rank": 15,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT06283927",
+          "grade": 2,
+          "hybrid_rank": 24,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT06860594",
+          "grade": 2,
+          "hybrid_rank": 4,
+          "ce_lgb_rank": 2,
+          "post_filter_rank": -1,
+          "failure": "eligibility_bound"
+        }
+      ]
+    },
+    {
+      "qid": 609,
+      "query": "8M relapsed B-ALL CD19+ post-CAR-T phase 2",
+      "n_relevant": 14,
+      "n_dropped_by_filter": 4,
+      "safety_net_triggered": false,
+      "parser_profile": {
+        "condition": "acute lymphoblastic leukemia",
+        "age": 8,
+        "sex": "Male",
+        "biomarkers": [
+          "CD19-positive"
+        ],
+        "prior_treatments": [
+          "CAR-T"
+        ]
+      },
+      "per_trial": [
+        {
+          "nct_id": "NCT03173417",
+          "grade": 3,
+          "hybrid_rank": 40,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT06179524",
+          "grade": 3,
+          "hybrid_rank": 3,
+          "ce_lgb_rank": 5,
+          "post_filter_rank": 4,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT03754764",
+          "grade": 2,
+          "hybrid_rank": 2,
+          "ce_lgb_rank": 6,
+          "post_filter_rank": -1,
+          "failure": "eligibility_bound"
+        },
+        {
+          "nct_id": "NCT04653493",
+          "grade": 2,
+          "hybrid_rank": 1,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT07257419",
+          "grade": 2,
+          "hybrid_rank": 12,
+          "ce_lgb_rank": 0,
+          "post_filter_rank": 0,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT04781634",
+          "grade": 3,
+          "hybrid_rank": 8,
+          "ce_lgb_rank": 8,
+          "post_filter_rank": 5,
+          "failure": "in_top_10"
+        },
+        {
+          "nct_id": "NCT04271410",
+          "grade": 2,
+          "hybrid_rank": 48,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT05571540",
+          "grade": 2,
+          "hybrid_rank": 32,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT04034446",
+          "grade": 2,
+          "hybrid_rank": 36,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT07328503",
+          "grade": 2,
+          "hybrid_rank": 49,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT05639179",
+          "grade": 3,
+          "hybrid_rank": 21,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT04516551",
+          "grade": 2,
+          "hybrid_rank": 16,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT06993766",
+          "grade": 2,
+          "hybrid_rank": 0,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        },
+        {
+          "nct_id": "NCT04888468",
+          "grade": 3,
+          "hybrid_rank": 4,
+          "ce_lgb_rank": -1,
+          "post_filter_rank": -1,
+          "failure": "rerank_bound"
+        }
+      ]
+    }
+  ]
+}
