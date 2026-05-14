@@ -1,0 +1,1993 @@
+{
+  "per_query": {
+    "413": {
+      "query": "58M EGFR exon 19 NSCLC failed osimertinib phase 2-3",
+      "category": "complex",
+      "n_retrieved": 10,
+      "off": {
+        "top_k_ncts": [
+          "NCT05773092",
+          "NCT05663177",
+          "NCT03755102",
+          "NCT03133546",
+          "NCT03810066",
+          "NCT05281406",
+          "NCT06067776",
+          "NCT04001777",
+          "NCT04772235",
+          "NCT05693090"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 1,
+            "Unmet": 9,
+            "Unknown": 0
+          },
+          "excluded_prior_treatments": {
+            "Met": 10,
+            "Unmet": 0,
+            "Unknown": 0
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 30.8
+      },
+      "on": {
+        "top_k_ncts": [
+          "NCT05773092",
+          "NCT05663177",
+          "NCT03133546",
+          "NCT03810066",
+          "NCT05281406",
+          "NCT06067776",
+          "NCT04001777",
+          "NCT04772235",
+          "NCT05693090"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 5,
+            "Unmet": 5,
+            "Unknown": 0
+          },
+          "excluded_prior_treatments": {
+            "Met": 9,
+            "Unmet": 1,
+            "Unknown": 0
+          }
+        },
+        "n_dropped": 1,
+        "safety_net": false,
+        "elig_phase_latency_ms": 47087.8
+      },
+      "newly_unmet": {
+        "required_prior_treatments": 0,
+        "excluded_prior_treatments": 1
+      }
+    },
+    "414": {
+      "query": "45F TNBC completed AC-T 3mo ago",
+      "category": "complex",
+      "n_retrieved": 10,
+      "off": {
+        "top_k_ncts": [
+          "NCT07015853",
+          "NCT03800836",
+          "NCT06746870",
+          "NCT07376629",
+          "NCT07340424",
+          "NCT06568692",
+          "NCT06767527",
+          "NCT07208149",
+          "NCT07327021",
+          "NCT06991790"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 1,
+            "Unmet": 9,
+            "Unknown": 0
+          },
+          "excluded_prior_treatments": {
+            "Met": 10,
+            "Unmet": 0,
+            "Unknown": 0
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 13.3
+      },
+      "on": {
+        "top_k_ncts": [
+          "NCT07015853",
+          "NCT03800836",
+          "NCT06746870",
+          "NCT07376629",
+          "NCT07340424",
+          "NCT06568692",
+          "NCT06767527",
+          "NCT07208149",
+          "NCT07327021",
+          "NCT06991790"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 1,
+            "Unmet": 9,
+            "Unknown": 0
+          },
+          "excluded_prior_treatments": {
+            "Met": 10,
+            "Unmet": 0,
+            "Unknown": 0
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 525.8
+      },
+      "newly_unmet": {
+        "required_prior_treatments": 0,
+        "excluded_prior_treatments": 0
+      }
+    },
+    "415": {
+      "query": "72M myeloma relapsed after lenalidomide bortezomib",
+      "category": "complex",
+      "n_retrieved": 10,
+      "off": {
+        "top_k_ncts": [
+          "NCT01965353",
+          "NCT07018050",
+          "NCT03763162",
+          "NCT00378209",
+          "NCT05514990",
+          "NCT07391657",
+          "NCT01359657",
+          "NCT05519085",
+          "NCT01484626",
+          "NCT01564537"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 2,
+            "Unmet": 8,
+            "Unknown": 0
+          },
+          "excluded_prior_treatments": {
+            "Met": 10,
+            "Unmet": 0,
+            "Unknown": 0
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 15.4
+      },
+      "on": {
+        "top_k_ncts": [
+          "NCT01965353",
+          "NCT07018050",
+          "NCT03763162",
+          "NCT00378209",
+          "NCT05514990",
+          "NCT07391657",
+          "NCT01359657",
+          "NCT05519085",
+          "NCT01484626",
+          "NCT01564537"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 2,
+            "Unmet": 8,
+            "Unknown": 0
+          },
+          "excluded_prior_treatments": {
+            "Met": 10,
+            "Unmet": 0,
+            "Unknown": 0
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 545.3
+      },
+      "newly_unmet": {
+        "required_prior_treatments": 0,
+        "excluded_prior_treatments": 0
+      }
+    },
+    "416": {
+      "query": "62F HER2+ metastatic breast post-trastuzumab progression",
+      "category": "complex",
+      "n_retrieved": 10,
+      "off": {
+        "top_k_ncts": [
+          "NCT02252887",
+          "NCT02536339",
+          "NCT01271920",
+          "NCT06100874",
+          "NCT01238029",
+          "NCT02038010",
+          "NCT01873833",
+          "NCT02705859",
+          "NCT01132664",
+          "NCT05346861"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 1,
+            "Unmet": 9,
+            "Unknown": 0
+          },
+          "excluded_prior_treatments": {
+            "Met": 10,
+            "Unmet": 0,
+            "Unknown": 0
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 12.1
+      },
+      "on": {
+        "top_k_ncts": [
+          "NCT02252887",
+          "NCT02536339",
+          "NCT01271920",
+          "NCT06100874",
+          "NCT01238029",
+          "NCT02038010",
+          "NCT01873833",
+          "NCT02705859",
+          "NCT01132664",
+          "NCT05346861"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 2,
+            "Unmet": 8,
+            "Unknown": 0
+          },
+          "excluded_prior_treatments": {
+            "Met": 10,
+            "Unmet": 0,
+            "Unknown": 0
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 385.4
+      },
+      "newly_unmet": {
+        "required_prior_treatments": 0,
+        "excluded_prior_treatments": 0
+      }
+    },
+    "417": {
+      "query": "55M MSI-high colorectal post-pembrolizumab progression",
+      "category": "complex",
+      "n_retrieved": 10,
+      "off": {
+        "top_k_ncts": [
+          "NCT06353854",
+          "NCT06006923",
+          "NCT07262619",
+          "NCT05131919",
+          "NCT03104439",
+          "NCT03638297",
+          "NCT05239741",
+          "NCT04301557",
+          "NCT04895722",
+          "NCT04118933"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 0,
+            "Unmet": 10,
+            "Unknown": 0
+          },
+          "excluded_prior_treatments": {
+            "Met": 10,
+            "Unmet": 0,
+            "Unknown": 0
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 45.5
+      },
+      "on": {
+        "top_k_ncts": [
+          "NCT06353854",
+          "NCT06006923",
+          "NCT07262619",
+          "NCT03104439",
+          "NCT03638297",
+          "NCT05239741",
+          "NCT04301557",
+          "NCT04895722",
+          "NCT04118933"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 0,
+            "Unmet": 10,
+            "Unknown": 0
+          },
+          "excluded_prior_treatments": {
+            "Met": 9,
+            "Unmet": 1,
+            "Unknown": 0
+          }
+        },
+        "n_dropped": 1,
+        "safety_net": false,
+        "elig_phase_latency_ms": 472.6
+      },
+      "newly_unmet": {
+        "required_prior_treatments": 0,
+        "excluded_prior_treatments": 1
+      }
+    },
+    "421": {
+      "query": "I have cancer what trials",
+      "category": "vague",
+      "n_retrieved": 10,
+      "off": {
+        "top_k_ncts": [
+          "NCT00020657",
+          "NCT05378633",
+          "NCT03992664",
+          "NCT05167448",
+          "NCT06722846",
+          "NCT02096289",
+          "NCT04240717",
+          "NCT02833246",
+          "NCT05375643",
+          "NCT02634632"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 7,
+            "Unmet": 0,
+            "Unknown": 3
+          },
+          "excluded_prior_treatments": {
+            "Met": 7,
+            "Unmet": 0,
+            "Unknown": 3
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 14.7
+      },
+      "on": {
+        "top_k_ncts": [
+          "NCT00020657",
+          "NCT05378633",
+          "NCT03992664",
+          "NCT05167448",
+          "NCT06722846",
+          "NCT02096289",
+          "NCT04240717",
+          "NCT02833246",
+          "NCT05375643",
+          "NCT02634632"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 7,
+            "Unmet": 0,
+            "Unknown": 3
+          },
+          "excluded_prior_treatments": {
+            "Met": 7,
+            "Unmet": 0,
+            "Unknown": 3
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 2.4
+      },
+      "newly_unmet": {
+        "required_prior_treatments": 0,
+        "excluded_prior_treatments": 0
+      }
+    },
+    "422": {
+      "query": "mom has bone cancer",
+      "category": "vague",
+      "n_retrieved": 10,
+      "off": {
+        "top_k_ncts": [
+          "NCT06008483",
+          "NCT00558272",
+          "NCT00566618",
+          "NCT03612466",
+          "NCT00051779",
+          "NCT06522165",
+          "NCT04900766",
+          "NCT00334139",
+          "NCT03106675",
+          "NCT00168129"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 3,
+            "Unmet": 0,
+            "Unknown": 7
+          },
+          "excluded_prior_treatments": {
+            "Met": 3,
+            "Unmet": 0,
+            "Unknown": 7
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 12.3
+      },
+      "on": {
+        "top_k_ncts": [
+          "NCT06008483",
+          "NCT00558272",
+          "NCT00566618",
+          "NCT03612466",
+          "NCT00051779",
+          "NCT06522165",
+          "NCT04900766",
+          "NCT00334139",
+          "NCT03106675",
+          "NCT00168129"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 3,
+            "Unmet": 0,
+            "Unknown": 7
+          },
+          "excluded_prior_treatments": {
+            "Met": 3,
+            "Unmet": 0,
+            "Unknown": 7
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 3.1
+      },
+      "newly_unmet": {
+        "required_prior_treatments": 0,
+        "excluded_prior_treatments": 0
+      }
+    },
+    "423": {
+      "query": "terminal cancer any options",
+      "category": "vague",
+      "n_retrieved": 10,
+      "off": {
+        "top_k_ncts": [
+          "NCT06018896",
+          "NCT04606238",
+          "NCT02036281",
+          "NCT02009306",
+          "NCT06615349",
+          "NCT04950608",
+          "NCT06722846",
+          "NCT05351281",
+          "NCT00982995",
+          "NCT03387436"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 8,
+            "Unmet": 0,
+            "Unknown": 2
+          },
+          "excluded_prior_treatments": {
+            "Met": 7,
+            "Unmet": 0,
+            "Unknown": 3
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 27.8
+      },
+      "on": {
+        "top_k_ncts": [
+          "NCT06018896",
+          "NCT04606238",
+          "NCT02036281",
+          "NCT02009306",
+          "NCT06615349",
+          "NCT04950608",
+          "NCT06722846",
+          "NCT05351281",
+          "NCT00982995",
+          "NCT03387436"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 8,
+            "Unmet": 0,
+            "Unknown": 2
+          },
+          "excluded_prior_treatments": {
+            "Met": 7,
+            "Unmet": 0,
+            "Unknown": 3
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 2.4
+      },
+      "newly_unmet": {
+        "required_prior_treatments": 0,
+        "excluded_prior_treatments": 0
+      }
+    },
+    "424": {
+      "query": "just diagnosed need help",
+      "category": "vague",
+      "n_retrieved": 10,
+      "off": {
+        "top_k_ncts": [
+          "NCT06189261",
+          "NCT05666258",
+          "NCT04394325",
+          "NCT03441906",
+          "NCT06894810",
+          "NCT01851109",
+          "NCT05649072",
+          "NCT06654466",
+          "NCT06638554",
+          "NCT04704193"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 8,
+            "Unmet": 0,
+            "Unknown": 2
+          },
+          "excluded_prior_treatments": {
+            "Met": 9,
+            "Unmet": 0,
+            "Unknown": 1
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 11.6
+      },
+      "on": {
+        "top_k_ncts": [
+          "NCT06189261",
+          "NCT05666258",
+          "NCT04394325",
+          "NCT03441906",
+          "NCT06894810",
+          "NCT01851109",
+          "NCT05649072",
+          "NCT06654466",
+          "NCT06638554",
+          "NCT04704193"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 8,
+            "Unmet": 0,
+            "Unknown": 2
+          },
+          "excluded_prior_treatments": {
+            "Met": 9,
+            "Unmet": 0,
+            "Unknown": 1
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 2.3
+      },
+      "newly_unmet": {
+        "required_prior_treatments": 0,
+        "excluded_prior_treatments": 0
+      }
+    },
+    "425": {
+      "query": "experimental treatments",
+      "category": "vague",
+      "n_retrieved": 10,
+      "off": {
+        "top_k_ncts": [
+          "NCT03617432",
+          "NCT01676779",
+          "NCT03410004",
+          "NCT03611231",
+          "NCT06102057",
+          "NCT03494634",
+          "NCT00513604",
+          "NCT00004997",
+          "NCT04258137",
+          "NCT04723316"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 1,
+            "Unmet": 0,
+            "Unknown": 9
+          },
+          "excluded_prior_treatments": {
+            "Met": 3,
+            "Unmet": 0,
+            "Unknown": 7
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 14.4
+      },
+      "on": {
+        "top_k_ncts": [
+          "NCT03617432",
+          "NCT01676779",
+          "NCT03410004",
+          "NCT03611231",
+          "NCT06102057",
+          "NCT03494634",
+          "NCT00513604",
+          "NCT00004997",
+          "NCT04258137",
+          "NCT04723316"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 1,
+            "Unmet": 0,
+            "Unknown": 9
+          },
+          "excluded_prior_treatments": {
+            "Met": 3,
+            "Unmet": 0,
+            "Unknown": 7
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 2.6
+      },
+      "newly_unmet": {
+        "required_prior_treatments": 0,
+        "excluded_prior_treatments": 0
+      }
+    },
+    "600": {
+      "query": "67M BRAF V600E metastatic melanoma post-dabrafenib trametinib progression",
+      "category": "complex",
+      "n_retrieved": 10,
+      "off": {
+        "top_k_ncts": [
+          "NCT04903119",
+          "NCT01902173",
+          "NCT01940809",
+          "NCT06262919",
+          "NCT01989585",
+          "NCT02097225",
+          "NCT02910700",
+          "NCT02625337",
+          "NCT02357732",
+          "NCT03088176"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 1,
+            "Unmet": 9,
+            "Unknown": 0
+          },
+          "excluded_prior_treatments": {
+            "Met": 10,
+            "Unmet": 0,
+            "Unknown": 0
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 14.8
+      },
+      "on": {
+        "top_k_ncts": [
+          "NCT04903119",
+          "NCT01902173",
+          "NCT01940809",
+          "NCT06262919",
+          "NCT01989585",
+          "NCT02097225",
+          "NCT02910700",
+          "NCT02625337",
+          "NCT02357732",
+          "NCT03088176"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 1,
+            "Unmet": 9,
+            "Unknown": 0
+          },
+          "excluded_prior_treatments": {
+            "Met": 10,
+            "Unmet": 0,
+            "Unknown": 0
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 510.9
+      },
+      "newly_unmet": {
+        "required_prior_treatments": 0,
+        "excluded_prior_treatments": 0
+      }
+    },
+    "601": {
+      "query": "45F triple negative breast cancer BRCA1 mutation neoadjuvant phase 2 trial",
+      "category": "complex",
+      "n_retrieved": 10,
+      "off": {
+        "top_k_ncts": [
+          "NCT02978495",
+          "NCT05485766",
+          "NCT02789332",
+          "NCT01672671",
+          "NCT05209529",
+          "NCT01074970",
+          "NCT06245889",
+          "NCT00813956",
+          "NCT04584255",
+          "NCT06318897"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 4,
+            "Unmet": 0,
+            "Unknown": 6
+          },
+          "excluded_prior_treatments": {
+            "Met": 2,
+            "Unmet": 0,
+            "Unknown": 8
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 14.4
+      },
+      "on": {
+        "top_k_ncts": [
+          "NCT02978495",
+          "NCT05485766",
+          "NCT02789332",
+          "NCT01672671",
+          "NCT05209529",
+          "NCT01074970",
+          "NCT06245889",
+          "NCT00813956",
+          "NCT04584255",
+          "NCT06318897"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 4,
+            "Unmet": 0,
+            "Unknown": 6
+          },
+          "excluded_prior_treatments": {
+            "Met": 2,
+            "Unmet": 0,
+            "Unknown": 8
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 2.6
+      },
+      "newly_unmet": {
+        "required_prior_treatments": 0,
+        "excluded_prior_treatments": 0
+      }
+    },
+    "602": {
+      "query": "71M castration-resistant prostate cancer Gleason 9 enzalutamide failure",
+      "category": "complex",
+      "n_retrieved": 10,
+      "off": {
+        "top_k_ncts": [
+          "NCT04471974",
+          "NCT02124668",
+          "NCT02207504",
+          "NCT02922218",
+          "NCT03734653",
+          "NCT02312557",
+          "NCT02711956",
+          "NCT04419402",
+          "NCT02522715",
+          "NCT02833883"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 3,
+            "Unmet": 7,
+            "Unknown": 0
+          },
+          "excluded_prior_treatments": {
+            "Met": 10,
+            "Unmet": 0,
+            "Unknown": 0
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 12.5
+      },
+      "on": {
+        "top_k_ncts": [
+          "NCT04471974",
+          "NCT02124668",
+          "NCT02207504",
+          "NCT02922218",
+          "NCT03734653",
+          "NCT02312557",
+          "NCT02711956",
+          "NCT04419402",
+          "NCT02522715",
+          "NCT02833883"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 3,
+            "Unmet": 7,
+            "Unknown": 0
+          },
+          "excluded_prior_treatments": {
+            "Met": 10,
+            "Unmet": 0,
+            "Unknown": 0
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 476.4
+      },
+      "newly_unmet": {
+        "required_prior_treatments": 0,
+        "excluded_prior_treatments": 0
+      }
+    },
+    "603": {
+      "query": "52F KRAS G12C NSCLC adagrasib resistance phase 2 trial",
+      "category": "complex",
+      "n_retrieved": 10,
+      "off": {
+        "top_k_ncts": [
+          "NCT05375994",
+          "NCT07382726",
+          "NCT05609578",
+          "NCT05853575",
+          "NCT05840510",
+          "NCT06497556",
+          "NCT06917079",
+          "NCT06248606",
+          "NCT05002270",
+          "NCT05272423"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 3,
+            "Unmet": 7,
+            "Unknown": 0
+          },
+          "excluded_prior_treatments": {
+            "Met": 10,
+            "Unmet": 0,
+            "Unknown": 0
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 14.0
+      },
+      "on": {
+        "top_k_ncts": [
+          "NCT05375994",
+          "NCT07382726",
+          "NCT05609578",
+          "NCT05853575",
+          "NCT05840510",
+          "NCT06497556",
+          "NCT06917079",
+          "NCT06248606",
+          "NCT05002270",
+          "NCT05272423"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 3,
+            "Unmet": 7,
+            "Unknown": 0
+          },
+          "excluded_prior_treatments": {
+            "Met": 10,
+            "Unmet": 0,
+            "Unknown": 0
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 418.9
+      },
+      "newly_unmet": {
+        "required_prior_treatments": 0,
+        "excluded_prior_treatments": 0
+      }
+    },
+    "604": {
+      "query": "34F HER2+ metastatic breast cancer brain metastases tucatinib failure",
+      "category": "complex",
+      "n_retrieved": 10,
+      "off": {
+        "top_k_ncts": [
+          "NCT05323955",
+          "NCT05673928",
+          "NCT05892068",
+          "NCT05800275",
+          "NCT03501979",
+          "NCT06016387",
+          "NCT05041842",
+          "NCT05553522",
+          "NCT07413939",
+          "NCT04420598"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 0,
+            "Unmet": 10,
+            "Unknown": 0
+          },
+          "excluded_prior_treatments": {
+            "Met": 10,
+            "Unmet": 0,
+            "Unknown": 0
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 14.6
+      },
+      "on": {
+        "top_k_ncts": [
+          "NCT05323955",
+          "NCT05673928",
+          "NCT05892068",
+          "NCT05800275",
+          "NCT03501979",
+          "NCT06016387",
+          "NCT05041842",
+          "NCT05553522",
+          "NCT07413939",
+          "NCT04420598"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 0,
+            "Unmet": 10,
+            "Unknown": 0
+          },
+          "excluded_prior_treatments": {
+            "Met": 10,
+            "Unmet": 0,
+            "Unknown": 0
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 519.5
+      },
+      "newly_unmet": {
+        "required_prior_treatments": 0,
+        "excluded_prior_treatments": 0
+      }
+    },
+    "605": {
+      "query": "60M MSI-high colorectal cancer pembrolizumab progression second-line",
+      "category": "complex",
+      "n_retrieved": 10,
+      "off": {
+        "top_k_ncts": [
+          "NCT05035381",
+          "NCT06006923",
+          "NCT06353854",
+          "NCT04301557",
+          "NCT06549907",
+          "NCT07262619",
+          "NCT05669430",
+          "NCT06522919",
+          "NCT04895722",
+          "NCT03104439"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 1,
+            "Unmet": 9,
+            "Unknown": 0
+          },
+          "excluded_prior_treatments": {
+            "Met": 10,
+            "Unmet": 0,
+            "Unknown": 0
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 12.7
+      },
+      "on": {
+        "top_k_ncts": [
+          "NCT05035381",
+          "NCT06006923",
+          "NCT06353854",
+          "NCT04301557",
+          "NCT06549907",
+          "NCT07262619",
+          "NCT05669430",
+          "NCT06522919",
+          "NCT04895722",
+          "NCT03104439"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 1,
+            "Unmet": 9,
+            "Unknown": 0
+          },
+          "excluded_prior_treatments": {
+            "Met": 10,
+            "Unmet": 0,
+            "Unknown": 0
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 165.0
+      },
+      "newly_unmet": {
+        "required_prior_treatments": 0,
+        "excluded_prior_treatments": 0
+      }
+    },
+    "606": {
+      "query": "28F AML FLT3-ITD positive post-allo transplant relapse",
+      "category": "complex",
+      "n_retrieved": 10,
+      "off": {
+        "top_k_ncts": [
+          "NCT02867891",
+          "NCT03690115",
+          "NCT03989713",
+          "NCT02474290",
+          "NCT01398501",
+          "NCT05199051",
+          "NCT05596968",
+          "NCT03135054",
+          "NCT06022003",
+          "NCT02997202"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 4,
+            "Unmet": 6,
+            "Unknown": 0
+          },
+          "excluded_prior_treatments": {
+            "Met": 10,
+            "Unmet": 0,
+            "Unknown": 0
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 12.3
+      },
+      "on": {
+        "top_k_ncts": [
+          "NCT02867891",
+          "NCT03690115",
+          "NCT03989713",
+          "NCT02474290",
+          "NCT01398501",
+          "NCT05199051",
+          "NCT05596968",
+          "NCT03135054",
+          "NCT06022003",
+          "NCT02997202"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 4,
+            "Unmet": 6,
+            "Unknown": 0
+          },
+          "excluded_prior_treatments": {
+            "Met": 10,
+            "Unmet": 0,
+            "Unknown": 0
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 191.0
+      },
+      "newly_unmet": {
+        "required_prior_treatments": 0,
+        "excluded_prior_treatments": 0
+      }
+    },
+    "607": {
+      "query": "55F ovarian cancer BRCA wild type platinum-resistant PARP failure",
+      "category": "complex",
+      "n_retrieved": 10,
+      "off": {
+        "top_k_ncts": [
+          "NCT06856499",
+          "NCT05672095",
+          "NCT05494580",
+          "NCT03699449",
+          "NCT04633239",
+          "NCT05579366"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 5,
+            "Unmet": 5,
+            "Unknown": 0
+          },
+          "excluded_prior_treatments": {
+            "Met": 6,
+            "Unmet": 4,
+            "Unknown": 0
+          }
+        },
+        "n_dropped": 4,
+        "safety_net": false,
+        "elig_phase_latency_ms": 14.5
+      },
+      "on": {
+        "top_k_ncts": [
+          "NCT06856499",
+          "NCT05672095",
+          "NCT05494580",
+          "NCT03699449",
+          "NCT04633239",
+          "NCT05579366",
+          "NCT02575807"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 5,
+            "Unmet": 5,
+            "Unknown": 0
+          },
+          "excluded_prior_treatments": {
+            "Met": 7,
+            "Unmet": 3,
+            "Unknown": 0
+          }
+        },
+        "n_dropped": 3,
+        "safety_net": false,
+        "elig_phase_latency_ms": 663.0
+      },
+      "newly_unmet": {
+        "required_prior_treatments": 0,
+        "excluded_prior_treatments": 0
+      }
+    },
+    "608": {
+      "query": "48M IDH1 mutant glioblastoma post-radiation Stupp protocol recurrence",
+      "category": "complex",
+      "n_retrieved": 10,
+      "off": {
+        "top_k_ncts": [
+          "NCT03914742",
+          "NCT07301268",
+          "NCT06455605",
+          "NCT06478212",
+          "NCT03561870",
+          "NCT01849146",
+          "NCT02977689"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 3,
+            "Unmet": 7,
+            "Unknown": 0
+          },
+          "excluded_prior_treatments": {
+            "Met": 8,
+            "Unmet": 2,
+            "Unknown": 0
+          }
+        },
+        "n_dropped": 3,
+        "safety_net": false,
+        "elig_phase_latency_ms": 13.9
+      },
+      "on": {
+        "top_k_ncts": [
+          "NCT03914742",
+          "NCT06860594",
+          "NCT07301268",
+          "NCT06455605",
+          "NCT05303519",
+          "NCT06478212",
+          "NCT03561870",
+          "NCT01849146",
+          "NCT02977689"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 1,
+            "Unmet": 9,
+            "Unknown": 0
+          },
+          "excluded_prior_treatments": {
+            "Met": 10,
+            "Unmet": 0,
+            "Unknown": 0
+          }
+        },
+        "n_dropped": 1,
+        "safety_net": false,
+        "elig_phase_latency_ms": 353.9
+      },
+      "newly_unmet": {
+        "required_prior_treatments": 2,
+        "excluded_prior_treatments": 0
+      }
+    },
+    "609": {
+      "query": "8M relapsed B-ALL CD19+ post-CAR-T phase 2",
+      "category": "complex",
+      "n_retrieved": 10,
+      "off": {
+        "top_k_ncts": [
+          "NCT07257419",
+          "NCT05334823",
+          "NCT07244406",
+          "NCT03938987",
+          "NCT06179524",
+          "NCT04781634"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 3,
+            "Unmet": 7,
+            "Unknown": 0
+          },
+          "excluded_prior_treatments": {
+            "Met": 10,
+            "Unmet": 0,
+            "Unknown": 0
+          }
+        },
+        "n_dropped": 4,
+        "safety_net": false,
+        "elig_phase_latency_ms": 11.9
+      },
+      "on": {
+        "top_k_ncts": [
+          "NCT07257419",
+          "NCT05334823",
+          "NCT07244406",
+          "NCT03938987",
+          "NCT06179524",
+          "NCT04781634"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 3,
+            "Unmet": 7,
+            "Unknown": 0
+          },
+          "excluded_prior_treatments": {
+            "Met": 10,
+            "Unmet": 0,
+            "Unknown": 0
+          }
+        },
+        "n_dropped": 4,
+        "safety_net": false,
+        "elig_phase_latency_ms": 475.3
+      },
+      "newly_unmet": {
+        "required_prior_treatments": 0,
+        "excluded_prior_treatments": 0
+      }
+    },
+    "610": {
+      "query": "my dad has cancer what trials should we look at",
+      "category": "vague",
+      "n_retrieved": 10,
+      "off": {
+        "top_k_ncts": [
+          "NCT04724018",
+          "NCT02884648",
+          "NCT04242251",
+          "NCT02127359",
+          "NCT01070862",
+          "NCT00311116",
+          "NCT05242341",
+          "NCT03413254",
+          "NCT06464237",
+          "NCT03371147"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 3,
+            "Unmet": 0,
+            "Unknown": 7
+          },
+          "excluded_prior_treatments": {
+            "Met": 5,
+            "Unmet": 0,
+            "Unknown": 5
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 14.3
+      },
+      "on": {
+        "top_k_ncts": [
+          "NCT04724018",
+          "NCT02884648",
+          "NCT04242251",
+          "NCT02127359",
+          "NCT01070862",
+          "NCT00311116",
+          "NCT05242341",
+          "NCT03413254",
+          "NCT06464237",
+          "NCT03371147"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 3,
+            "Unmet": 0,
+            "Unknown": 7
+          },
+          "excluded_prior_treatments": {
+            "Met": 5,
+            "Unmet": 0,
+            "Unknown": 5
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 2.5
+      },
+      "newly_unmet": {
+        "required_prior_treatments": 0,
+        "excluded_prior_treatments": 0
+      }
+    },
+    "611": {
+      "query": "is there anything experimental for my mother who is dying",
+      "category": "vague",
+      "n_retrieved": 10,
+      "off": {
+        "top_k_ncts": [
+          "NCT06714617",
+          "NCT04602117",
+          "NCT02658214",
+          "NCT00003403",
+          "NCT02487095",
+          "NCT05385705",
+          "NCT05378464",
+          "NCT02734004",
+          "NCT06586957",
+          "NCT06264921"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 1,
+            "Unmet": 0,
+            "Unknown": 9
+          },
+          "excluded_prior_treatments": {
+            "Met": 1,
+            "Unmet": 0,
+            "Unknown": 9
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 11.2
+      },
+      "on": {
+        "top_k_ncts": [
+          "NCT06714617",
+          "NCT04602117",
+          "NCT02658214",
+          "NCT00003403",
+          "NCT02487095",
+          "NCT05385705",
+          "NCT05378464",
+          "NCT02734004",
+          "NCT06586957",
+          "NCT06264921"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 1,
+            "Unmet": 0,
+            "Unknown": 9
+          },
+          "excluded_prior_treatments": {
+            "Met": 1,
+            "Unmet": 0,
+            "Unknown": 9
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 2.7
+      },
+      "newly_unmet": {
+        "required_prior_treatments": 0,
+        "excluded_prior_treatments": 0
+      }
+    },
+    "612": {
+      "query": "any new treatments for advanced cancer",
+      "category": "vague",
+      "n_retrieved": 10,
+      "off": {
+        "top_k_ncts": [
+          "NCT00591422",
+          "NCT05605509",
+          "NCT04257617",
+          "NCT04495296",
+          "NCT05276310",
+          "NCT01833923",
+          "NCT01039155",
+          "NCT04376931",
+          "NCT02447406",
+          "NCT02175654"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 1,
+            "Unmet": 0,
+            "Unknown": 9
+          },
+          "excluded_prior_treatments": {
+            "Met": 1,
+            "Unmet": 0,
+            "Unknown": 9
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 12.5
+      },
+      "on": {
+        "top_k_ncts": [
+          "NCT00591422",
+          "NCT05605509",
+          "NCT04257617",
+          "NCT04495296",
+          "NCT05276310",
+          "NCT01833923",
+          "NCT01039155",
+          "NCT04376931",
+          "NCT02447406",
+          "NCT02175654"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 1,
+            "Unmet": 0,
+            "Unknown": 9
+          },
+          "excluded_prior_treatments": {
+            "Met": 1,
+            "Unmet": 0,
+            "Unknown": 9
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 2.7
+      },
+      "newly_unmet": {
+        "required_prior_treatments": 0,
+        "excluded_prior_treatments": 0
+      }
+    },
+    "613": {
+      "query": "cancer trial please help",
+      "category": "vague",
+      "n_retrieved": 10,
+      "off": {
+        "top_k_ncts": [
+          "NCT05402033",
+          "NCT04594096",
+          "NCT06745180",
+          "NCT07083245",
+          "NCT07076004",
+          "NCT06011278",
+          "NCT02030379",
+          "NCT04232709",
+          "NCT04409236",
+          "NCT03684005"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 3,
+            "Unmet": 0,
+            "Unknown": 7
+          },
+          "excluded_prior_treatments": {
+            "Met": 7,
+            "Unmet": 0,
+            "Unknown": 3
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 12.1
+      },
+      "on": {
+        "top_k_ncts": [
+          "NCT05402033",
+          "NCT04594096",
+          "NCT06745180",
+          "NCT07083245",
+          "NCT07076004",
+          "NCT06011278",
+          "NCT02030379",
+          "NCT04232709",
+          "NCT04409236",
+          "NCT03684005"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 3,
+            "Unmet": 0,
+            "Unknown": 7
+          },
+          "excluded_prior_treatments": {
+            "Met": 7,
+            "Unmet": 0,
+            "Unknown": 3
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 2.4
+      },
+      "newly_unmet": {
+        "required_prior_treatments": 0,
+        "excluded_prior_treatments": 0
+      }
+    },
+    "614": {
+      "query": "i have stage 4 cancer what are my options",
+      "category": "vague",
+      "n_retrieved": 10,
+      "off": {
+        "top_k_ncts": [
+          "NCT04113096",
+          "NCT06416085",
+          "NCT00722098",
+          "NCT03159585",
+          "NCT06262321",
+          "NCT03475589",
+          "NCT01549522",
+          "NCT06575127",
+          "NCT00691548",
+          "NCT07224464"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 5,
+            "Unmet": 0,
+            "Unknown": 5
+          },
+          "excluded_prior_treatments": {
+            "Met": 3,
+            "Unmet": 0,
+            "Unknown": 7
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 12.9
+      },
+      "on": {
+        "top_k_ncts": [
+          "NCT04113096",
+          "NCT06416085",
+          "NCT00722098",
+          "NCT03159585",
+          "NCT06262321",
+          "NCT03475589",
+          "NCT01549522",
+          "NCT06575127",
+          "NCT00691548",
+          "NCT07224464"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 5,
+            "Unmet": 0,
+            "Unknown": 5
+          },
+          "excluded_prior_treatments": {
+            "Met": 3,
+            "Unmet": 0,
+            "Unknown": 7
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 2.7
+      },
+      "newly_unmet": {
+        "required_prior_treatments": 0,
+        "excluded_prior_treatments": 0
+      }
+    },
+    "615": {
+      "query": "need help finding a trial for my husband",
+      "category": "vague",
+      "n_retrieved": 10,
+      "off": {
+        "top_k_ncts": [
+          "NCT01070862",
+          "NCT05666258",
+          "NCT03676283",
+          "NCT03820687",
+          "NCT03759054",
+          "NCT04471363",
+          "NCT01089764",
+          "NCT06894810",
+          "NCT03930797",
+          "NCT00815750"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 5,
+            "Unmet": 0,
+            "Unknown": 5
+          },
+          "excluded_prior_treatments": {
+            "Met": 7,
+            "Unmet": 0,
+            "Unknown": 3
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 11.0
+      },
+      "on": {
+        "top_k_ncts": [
+          "NCT01070862",
+          "NCT05666258",
+          "NCT03676283",
+          "NCT03820687",
+          "NCT03759054",
+          "NCT04471363",
+          "NCT01089764",
+          "NCT06894810",
+          "NCT03930797",
+          "NCT00815750"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 5,
+            "Unmet": 0,
+            "Unknown": 5
+          },
+          "excluded_prior_treatments": {
+            "Met": 7,
+            "Unmet": 0,
+            "Unknown": 3
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 2.3
+      },
+      "newly_unmet": {
+        "required_prior_treatments": 0,
+        "excluded_prior_treatments": 0
+      }
+    },
+    "616": {
+      "query": "my grandma got diagnosed with cancer what's available",
+      "category": "vague",
+      "n_retrieved": 10,
+      "off": {
+        "top_k_ncts": [
+          "NCT06119789",
+          "NCT05697198",
+          "NCT07410676",
+          "NCT06272864",
+          "NCT02906943",
+          "NCT05142033",
+          "NCT01070862",
+          "NCT03896958",
+          "NCT07318051",
+          "NCT02041689"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 6,
+            "Unmet": 0,
+            "Unknown": 4
+          },
+          "excluded_prior_treatments": {
+            "Met": 6,
+            "Unmet": 0,
+            "Unknown": 4
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 11.7
+      },
+      "on": {
+        "top_k_ncts": [
+          "NCT06119789",
+          "NCT05697198",
+          "NCT07410676",
+          "NCT06272864",
+          "NCT02906943",
+          "NCT05142033",
+          "NCT01070862",
+          "NCT03896958",
+          "NCT07318051",
+          "NCT02041689"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 6,
+            "Unmet": 0,
+            "Unknown": 4
+          },
+          "excluded_prior_treatments": {
+            "Met": 6,
+            "Unmet": 0,
+            "Unknown": 4
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 2.4
+      },
+      "newly_unmet": {
+        "required_prior_treatments": 0,
+        "excluded_prior_treatments": 0
+      }
+    },
+    "617": {
+      "query": "anything experimental for terminal cancer",
+      "category": "vague",
+      "n_retrieved": 10,
+      "off": {
+        "top_k_ncts": [
+          "NCT06018896",
+          "NCT02036281",
+          "NCT04035096",
+          "NCT04376931",
+          "NCT04950608",
+          "NCT05054907",
+          "NCT06329856",
+          "NCT00686673",
+          "NCT06615349",
+          "NCT06108375"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 8,
+            "Unmet": 0,
+            "Unknown": 2
+          },
+          "excluded_prior_treatments": {
+            "Met": 7,
+            "Unmet": 0,
+            "Unknown": 3
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 11.7
+      },
+      "on": {
+        "top_k_ncts": [
+          "NCT06018896",
+          "NCT02036281",
+          "NCT04035096",
+          "NCT04376931",
+          "NCT04950608",
+          "NCT05054907",
+          "NCT06329856",
+          "NCT00686673",
+          "NCT06615349",
+          "NCT06108375"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 8,
+            "Unmet": 0,
+            "Unknown": 2
+          },
+          "excluded_prior_treatments": {
+            "Met": 7,
+            "Unmet": 0,
+            "Unknown": 3
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 2.4
+      },
+      "newly_unmet": {
+        "required_prior_treatments": 0,
+        "excluded_prior_treatments": 0
+      }
+    },
+    "618": {
+      "query": "trials for advanced or recurrent cancer",
+      "category": "vague",
+      "n_retrieved": 10,
+      "off": {
+        "top_k_ncts": [
+          "NCT01676818",
+          "NCT01929486",
+          "NCT05997017",
+          "NCT02596373",
+          "NCT04962867",
+          "NCT02046421",
+          "NCT07051486",
+          "NCT03155061",
+          "NCT00148122",
+          "NCT00786552"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 1,
+            "Unmet": 0,
+            "Unknown": 9
+          },
+          "excluded_prior_treatments": {
+            "Met": 3,
+            "Unmet": 0,
+            "Unknown": 7
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 13.0
+      },
+      "on": {
+        "top_k_ncts": [
+          "NCT01676818",
+          "NCT01929486",
+          "NCT05997017",
+          "NCT02596373",
+          "NCT04962867",
+          "NCT02046421",
+          "NCT07051486",
+          "NCT03155061",
+          "NCT00148122",
+          "NCT00786552"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 1,
+            "Unmet": 0,
+            "Unknown": 9
+          },
+          "excluded_prior_treatments": {
+            "Met": 3,
+            "Unmet": 0,
+            "Unknown": 7
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 2.5
+      },
+      "newly_unmet": {
+        "required_prior_treatments": 0,
+        "excluded_prior_treatments": 0
+      }
+    },
+    "619": {
+      "query": "clinical trial for someone dying of cancer",
+      "category": "vague",
+      "n_retrieved": 10,
+      "off": {
+        "top_k_ncts": [
+          "NCT03566732",
+          "NCT04950608",
+          "NCT02009306",
+          "NCT04271085",
+          "NCT02646527",
+          "NCT04894162",
+          "NCT01081899",
+          "NCT04463992",
+          "NCT05351281",
+          "NCT02356627"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 9,
+            "Unmet": 0,
+            "Unknown": 1
+          },
+          "excluded_prior_treatments": {
+            "Met": 9,
+            "Unmet": 0,
+            "Unknown": 1
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 12.4
+      },
+      "on": {
+        "top_k_ncts": [
+          "NCT03566732",
+          "NCT04950608",
+          "NCT02009306",
+          "NCT04271085",
+          "NCT02646527",
+          "NCT04894162",
+          "NCT01081899",
+          "NCT04463992",
+          "NCT05351281",
+          "NCT02356627"
+        ],
+        "verdict_counts": {
+          "required_prior_treatments": {
+            "Met": 9,
+            "Unmet": 0,
+            "Unknown": 1
+          },
+          "excluded_prior_treatments": {
+            "Met": 9,
+            "Unmet": 0,
+            "Unknown": 1
+          }
+        },
+        "n_dropped": 0,
+        "safety_net": false,
+        "elig_phase_latency_ms": 3.4
+      },
+      "newly_unmet": {
+        "required_prior_treatments": 0,
+        "excluded_prior_treatments": 0
+      }
+    }
+  }
+}

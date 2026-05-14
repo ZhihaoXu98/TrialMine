@@ -1389,6 +1389,131 @@ resolving Unknowns is the work the agent framework exists to do.
 
 ---
 
+## 7. Drug-class UMLS bridge is over-broad for drug-specific exclusion semantics
+
+**Files:** `src/TrialMine/features/concepts.py`,
+`src/TrialMine/features/drug_classes.py`,
+`src/TrialMine/agents/tools.py:_any_overlap_cui`,
+`src/TrialMine/config.py:umls_drug_class_matching_enabled`,
+`docs/fix_parser_umls.md`,
+`scripts/eval_parser_umls.py`,
+`data/evaluation/umls_eval_metrics.json`
+
+### Why it's there
+
+Phase 13A (2026-05-14) wired SciSpacy `EntityLinker` (UMLS) + a
+hand-curated 28-entry `DRUG_TO_CLASS_CUIS` table into the eligibility
+filter behind a default-OFF `DegradationConfig` toggle. The hypothesis,
+per `docs/evaluation-report.md` §11.6's pre-registered expectation, was
+that patient prior-treatment mentions ("osimertinib") and trial
+eligibility exclusions ("no prior EGFR TKI") would bridge via the shared
+class CUI, lifting `complex` NDCG@5 by +0.02 to +0.04. The runbook
+`docs/fix_parser_umls.md` drives Phase A (local prep, scispacy + 28-entry
+drug-class table + toggle + tests) → Phase B (focused re-eval) → Phase C
+(decision gate) → Phase D (ship) / Phase E (hold/revert). Phase A
+shipped clean as commit `82f467c` (60 tests pass; ~2.1 GB UMLS KB cached
+at `~/.scispacy/datasets/`).
+
+### What didn't work — Phase B numbers (`umls_eval_metrics.json`)
+
+| Slice | OFF | ON | Δ | Expected |
+|---|---|---|---|---|
+| complex (n=15) | 0.636 [0.542, 0.728] | 0.624 [0.534, 0.714] | **−0.012** | +0.02 to +0.04 |
+| vague (n=15) | 0.846 [0.771, 0.916] | 0.846 [0.771, 0.916] | **+0.000** | ~0.000 |
+
+Only 3 of 30 queries triggered any verdict flip (Q413, Q417, Q608). The
+Q413 spot-check surfaced the structural failure: trial `NCT03755102`
+excludes prior `dacomitinib therapy`, but UMLS class-bridge matching
+linked dacomitinib and osimertinib via their shared EGFR-TKI class CUI
+(`C5574906` / `C1268567`). The trial is *actually* a **study of
+dacomitinib+osimertinib FOR osimertinib-failure patients** — exactly the
+target population. UMLS-on wrongly dropped it. 1 of 2 spot-checked true
+triggers being a clinical false positive is a structural red flag, not a
+coverage gap.
+
+Q416 (post-trastuzumab) triggered 0 verdicts because the top-10 retrieved
+trials are HER2-required (not HER2-excluded). Q417 (pembrolizumab ↔ ICI)
+worked correctly as the canonical case. Q608 triggered 2 newly-Unmet on
+`required_prior_treatments` (which doesn't gate hard-filter drops per
+Decision 38) in the strictness-increase direction — information loss
+relative to substring, not gain. 5 of 15 complex queries don't mention
+any specific drug at all (Q601 BRCA neoadjuvant, Q606 AML post-allo,
+Q607 PARP failure as class only, Q608 radiation / Stupp regimen, Q609
+CAR-T modality) — UMLS bridges have nothing to act on for those.
+
+### Why the structural issue matters
+
+`DRUG_TO_CLASS_CUIS` is a one-way bridge: drug CUI → class CUI(s). The
+matcher then checks for ANY class overlap between two text spans. This
+is **correct** for trial exclusions that name a class ("no prior EGFR
+TKI"): the patient's osimertinib should resolve to the EGFR-TKI class
+and trigger Unmet. But the matcher is **wrong** for trial exclusions
+that name a specific drug ("no prior dacomitinib"): the trial author's
+intent was to exclude only dacomitinib-exposed patients, not all
+EGFR-TKI-exposed patients, and the class-bridge collapses the
+distinction. The parsed-eligibility text can't disambiguate — both look
+like a string in `excluded_prior_treatments`. Adding more drugs to the
+table would lift coverage *and* add false positives in equal measure;
+net expected lift is unclear, possibly negative.
+
+### The fix (deferred — not a single-PR change)
+
+A real fix needs **per-criterion semantics** — knowing whether a trial
+author meant the specific drug or the class. Three paths considered:
+
+1. **UMLS REST API + hierarchy lookup** — query `umls_api_key`-authed
+   endpoints (the field already exists on `Settings`, currently empty)
+   to walk parent / child relations and infer specificity. Approx 1–2
+   days; risk = rate limits, external dependency, hierarchy drift
+   between scispacy KB and live UMLS.
+
+2. **RxClass / NCIt fallback** — switch the linker from `umls` to
+   `rxnorm` (or add a parallel path), then walk RxClass hierarchies for
+   drug-class membership. Approx 3–5 days incl. re-index; risk = changing
+   the linker substrate invalidates the existing test fixtures + curated
+   drug-class table.
+
+3. **LLM-at-matching-step** — a small per-(query, trial) Claude Haiku
+   call at filter time to judge "does this exclusion apply to the
+   patient?". Slow (~1.5 s/trial) and expensive (~$0.02 / query) but no
+   parser limitation would constrain it. Out of scope for an
+   eligibility-filter pass that's meant to be free.
+
+### Cost / risk of fixing
+
+- (1) UMLS REST: ~1–2 days; external API dependency at request time.
+- (2) RxClass: ~3–5 days incl. re-parse / re-eval of 140K trials.
+- (3) LLM-at-matching: ~1 day; recurring cost + latency budget pressure.
+
+### Verdict
+
+**Accept and document.** Revert at zero cost
+(`umls_drug_class_matching_enabled` defaults to False; production
+behavior never changed). Phase A infrastructure (linker singleton,
+`link_to_cuis` / `match_via_cui`, `DRUG_TO_CLASS_CUIS` table,
+abbreviation handler, toggle, tests, runbook) stays in place. Re-engage
+when one of the above paths becomes the next-most-promising bottleneck
+OR when eligibility-text parsing gets richer at parse-time (e.g.,
+classifying exclusions as drug-specific vs class-level upstream so the
+matcher inherits the distinction).
+
+### Status — accepted (2026-05-14)
+
+Phase 13A shipped the wiring (commit `82f467c`) and reverted on the
+Phase C decision gate. See `docs/fix_parser_umls.md` for the runbook,
+`docs/evaluation-report.md` §11.6 for the eval-report writeup, and
+CLAUDE.md Decision 41 for the project-level record.
+
+### Principle worth keeping
+
+A class-level bridge is "right" or "wrong" depending on whether the
+*trial author* meant the class or a specific drug. The parsed-eligibility
+text doesn't carry that distinction. Future class-bridge designs must
+encode specificity at parse-time or at matching-time — class collapse at
+the matcher level alone is structurally too broad.
+
+---
+
 ## Template for future entries
 
 ```markdown

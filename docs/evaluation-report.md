@@ -527,6 +527,36 @@ next major work item per CLAUDE.md "What's next" — unlocks
 `required_prior_treatments` for hard filtering and is the only path to
 meaningfully lifting `complex` beyond the current ceiling. Free, ~4-8 hr.
 
+**Resolution attempt (Phase 13A, 2026-05-14): tried, HOLD/revert.** Followed
+`docs/fix_parser_umls.md` Phase A end-to-end: SciSpacy `EntityLinker` wired
+into `concepts.py` (lazy linker singleton, `link_to_cuis` with LRU cache
++ drug-type semantic-type filter + TKI/ICI/PARP-i abbreviation expansion,
+`match_via_cui` with direct + class paths), hand-curated `DRUG_TO_CLASS_CUIS`
+table (28 entries × 4 drug families — EGFR TKIs, HER2-targeted, ICIs,
+PARP inhibitors), toggle on `DegradationConfig.umls_drug_class_matching_enabled`
+(default False), 60-test pytest suite green. Phase A shipped clean as commit
+`82f467c`. Phase B re-eval on the 30 complex+vague held-out queries
+(`scripts/eval_parser_umls.py`, ~$0.30 Haiku, ~30 min wall-clock, 96 new
+labels) returned aggregate-tied: **complex NDCG@5 Δ=−0.012** [bootstrap
+CI half-width ~0.09 → tied], **vague Δ=0.000**. Only 3 of 30 queries
+triggered any verdict flip; spot-check on Q413's one newly-dropped trial
+(`NCT03755102`) revealed a **structural false positive**: the trial
+excludes prior `dacomitinib therapy` but the UMLS class bridge linked
+dacomitinib + osimertinib via the shared EGFR-TKI class CUI, causing the
+trial — actually a study of dacomitinib+osimertinib FOR osimertinib-failure
+patients — to be wrongly dropped. Q417 (pembrolizumab ↔ ICI exclusion)
+worked correctly as the canonical case. Q416 (post-trastuzumab) had 0
+trials affected because top-10 retrieval surfaces HER2-required (not
+HER2-excluded) trials. **Decision 41** reverted the toggle default (no
+production change; defaults to OFF). The complex weakness is now diagnosed
+as structurally bottlenecked: drug-class bridges are too broad for
+drug-specific exclusion semantics, and parsed-eligibility text can't
+disambiguate "no prior <class>" from "no prior <drug>". Phase A
+infrastructure stays installed; next intervention requires per-criterion
+specificity (UMLS REST API hierarchy, RxClass, or per-trial LLM-at-matching)
+— not just table extension. Full lessons-learned record in
+`docs/things_can_be_fixed.md` §7.
+
 ### 11.7 No clinical user study
 
 NDCG is a proxy for usefulness, not the thing itself. We have not measured

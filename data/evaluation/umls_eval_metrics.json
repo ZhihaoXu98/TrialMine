@@ -1,0 +1,1126 @@
+{
+  "metadata": {
+    "n_queries": 30,
+    "n_complex": 15,
+    "n_vague": 15,
+    "top_k": 10,
+    "rerank_top_k": 50,
+    "source_label_files": [
+      "/Users/tonyxu/Desktop/TrialMine/data/evaluation/full_labeled_dataset.jsonl",
+      "/Users/tonyxu/Desktop/TrialMine/data/evaluation/full_labeled_dataset_expansion_v2.jsonl"
+    ],
+    "new_labels_file": "/Users/tonyxu/Desktop/TrialMine/data/evaluation/full_labeled_complex_vague_umls.jsonl",
+    "new_labels_added": 96
+  },
+  "umls_off": {
+    "summary": {
+      "complex": {
+        "n": 15,
+        "ndcg5": {
+          "mean": 0.6362896665622869,
+          "lo": 0.5418304983758749,
+          "hi": 0.7280369525509315
+        },
+        "ndcg10": {
+          "mean": 0.8252551534446625,
+          "lo": 0.7681887546595597,
+          "hi": 0.8772880825004332
+        },
+        "mrr": {
+          "mean": 1.0,
+          "lo": 1.0,
+          "hi": 1.0
+        }
+      },
+      "vague": {
+        "n": 15,
+        "ndcg5": {
+          "mean": 0.8455030057626247,
+          "lo": 0.7710623843918128,
+          "hi": 0.91630425472171
+        },
+        "ndcg10": {
+          "mean": 0.9154243050231019,
+          "lo": 0.8728454038415361,
+          "hi": 0.9566650872219855
+        },
+        "mrr": {
+          "mean": 0.9666666666666667,
+          "lo": 0.9,
+          "hi": 1.0
+        }
+      },
+      "aggregate": {
+        "n": 30,
+        "ndcg5": {
+          "mean": 0.7408963361624558,
+          "lo": 0.6682541816872782,
+          "hi": 0.8107712433433367
+        },
+        "ndcg10": {
+          "mean": 0.8703397292338821,
+          "lo": 0.8314692809371929,
+          "hi": 0.9060206963136656
+        },
+        "mrr": {
+          "mean": 0.9833333333333333,
+          "lo": 0.95,
+          "hi": 1.0
+        }
+      }
+    },
+    "per_query": {
+      "complex": [
+        {
+          "qid": 413,
+          "category": "complex",
+          "ndcg5": 0.568531230682178,
+          "ndcg10": 0.8292296287867792,
+          "mrr": 1.0
+        },
+        {
+          "qid": 414,
+          "category": "complex",
+          "ndcg5": 0.5958337834156117,
+          "ndcg10": 0.8032285550939752,
+          "mrr": 1.0
+        },
+        {
+          "qid": 415,
+          "category": "complex",
+          "ndcg5": 0.7623370622671015,
+          "ndcg10": 0.951601949147344,
+          "mrr": 1.0
+        },
+        {
+          "qid": 416,
+          "category": "complex",
+          "ndcg5": 0.8777221344374128,
+          "ndcg10": 0.9553827186981005,
+          "mrr": 1.0
+        },
+        {
+          "qid": 417,
+          "category": "complex",
+          "ndcg5": 0.26301296307806876,
+          "ndcg10": 0.5929070148585648,
+          "mrr": 1.0
+        },
+        {
+          "qid": 600,
+          "category": "complex",
+          "ndcg5": 0.6488291458358189,
+          "ndcg10": 0.8462266984413959,
+          "mrr": 1.0
+        },
+        {
+          "qid": 601,
+          "category": "complex",
+          "ndcg5": 1.0,
+          "ndcg10": 0.9953191280024639,
+          "mrr": 1.0
+        },
+        {
+          "qid": 602,
+          "category": "complex",
+          "ndcg5": 0.46308169497296814,
+          "ndcg10": 0.7583979280089674,
+          "mrr": 1.0
+        },
+        {
+          "qid": 603,
+          "category": "complex",
+          "ndcg5": 0.6669898021133973,
+          "ndcg10": 0.9098185899651896,
+          "mrr": 1.0
+        },
+        {
+          "qid": 604,
+          "category": "complex",
+          "ndcg5": 0.32999153754829236,
+          "ndcg10": 0.6436942185541908,
+          "mrr": 1.0
+        },
+        {
+          "qid": 605,
+          "category": "complex",
+          "ndcg5": 0.5436994217131517,
+          "ndcg10": 0.7592154780709771,
+          "mrr": 1.0
+        },
+        {
+          "qid": 606,
+          "category": "complex",
+          "ndcg5": 0.7041217066455405,
+          "ndcg10": 0.9023200986557736,
+          "mrr": 1.0
+        },
+        {
+          "qid": 607,
+          "category": "complex",
+          "ndcg5": 0.5755300860350051,
+          "ndcg10": 0.7210562024796519,
+          "mrr": 1.0
+        },
+        {
+          "qid": 608,
+          "category": "complex",
+          "ndcg5": 0.871410280887656,
+          "ndcg10": 0.9212950999713303,
+          "mrr": 1.0
+        },
+        {
+          "qid": 609,
+          "category": "complex",
+          "ndcg5": 0.6732541488021017,
+          "ndcg10": 0.7891339929352335,
+          "mrr": 1.0
+        }
+      ],
+      "vague": [
+        {
+          "qid": 421,
+          "category": "vague",
+          "ndcg5": 0.8850729764703047,
+          "ndcg10": 0.9162663520642992,
+          "mrr": 1.0
+        },
+        {
+          "qid": 422,
+          "category": "vague",
+          "ndcg5": 0.8975399490993844,
+          "ndcg10": 0.9396540166386637,
+          "mrr": 1.0
+        },
+        {
+          "qid": 423,
+          "category": "vague",
+          "ndcg5": 0.9250256699929476,
+          "ndcg10": 0.9861208383570812,
+          "mrr": 1.0
+        },
+        {
+          "qid": 424,
+          "category": "vague",
+          "ndcg5": 1.0,
+          "ndcg10": 0.9945034318645709,
+          "mrr": 1.0
+        },
+        {
+          "qid": 425,
+          "category": "vague",
+          "ndcg5": 1.0,
+          "ndcg10": 1.0,
+          "mrr": 1.0
+        },
+        {
+          "qid": 610,
+          "category": "vague",
+          "ndcg5": 0.46010856626153085,
+          "ndcg10": 0.7017960323049668,
+          "mrr": 1.0
+        },
+        {
+          "qid": 611,
+          "category": "vague",
+          "ndcg5": 0.8304853296300547,
+          "ndcg10": 0.9033575433014979,
+          "mrr": 1.0
+        },
+        {
+          "qid": 612,
+          "category": "vague",
+          "ndcg5": 1.0,
+          "ndcg10": 1.0,
+          "mrr": 1.0
+        },
+        {
+          "qid": 613,
+          "category": "vague",
+          "ndcg5": 0.7738931964842558,
+          "ndcg10": 0.8806089385016664,
+          "mrr": 1.0
+        },
+        {
+          "qid": 614,
+          "category": "vague",
+          "ndcg5": 0.7397374638389677,
+          "ndcg10": 0.858902219168354,
+          "mrr": 1.0
+        },
+        {
+          "qid": 615,
+          "category": "vague",
+          "ndcg5": 0.830419897363192,
+          "ndcg10": 0.9361705073520016,
+          "mrr": 1.0
+        },
+        {
+          "qid": 616,
+          "category": "vague",
+          "ndcg5": 0.6886039320648765,
+          "ndcg10": 0.836660412074296,
+          "mrr": 1.0
+        },
+        {
+          "qid": 617,
+          "category": "vague",
+          "ndcg5": 0.9908183105074706,
+          "ndcg10": 0.9918083833355715,
+          "mrr": 1.0
+        },
+        {
+          "qid": 618,
+          "category": "vague",
+          "ndcg5": 1.0,
+          "ndcg10": 1.0,
+          "mrr": 1.0
+        },
+        {
+          "qid": 619,
+          "category": "vague",
+          "ndcg5": 0.6608397947263838,
+          "ndcg10": 0.78551590038356,
+          "mrr": 0.5
+        }
+      ],
+      "aggregate": [
+        {
+          "qid": 413,
+          "category": "complex",
+          "ndcg5": 0.568531230682178,
+          "ndcg10": 0.8292296287867792,
+          "mrr": 1.0
+        },
+        {
+          "qid": 414,
+          "category": "complex",
+          "ndcg5": 0.5958337834156117,
+          "ndcg10": 0.8032285550939752,
+          "mrr": 1.0
+        },
+        {
+          "qid": 415,
+          "category": "complex",
+          "ndcg5": 0.7623370622671015,
+          "ndcg10": 0.951601949147344,
+          "mrr": 1.0
+        },
+        {
+          "qid": 416,
+          "category": "complex",
+          "ndcg5": 0.8777221344374128,
+          "ndcg10": 0.9553827186981005,
+          "mrr": 1.0
+        },
+        {
+          "qid": 417,
+          "category": "complex",
+          "ndcg5": 0.26301296307806876,
+          "ndcg10": 0.5929070148585648,
+          "mrr": 1.0
+        },
+        {
+          "qid": 421,
+          "category": "vague",
+          "ndcg5": 0.8850729764703047,
+          "ndcg10": 0.9162663520642992,
+          "mrr": 1.0
+        },
+        {
+          "qid": 422,
+          "category": "vague",
+          "ndcg5": 0.8975399490993844,
+          "ndcg10": 0.9396540166386637,
+          "mrr": 1.0
+        },
+        {
+          "qid": 423,
+          "category": "vague",
+          "ndcg5": 0.9250256699929476,
+          "ndcg10": 0.9861208383570812,
+          "mrr": 1.0
+        },
+        {
+          "qid": 424,
+          "category": "vague",
+          "ndcg5": 1.0,
+          "ndcg10": 0.9945034318645709,
+          "mrr": 1.0
+        },
+        {
+          "qid": 425,
+          "category": "vague",
+          "ndcg5": 1.0,
+          "ndcg10": 1.0,
+          "mrr": 1.0
+        },
+        {
+          "qid": 600,
+          "category": "complex",
+          "ndcg5": 0.6488291458358189,
+          "ndcg10": 0.8462266984413959,
+          "mrr": 1.0
+        },
+        {
+          "qid": 601,
+          "category": "complex",
+          "ndcg5": 1.0,
+          "ndcg10": 0.9953191280024639,
+          "mrr": 1.0
+        },
+        {
+          "qid": 602,
+          "category": "complex",
+          "ndcg5": 0.46308169497296814,
+          "ndcg10": 0.7583979280089674,
+          "mrr": 1.0
+        },
+        {
+          "qid": 603,
+          "category": "complex",
+          "ndcg5": 0.6669898021133973,
+          "ndcg10": 0.9098185899651896,
+          "mrr": 1.0
+        },
+        {
+          "qid": 604,
+          "category": "complex",
+          "ndcg5": 0.32999153754829236,
+          "ndcg10": 0.6436942185541908,
+          "mrr": 1.0
+        },
+        {
+          "qid": 605,
+          "category": "complex",
+          "ndcg5": 0.5436994217131517,
+          "ndcg10": 0.7592154780709771,
+          "mrr": 1.0
+        },
+        {
+          "qid": 606,
+          "category": "complex",
+          "ndcg5": 0.7041217066455405,
+          "ndcg10": 0.9023200986557736,
+          "mrr": 1.0
+        },
+        {
+          "qid": 607,
+          "category": "complex",
+          "ndcg5": 0.5755300860350051,
+          "ndcg10": 0.7210562024796519,
+          "mrr": 1.0
+        },
+        {
+          "qid": 608,
+          "category": "complex",
+          "ndcg5": 0.871410280887656,
+          "ndcg10": 0.9212950999713303,
+          "mrr": 1.0
+        },
+        {
+          "qid": 609,
+          "category": "complex",
+          "ndcg5": 0.6732541488021017,
+          "ndcg10": 0.7891339929352335,
+          "mrr": 1.0
+        },
+        {
+          "qid": 610,
+          "category": "vague",
+          "ndcg5": 0.46010856626153085,
+          "ndcg10": 0.7017960323049668,
+          "mrr": 1.0
+        },
+        {
+          "qid": 611,
+          "category": "vague",
+          "ndcg5": 0.8304853296300547,
+          "ndcg10": 0.9033575433014979,
+          "mrr": 1.0
+        },
+        {
+          "qid": 612,
+          "category": "vague",
+          "ndcg5": 1.0,
+          "ndcg10": 1.0,
+          "mrr": 1.0
+        },
+        {
+          "qid": 613,
+          "category": "vague",
+          "ndcg5": 0.7738931964842558,
+          "ndcg10": 0.8806089385016664,
+          "mrr": 1.0
+        },
+        {
+          "qid": 614,
+          "category": "vague",
+          "ndcg5": 0.7397374638389677,
+          "ndcg10": 0.858902219168354,
+          "mrr": 1.0
+        },
+        {
+          "qid": 615,
+          "category": "vague",
+          "ndcg5": 0.830419897363192,
+          "ndcg10": 0.9361705073520016,
+          "mrr": 1.0
+        },
+        {
+          "qid": 616,
+          "category": "vague",
+          "ndcg5": 0.6886039320648765,
+          "ndcg10": 0.836660412074296,
+          "mrr": 1.0
+        },
+        {
+          "qid": 617,
+          "category": "vague",
+          "ndcg5": 0.9908183105074706,
+          "ndcg10": 0.9918083833355715,
+          "mrr": 1.0
+        },
+        {
+          "qid": 618,
+          "category": "vague",
+          "ndcg5": 1.0,
+          "ndcg10": 1.0,
+          "mrr": 1.0
+        },
+        {
+          "qid": 619,
+          "category": "vague",
+          "ndcg5": 0.6608397947263838,
+          "ndcg10": 0.78551590038356,
+          "mrr": 0.5
+        }
+      ]
+    }
+  },
+  "umls_on": {
+    "summary": {
+      "complex": {
+        "n": 15,
+        "ndcg5": {
+          "mean": 0.6240202031302416,
+          "lo": 0.5337563595936,
+          "hi": 0.7137359705977141
+        },
+        "ndcg10": {
+          "mean": 0.8230979395991799,
+          "lo": 0.7669084261286252,
+          "hi": 0.8740726496303627
+        },
+        "mrr": {
+          "mean": 1.0,
+          "lo": 1.0,
+          "hi": 1.0
+        }
+      },
+      "vague": {
+        "n": 15,
+        "ndcg5": {
+          "mean": 0.8455030057626247,
+          "lo": 0.7710623843918128,
+          "hi": 0.91630425472171
+        },
+        "ndcg10": {
+          "mean": 0.9154243050231019,
+          "lo": 0.8728454038415361,
+          "hi": 0.9566650872219855
+        },
+        "mrr": {
+          "mean": 0.9666666666666667,
+          "lo": 0.9,
+          "hi": 1.0
+        }
+      },
+      "aggregate": {
+        "n": 30,
+        "ndcg5": {
+          "mean": 0.7347616044464331,
+          "lo": 0.6650859841761213,
+          "hi": 0.800533784255443
+        },
+        "ndcg10": {
+          "mean": 0.8692611223111408,
+          "lo": 0.8309383459583285,
+          "hi": 0.9039516851377162
+        },
+        "mrr": {
+          "mean": 0.9833333333333333,
+          "lo": 0.95,
+          "hi": 1.0
+        }
+      }
+    },
+    "per_query": {
+      "complex": [
+        {
+          "qid": 413,
+          "category": "complex",
+          "ndcg5": 0.4574757984788808,
+          "ndcg10": 0.787833760598915,
+          "mrr": 1.0
+        },
+        {
+          "qid": 414,
+          "category": "complex",
+          "ndcg5": 0.5958337834156117,
+          "ndcg10": 0.8032285550939752,
+          "mrr": 1.0
+        },
+        {
+          "qid": 415,
+          "category": "complex",
+          "ndcg5": 0.7623370622671015,
+          "ndcg10": 0.951601949147344,
+          "mrr": 1.0
+        },
+        {
+          "qid": 416,
+          "category": "complex",
+          "ndcg5": 0.8777221344374128,
+          "ndcg10": 0.9553827186981005,
+          "mrr": 1.0
+        },
+        {
+          "qid": 417,
+          "category": "complex",
+          "ndcg5": 0.3320302354928862,
+          "ndcg10": 0.5964444472019653,
+          "mrr": 1.0
+        },
+        {
+          "qid": 600,
+          "category": "complex",
+          "ndcg5": 0.6488291458358189,
+          "ndcg10": 0.8462266984413959,
+          "mrr": 1.0
+        },
+        {
+          "qid": 601,
+          "category": "complex",
+          "ndcg5": 1.0,
+          "ndcg10": 0.9953191280024639,
+          "mrr": 1.0
+        },
+        {
+          "qid": 602,
+          "category": "complex",
+          "ndcg5": 0.46308169497296814,
+          "ndcg10": 0.7583979280089674,
+          "mrr": 1.0
+        },
+        {
+          "qid": 603,
+          "category": "complex",
+          "ndcg5": 0.6669898021133973,
+          "ndcg10": 0.9098185899651896,
+          "mrr": 1.0
+        },
+        {
+          "qid": 604,
+          "category": "complex",
+          "ndcg5": 0.32999153754829236,
+          "ndcg10": 0.6436942185541908,
+          "mrr": 1.0
+        },
+        {
+          "qid": 605,
+          "category": "complex",
+          "ndcg5": 0.5436994217131517,
+          "ndcg10": 0.7592154780709771,
+          "mrr": 1.0
+        },
+        {
+          "qid": 606,
+          "category": "complex",
+          "ndcg5": 0.7041217066455405,
+          "ndcg10": 0.9023200986557736,
+          "mrr": 1.0
+        },
+        {
+          "qid": 607,
+          "category": "complex",
+          "ndcg5": 0.5755300860350051,
+          "ndcg10": 0.7357217786172321,
+          "mrr": 1.0
+        },
+        {
+          "qid": 608,
+          "category": "complex",
+          "ndcg5": 0.7294064891954564,
+          "ndcg10": 0.912129751995974,
+          "mrr": 1.0
+        },
+        {
+          "qid": 609,
+          "category": "complex",
+          "ndcg5": 0.6732541488021017,
+          "ndcg10": 0.7891339929352335,
+          "mrr": 1.0
+        }
+      ],
+      "vague": [
+        {
+          "qid": 421,
+          "category": "vague",
+          "ndcg5": 0.8850729764703047,
+          "ndcg10": 0.9162663520642992,
+          "mrr": 1.0
+        },
+        {
+          "qid": 422,
+          "category": "vague",
+          "ndcg5": 0.8975399490993844,
+          "ndcg10": 0.9396540166386637,
+          "mrr": 1.0
+        },
+        {
+          "qid": 423,
+          "category": "vague",
+          "ndcg5": 0.9250256699929476,
+          "ndcg10": 0.9861208383570812,
+          "mrr": 1.0
+        },
+        {
+          "qid": 424,
+          "category": "vague",
+          "ndcg5": 1.0,
+          "ndcg10": 0.9945034318645709,
+          "mrr": 1.0
+        },
+        {
+          "qid": 425,
+          "category": "vague",
+          "ndcg5": 1.0,
+          "ndcg10": 1.0,
+          "mrr": 1.0
+        },
+        {
+          "qid": 610,
+          "category": "vague",
+          "ndcg5": 0.46010856626153085,
+          "ndcg10": 0.7017960323049668,
+          "mrr": 1.0
+        },
+        {
+          "qid": 611,
+          "category": "vague",
+          "ndcg5": 0.8304853296300547,
+          "ndcg10": 0.9033575433014979,
+          "mrr": 1.0
+        },
+        {
+          "qid": 612,
+          "category": "vague",
+          "ndcg5": 1.0,
+          "ndcg10": 1.0,
+          "mrr": 1.0
+        },
+        {
+          "qid": 613,
+          "category": "vague",
+          "ndcg5": 0.7738931964842558,
+          "ndcg10": 0.8806089385016664,
+          "mrr": 1.0
+        },
+        {
+          "qid": 614,
+          "category": "vague",
+          "ndcg5": 0.7397374638389677,
+          "ndcg10": 0.858902219168354,
+          "mrr": 1.0
+        },
+        {
+          "qid": 615,
+          "category": "vague",
+          "ndcg5": 0.830419897363192,
+          "ndcg10": 0.9361705073520016,
+          "mrr": 1.0
+        },
+        {
+          "qid": 616,
+          "category": "vague",
+          "ndcg5": 0.6886039320648765,
+          "ndcg10": 0.836660412074296,
+          "mrr": 1.0
+        },
+        {
+          "qid": 617,
+          "category": "vague",
+          "ndcg5": 0.9908183105074706,
+          "ndcg10": 0.9918083833355715,
+          "mrr": 1.0
+        },
+        {
+          "qid": 618,
+          "category": "vague",
+          "ndcg5": 1.0,
+          "ndcg10": 1.0,
+          "mrr": 1.0
+        },
+        {
+          "qid": 619,
+          "category": "vague",
+          "ndcg5": 0.6608397947263838,
+          "ndcg10": 0.78551590038356,
+          "mrr": 0.5
+        }
+      ],
+      "aggregate": [
+        {
+          "qid": 413,
+          "category": "complex",
+          "ndcg5": 0.4574757984788808,
+          "ndcg10": 0.787833760598915,
+          "mrr": 1.0
+        },
+        {
+          "qid": 414,
+          "category": "complex",
+          "ndcg5": 0.5958337834156117,
+          "ndcg10": 0.8032285550939752,
+          "mrr": 1.0
+        },
+        {
+          "qid": 415,
+          "category": "complex",
+          "ndcg5": 0.7623370622671015,
+          "ndcg10": 0.951601949147344,
+          "mrr": 1.0
+        },
+        {
+          "qid": 416,
+          "category": "complex",
+          "ndcg5": 0.8777221344374128,
+          "ndcg10": 0.9553827186981005,
+          "mrr": 1.0
+        },
+        {
+          "qid": 417,
+          "category": "complex",
+          "ndcg5": 0.3320302354928862,
+          "ndcg10": 0.5964444472019653,
+          "mrr": 1.0
+        },
+        {
+          "qid": 421,
+          "category": "vague",
+          "ndcg5": 0.8850729764703047,
+          "ndcg10": 0.9162663520642992,
+          "mrr": 1.0
+        },
+        {
+          "qid": 422,
+          "category": "vague",
+          "ndcg5": 0.8975399490993844,
+          "ndcg10": 0.9396540166386637,
+          "mrr": 1.0
+        },
+        {
+          "qid": 423,
+          "category": "vague",
+          "ndcg5": 0.9250256699929476,
+          "ndcg10": 0.9861208383570812,
+          "mrr": 1.0
+        },
+        {
+          "qid": 424,
+          "category": "vague",
+          "ndcg5": 1.0,
+          "ndcg10": 0.9945034318645709,
+          "mrr": 1.0
+        },
+        {
+          "qid": 425,
+          "category": "vague",
+          "ndcg5": 1.0,
+          "ndcg10": 1.0,
+          "mrr": 1.0
+        },
+        {
+          "qid": 600,
+          "category": "complex",
+          "ndcg5": 0.6488291458358189,
+          "ndcg10": 0.8462266984413959,
+          "mrr": 1.0
+        },
+        {
+          "qid": 601,
+          "category": "complex",
+          "ndcg5": 1.0,
+          "ndcg10": 0.9953191280024639,
+          "mrr": 1.0
+        },
+        {
+          "qid": 602,
+          "category": "complex",
+          "ndcg5": 0.46308169497296814,
+          "ndcg10": 0.7583979280089674,
+          "mrr": 1.0
+        },
+        {
+          "qid": 603,
+          "category": "complex",
+          "ndcg5": 0.6669898021133973,
+          "ndcg10": 0.9098185899651896,
+          "mrr": 1.0
+        },
+        {
+          "qid": 604,
+          "category": "complex",
+          "ndcg5": 0.32999153754829236,
+          "ndcg10": 0.6436942185541908,
+          "mrr": 1.0
+        },
+        {
+          "qid": 605,
+          "category": "complex",
+          "ndcg5": 0.5436994217131517,
+          "ndcg10": 0.7592154780709771,
+          "mrr": 1.0
+        },
+        {
+          "qid": 606,
+          "category": "complex",
+          "ndcg5": 0.7041217066455405,
+          "ndcg10": 0.9023200986557736,
+          "mrr": 1.0
+        },
+        {
+          "qid": 607,
+          "category": "complex",
+          "ndcg5": 0.5755300860350051,
+          "ndcg10": 0.7357217786172321,
+          "mrr": 1.0
+        },
+        {
+          "qid": 608,
+          "category": "complex",
+          "ndcg5": 0.7294064891954564,
+          "ndcg10": 0.912129751995974,
+          "mrr": 1.0
+        },
+        {
+          "qid": 609,
+          "category": "complex",
+          "ndcg5": 0.6732541488021017,
+          "ndcg10": 0.7891339929352335,
+          "mrr": 1.0
+        },
+        {
+          "qid": 610,
+          "category": "vague",
+          "ndcg5": 0.46010856626153085,
+          "ndcg10": 0.7017960323049668,
+          "mrr": 1.0
+        },
+        {
+          "qid": 611,
+          "category": "vague",
+          "ndcg5": 0.8304853296300547,
+          "ndcg10": 0.9033575433014979,
+          "mrr": 1.0
+        },
+        {
+          "qid": 612,
+          "category": "vague",
+          "ndcg5": 1.0,
+          "ndcg10": 1.0,
+          "mrr": 1.0
+        },
+        {
+          "qid": 613,
+          "category": "vague",
+          "ndcg5": 0.7738931964842558,
+          "ndcg10": 0.8806089385016664,
+          "mrr": 1.0
+        },
+        {
+          "qid": 614,
+          "category": "vague",
+          "ndcg5": 0.7397374638389677,
+          "ndcg10": 0.858902219168354,
+          "mrr": 1.0
+        },
+        {
+          "qid": 615,
+          "category": "vague",
+          "ndcg5": 0.830419897363192,
+          "ndcg10": 0.9361705073520016,
+          "mrr": 1.0
+        },
+        {
+          "qid": 616,
+          "category": "vague",
+          "ndcg5": 0.6886039320648765,
+          "ndcg10": 0.836660412074296,
+          "mrr": 1.0
+        },
+        {
+          "qid": 617,
+          "category": "vague",
+          "ndcg5": 0.9908183105074706,
+          "ndcg10": 0.9918083833355715,
+          "mrr": 1.0
+        },
+        {
+          "qid": 618,
+          "category": "vague",
+          "ndcg5": 1.0,
+          "ndcg10": 1.0,
+          "mrr": 1.0
+        },
+        {
+          "qid": 619,
+          "category": "vague",
+          "ndcg5": 0.6608397947263838,
+          "ndcg10": 0.78551590038356,
+          "mrr": 0.5
+        }
+      ]
+    }
+  },
+  "delta": {
+    "complex": {
+      "ndcg5": -0.012269463432045269,
+      "ndcg10": -0.0021572138454826195,
+      "mrr": 0.0
+    },
+    "vague": {
+      "ndcg5": 0.0,
+      "ndcg10": 0.0,
+      "mrr": 0.0
+    },
+    "aggregate": {
+      "ndcg5": -0.0061347317160226345,
+      "ndcg10": -0.0010786069227413098,
+      "mrr": 0.0
+    }
+  },
+  "newly_unmet_per_query": {
+    "413": {
+      "required_prior_treatments": 0,
+      "excluded_prior_treatments": 1
+    },
+    "414": {
+      "required_prior_treatments": 0,
+      "excluded_prior_treatments": 0
+    },
+    "415": {
+      "required_prior_treatments": 0,
+      "excluded_prior_treatments": 0
+    },
+    "416": {
+      "required_prior_treatments": 0,
+      "excluded_prior_treatments": 0
+    },
+    "417": {
+      "required_prior_treatments": 0,
+      "excluded_prior_treatments": 1
+    },
+    "421": {
+      "required_prior_treatments": 0,
+      "excluded_prior_treatments": 0
+    },
+    "422": {
+      "required_prior_treatments": 0,
+      "excluded_prior_treatments": 0
+    },
+    "423": {
+      "required_prior_treatments": 0,
+      "excluded_prior_treatments": 0
+    },
+    "424": {
+      "required_prior_treatments": 0,
+      "excluded_prior_treatments": 0
+    },
+    "425": {
+      "required_prior_treatments": 0,
+      "excluded_prior_treatments": 0
+    },
+    "600": {
+      "required_prior_treatments": 0,
+      "excluded_prior_treatments": 0
+    },
+    "601": {
+      "required_prior_treatments": 0,
+      "excluded_prior_treatments": 0
+    },
+    "602": {
+      "required_prior_treatments": 0,
+      "excluded_prior_treatments": 0
+    },
+    "603": {
+      "required_prior_treatments": 0,
+      "excluded_prior_treatments": 0
+    },
+    "604": {
+      "required_prior_treatments": 0,
+      "excluded_prior_treatments": 0
+    },
+    "605": {
+      "required_prior_treatments": 0,
+      "excluded_prior_treatments": 0
+    },
+    "606": {
+      "required_prior_treatments": 0,
+      "excluded_prior_treatments": 0
+    },
+    "607": {
+      "required_prior_treatments": 0,
+      "excluded_prior_treatments": 0
+    },
+    "608": {
+      "required_prior_treatments": 2,
+      "excluded_prior_treatments": 0
+    },
+    "609": {
+      "required_prior_treatments": 0,
+      "excluded_prior_treatments": 0
+    },
+    "610": {
+      "required_prior_treatments": 0,
+      "excluded_prior_treatments": 0
+    },
+    "611": {
+      "required_prior_treatments": 0,
+      "excluded_prior_treatments": 0
+    },
+    "612": {
+      "required_prior_treatments": 0,
+      "excluded_prior_treatments": 0
+    },
+    "613": {
+      "required_prior_treatments": 0,
+      "excluded_prior_treatments": 0
+    },
+    "614": {
+      "required_prior_treatments": 0,
+      "excluded_prior_treatments": 0
+    },
+    "615": {
+      "required_prior_treatments": 0,
+      "excluded_prior_treatments": 0
+    },
+    "616": {
+      "required_prior_treatments": 0,
+      "excluded_prior_treatments": 0
+    },
+    "617": {
+      "required_prior_treatments": 0,
+      "excluded_prior_treatments": 0
+    },
+    "618": {
+      "required_prior_treatments": 0,
+      "excluded_prior_treatments": 0
+    },
+    "619": {
+      "required_prior_treatments": 0,
+      "excluded_prior_treatments": 0
+    }
+  }
+}
