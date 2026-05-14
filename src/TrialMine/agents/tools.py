@@ -51,8 +51,8 @@ _PATHS: dict[str, str] = {
     "faiss_index": os.getenv("TRIALMINE_FAISS_INDEX", "data/faiss_finetuned_v2.index"),
     "faiss_mapping": os.getenv("TRIALMINE_FAISS_MAPPING", "data/faiss_finetuned_v2.json"),
     "embedder": os.getenv("TRIALMINE_EMBEDDER", "models/embeddings/fine-tuned-v2"),
-    "cross_encoder": os.getenv("TRIALMINE_CROSS_ENCODER", "models/cross-encoder/fine-tuned"),
-    "ranker": os.getenv("TRIALMINE_RANKER", "models/ranker/v2/model.lgb"),
+    "cross_encoder": os.getenv("TRIALMINE_CROSS_ENCODER", "models/cross-encoder/fine-tuned-v2"),
+    "ranker": os.getenv("TRIALMINE_RANKER", "models/ranker/v3-regularized/model.lgb"),
     "db_path": os.getenv("TRIALMINE_DB_PATH", "data/trials.db"),
 }
 

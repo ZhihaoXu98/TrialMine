@@ -10,7 +10,7 @@ Soft-skips with exit 0 when any of the following are missing:
 * ``data/evaluation/labeled_queries.jsonl`` (labels)
 * ``data/faiss_finetuned.index`` (FAISS embeddings)
 * ``models/embeddings/fine-tuned/`` (bi-encoder)
-* ``models/cross-encoder/fine-tuned/`` (cross-encoder)
+* ``models/cross-encoder/fine-tuned-v2/`` (cross-encoder)
 * a reachable Elasticsearch with the ``trials`` index populated
 
 Skipping in CI is the default — the artefacts are gitignored. The gate
@@ -29,7 +29,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 LABELS = REPO_ROOT / "data" / "evaluation" / "labeled_queries.jsonl"
 FAISS_INDEX = REPO_ROOT / "data" / "faiss_finetuned.index"
 EMBEDDER = REPO_ROOT / "models" / "embeddings" / "fine-tuned"
-CROSS_ENCODER = REPO_ROOT / "models" / "cross-encoder" / "fine-tuned"
+CROSS_ENCODER = REPO_ROOT / "models" / "cross-encoder" / "fine-tuned-v2"
 
 
 def _missing_artefacts() -> list[str]:

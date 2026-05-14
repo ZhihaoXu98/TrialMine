@@ -9,7 +9,7 @@ Usage:
     python scripts/evaluate_cross_encoder.py
 
     # Fine-tuned model
-    python scripts/evaluate_cross_encoder.py --model models/cross-encoder/fine-tuned
+    python scripts/evaluate_cross_encoder.py --model models/cross-encoder/fine-tuned-v2
 
     # Custom rerank depth
     python scripts/evaluate_cross_encoder.py --rerank-top-k 100
@@ -48,7 +48,7 @@ LABELS_FILE = Path("data/evaluation/labeled_queries.jsonl")
 MLFLOW_TRACKING_URI = "sqlite:///mlflow.db"
 MLFLOW_EXPERIMENT = "trialmind-cross-encoder"
 
-DEFAULT_CE_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+DEFAULT_CE_MODEL = "models/cross-encoder/fine-tuned-v2"
 EMBEDDER_MODEL = "models/embeddings/fine-tuned"
 FAISS_INDEX = "data/faiss_finetuned.index"
 FAISS_MAPPING = "data/faiss_finetuned.json"

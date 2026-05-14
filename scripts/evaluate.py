@@ -18,7 +18,7 @@ Requirements:
     - Elasticsearch running with `trials` index
     - FAISS index: data/faiss_finetuned.index + .json
     - Labels: data/evaluation/labeled_queries.jsonl
-    - Cross-encoder: models/cross-encoder/fine-tuned/
+    - Cross-encoder: models/cross-encoder/fine-tuned-v2/
     - LightGBM ranker: models/ranker/v1/model.lgb
 """
 
@@ -26,6 +26,7 @@ import argparse
 import json
 import logging
 import math
+import os
 import sys
 import time
 from pathlib import Path
@@ -59,11 +60,15 @@ REPORT_FILE = Path("docs/evaluation-report.md")
 MLFLOW_TRACKING_URI = "sqlite:///mlflow.db"
 MLFLOW_EXPERIMENT = "trialmind-ablation"
 
-EMBEDDER_MODEL = "models/embeddings/fine-tuned"
-FAISS_INDEX = "data/faiss_finetuned.index"
-FAISS_MAPPING = "data/faiss_finetuned.json"
-CE_MODEL = "models/cross-encoder/fine-tuned"
-RANKER_MODEL = "models/ranker/v2/model.lgb"
+# Env-overridable so a v3-ranker held-out eval can be run without a code change:
+#   TRIALMINE_RANKER="models/ranker/v3/model.lgb" python scripts/evaluate.py
+# Embedder + FAISS + CE were stale at v1 paths before Phase 12 — updated to v2
+# stack so this ablation matches the production pipeline a user actually hits.
+EMBEDDER_MODEL = os.getenv("TRIALMINE_EMBEDDER", "models/embeddings/fine-tuned-v2")
+FAISS_INDEX = os.getenv("TRIALMINE_FAISS_INDEX", "data/faiss_finetuned_v2.index")
+FAISS_MAPPING = os.getenv("TRIALMINE_FAISS_MAPPING", "data/faiss_finetuned_v2.json")
+CE_MODEL = os.getenv("TRIALMINE_CROSS_ENCODER", "models/cross-encoder/fine-tuned-v2")
+RANKER_MODEL = os.getenv("TRIALMINE_RANKER", "models/ranker/v3-regularized/model.lgb")
 
 N_BOOTSTRAP = 1000
 EVAL_TOP_K = 10
@@ -520,6 +525,14 @@ def parse_args() -> argparse.Namespace:
         "--skip-ce", action="store_true",
         help="Skip cross-encoder evaluation",
     )
+    parser.add_argument(
+        "--labels", type=Path, default=LABELS_FILE,
+        help=(
+            "Path to labels JSONL (default: data/evaluation/labeled_queries.jsonl). "
+            "Pass data/evaluation/full_labeled_dataset.jsonl or "
+            "full_labeled_dataset_expansion_v2.jsonl for held-out eval."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -528,17 +541,18 @@ def main() -> None:
     args = parse_args()
 
     # ── Check prerequisites ───────────────────────────────────────────────
-    if not LABELS_FILE.exists():
-        logger.error("Labels file not found: %s", LABELS_FILE)
+    if not args.labels.exists():
+        logger.error("Labels file not found: %s", args.labels)
         sys.exit(1)
     if not Path(FAISS_INDEX).exists():
         logger.error("FAISS index not found: %s", FAISS_INDEX)
         sys.exit(1)
 
     # ── Load labels ───────────────────────────────────────────────────────
-    labels = load_labels(LABELS_FILE)
+    labels = load_labels(args.labels)
     total_labels = sum(len(q["relevance"]) for q in labels.values())
-    logger.info("Loaded %d labels across %d queries", total_labels, len(labels))
+    logger.info("Loaded %d labels across %d queries from %s",
+                total_labels, len(labels), args.labels)
 
     # ── Load components ───────────────────────────────────────────────────
     logger.info("Loading retrieval components...")

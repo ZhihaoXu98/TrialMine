@@ -19,7 +19,7 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[2]
 EMBEDDER_PATH = REPO_ROOT / "models" / "embeddings" / "fine-tuned"
 CROSS_ENCODER_PATH = REPO_ROOT / "models" / "cross-encoder" / "fine-tuned"
-RANKER_PATH = REPO_ROOT / "models" / "ranker" / "v2" / "model.lgb"
+RANKER_PATH = REPO_ROOT / "models" / "ranker" / "v3-regularized" / "model.lgb"
 
 # Skip-gate predicates. We check for a *load-bearing* file, not just the
 # directory — gitignore now lets ``metadata.json`` through (so the
@@ -116,7 +116,7 @@ def test_cross_encoder_loads_and_scores_pairs() -> None:
 
 @pytest.mark.skipif(
     not HAS_RANKER,
-    reason="LightGBM ranker not present at models/ranker/v2/model.lgb",
+    reason="LightGBM ranker not present at models/ranker/v3-regularized/model.lgb",
 )
 def test_lightgbm_ranker_loads_and_predicts() -> None:
     """LightGBM model loads and produces a score for a single feature row."""

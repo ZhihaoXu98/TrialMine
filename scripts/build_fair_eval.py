@@ -19,7 +19,7 @@ Usage:
 Requirements:
     - Elasticsearch running with `trials` index
     - FAISS index: data/faiss_finetuned.index + .json
-    - Cross-encoder: models/cross-encoder/fine-tuned/
+    - Cross-encoder: models/cross-encoder/fine-tuned-v2/
     - LightGBM ranker: models/ranker/v1/model.lgb
     - ANTHROPIC_API_KEY in .env
 """
@@ -115,8 +115,8 @@ TEST_LABELS_FILE = OUTPUT_DIR / "test_labels_v2.jsonl"
 EMBEDDER_MODEL = "models/embeddings/fine-tuned"
 FAISS_INDEX = "data/faiss_finetuned.index"
 FAISS_MAPPING = "data/faiss_finetuned.json"
-CE_MODEL = "models/cross-encoder/fine-tuned"
-RANKER_MODEL = "models/ranker/v2/model.lgb"
+CE_MODEL = "models/cross-encoder/fine-tuned-v2"
+RANKER_MODEL = "models/ranker/v3-regularized/model.lgb"
 
 POOL_TOP_K = 20  # top-K from each method to pool
 

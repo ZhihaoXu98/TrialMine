@@ -27,8 +27,8 @@ Usage:
 Requirements:
     - Elasticsearch running with `trials` index (`docker start es`)
     - FAISS index: data/faiss_finetuned.index + .json
-    - Cross-encoder: models/cross-encoder/fine-tuned/
-    - LightGBM ranker: models/ranker/v2/model.lgb
+    - Cross-encoder: models/cross-encoder/fine-tuned-v2/
+    - LightGBM ranker: models/ranker/v3-regularized/model.lgb (env-overridable via TRIALMINE_RANKER)
     - ANTHROPIC_API_KEY in .env
 """
 
@@ -200,8 +200,8 @@ OUTPUT_FILE = OUTPUT_DIR / "full_labeled_dataset.jsonl"
 EMBEDDER_MODEL = os.environ.get("TRIALMINE_EMBEDDER", "models/embeddings/fine-tuned-v2")
 FAISS_INDEX = os.environ.get("TRIALMINE_FAISS_INDEX", "data/faiss_finetuned_v2.index")
 FAISS_MAPPING = os.environ.get("TRIALMINE_FAISS_MAPPING", "data/faiss_finetuned_v2.json")
-CE_MODEL = os.environ.get("TRIALMINE_CROSS_ENCODER", "models/cross-encoder/fine-tuned")
-RANKER_MODEL = os.environ.get("TRIALMINE_RANKER", "models/ranker/v2/model.lgb")
+CE_MODEL = os.environ.get("TRIALMINE_CROSS_ENCODER", "models/cross-encoder/fine-tuned-v2")
+RANKER_MODEL = os.environ.get("TRIALMINE_RANKER", "models/ranker/v3-regularized/model.lgb")
 
 
 LABELING_PROMPT = """Rate the relevance of this clinical trial to this patient's search query.

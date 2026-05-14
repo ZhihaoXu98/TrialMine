@@ -81,8 +81,8 @@ CTGOV_API = "https://clinicaltrials.gov/api/v2/studies"
 EMBEDDER_MODEL = "models/embeddings/fine-tuned"
 FAISS_INDEX = "data/faiss_finetuned.index"
 FAISS_MAPPING = "data/faiss_finetuned.json"
-CE_MODEL = "models/cross-encoder/fine-tuned"
-RANKER_MODEL = "models/ranker/v2/model.lgb"
+CE_MODEL = "models/cross-encoder/fine-tuned-v2"
+RANKER_MODEL = "models/ranker/v3-regularized/model.lgb"
 
 LABELING_PROMPT = """Rate the relevance of this clinical trial to this patient's search query.
 

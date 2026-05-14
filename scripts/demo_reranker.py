@@ -5,7 +5,7 @@ cross-encoder, and shows which trials moved up/down with position deltas.
 
 Usage:
     python scripts/demo_reranker.py
-    python scripts/demo_reranker.py --model models/cross-encoder/fine-tuned
+    python scripts/demo_reranker.py --model models/cross-encoder/fine-tuned-v2
     python scripts/demo_reranker.py --rerank-top-k 100
 
 Requirements:
@@ -34,7 +34,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-DEFAULT_CE_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+DEFAULT_CE_MODEL = "models/cross-encoder/fine-tuned-v2"
 EMBEDDER_MODEL = "models/embeddings/fine-tuned"
 FAISS_INDEX = "data/faiss_finetuned.index"
 FAISS_MAPPING = "data/faiss_finetuned.json"
