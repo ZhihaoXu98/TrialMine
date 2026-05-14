@@ -547,15 +547,19 @@ trial — actually a study of dacomitinib+osimertinib FOR osimertinib-failure
 patients — to be wrongly dropped. Q417 (pembrolizumab ↔ ICI exclusion)
 worked correctly as the canonical case. Q416 (post-trastuzumab) had 0
 trials affected because top-10 retrieval surfaces HER2-required (not
-HER2-excluded) trials. **Decision 41** reverted the toggle default (no
-production change; defaults to OFF). The complex weakness is now diagnosed
-as structurally bottlenecked: drug-class bridges are too broad for
-drug-specific exclusion semantics, and parsed-eligibility text can't
-disambiguate "no prior <class>" from "no prior <drug>". Phase A
-infrastructure stays installed; next intervention requires per-criterion
-specificity (UMLS REST API hierarchy, RxClass, or per-trial LLM-at-matching)
-— not just table extension. Full lessons-learned record in
-`docs/things_can_be_fixed.md` §7.
+HER2-excluded) trials. **Decision 41** reverted Phase A in commit
+`a60950a` (full `git revert 82f467c`) — production behavior was never
+affected (the toggle was always default-OFF), but the Phase A code, tests,
+and runbook were pulled out of `main` so the repo doesn't carry inert
+infrastructure. Phase 13A is preserved in git history at `82f467c` (ship)
+and `a60950a` (revert); the runbook is recoverable via
+`git show 82f467c:docs/fix_parser_umls.md`. The complex weakness is now
+diagnosed as structurally bottlenecked: drug-class bridges are too broad
+for drug-specific exclusion semantics, and parsed-eligibility text can't
+disambiguate "no prior <class>" from "no prior <drug>". Next intervention
+requires per-criterion specificity (UMLS REST API hierarchy, RxClass, or
+per-trial LLM-at-matching) — not just table extension. Full lessons-learned
+record in `docs/things_can_be_fixed.md` §7.
 
 ### 11.7 No clinical user study
 

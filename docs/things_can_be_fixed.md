@@ -1391,13 +1391,20 @@ resolving Unknowns is the work the agent framework exists to do.
 
 ## 7. Drug-class UMLS bridge is over-broad for drug-specific exclusion semantics
 
-**Files:** `src/TrialMine/features/concepts.py`,
-`src/TrialMine/features/drug_classes.py`,
-`src/TrialMine/agents/tools.py:_any_overlap_cui`,
-`src/TrialMine/config.py:umls_drug_class_matching_enabled`,
-`docs/fix_parser_umls.md`,
-`scripts/eval_parser_umls.py`,
-`data/evaluation/umls_eval_metrics.json`
+**Files (Phase A code reverted in commit `a60950a`; recoverable via
+`git show 82f467c:<path>` for each):**
+- `src/TrialMine/features/concepts.py` — rolled back to pre-A3 (linker
+  removed; `ConceptNormalizer` + lay-medical synonym map remain in `main`)
+- `src/TrialMine/features/drug_classes.py` — deleted; recoverable via git
+- `src/TrialMine/agents/tools.py` — rolled back (`_any_overlap_cui` removed)
+- `src/TrialMine/config.py` — rolled back (`umls_drug_class_matching_enabled`
+  removed)
+- `docs/fix_parser_umls.md` — deleted; recoverable via git
+- `scripts/eval_parser_umls.py` — removed after revert (imports broken once
+  Phase A code was pulled); recoverable via git
+- `data/evaluation/umls_eval_metrics.json` + per-query progress + 96-row
+  Haiku-labels JSONL — **still in `main`** as frozen eval evidence backing
+  the numbers below
 
 ### Why it's there
 
@@ -1487,21 +1494,26 @@ author meant the specific drug or the class. Three paths considered:
 
 ### Verdict
 
-**Accept and document.** Revert at zero cost
-(`umls_drug_class_matching_enabled` defaults to False; production
-behavior never changed). Phase A infrastructure (linker singleton,
-`link_to_cuis` / `match_via_cui`, `DRUG_TO_CLASS_CUIS` table,
-abbreviation handler, toggle, tests, runbook) stays in place. Re-engage
-when one of the above paths becomes the next-most-promising bottleneck
-OR when eligibility-text parsing gets richer at parse-time (e.g.,
-classifying exclusions as drug-specific vs class-level upstream so the
-matcher inherits the distinction).
+**Accept and document.** Phase A code, tests, and runbook were reverted
+out of `main` in commit `a60950a` (full `git revert 82f467c`) — the
+toggle was always default-OFF so production behavior was never affected,
+and pulling ~600 lines of inert infrastructure out of `main` keeps the
+working tree clean. Phase 13A is preserved in git history at `82f467c`
+(ship) and `a60950a` (revert); the runbook is recoverable via
+`git show 82f467c:docs/fix_parser_umls.md` for a future re-engagement.
+Re-engage when one of the above paths becomes the next-most-promising
+bottleneck OR when eligibility-text parsing gets richer at parse-time
+(e.g., classifying exclusions as drug-specific vs class-level upstream so
+the matcher inherits the distinction). Re-engagement means redoing Phase
+A from the recovered runbook, not editing inert code already on `main`.
 
 ### Status — accepted (2026-05-14)
 
-Phase 13A shipped the wiring (commit `82f467c`) and reverted on the
-Phase C decision gate. See `docs/fix_parser_umls.md` for the runbook,
-`docs/evaluation-report.md` §11.6 for the eval-report writeup, and
+Phase 13A shipped the wiring in commit `82f467c` and was reverted in
+commit `a60950a` on the Phase C decision gate. The runbook
+`docs/fix_parser_umls.md` is no longer in `main`; recover it via
+`git show 82f467c:docs/fix_parser_umls.md` if needed. See
+`docs/evaluation-report.md` §11.6 for the eval-report writeup and
 CLAUDE.md Decision 41 for the project-level record.
 
 ### Principle worth keeping
