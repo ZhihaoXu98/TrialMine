@@ -30,6 +30,7 @@ import time
 from typing import Any
 
 from langchain_anthropic import ChatAnthropic
+from langchain_core.callbacks import BaseCallbackHandler
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_core.tools import BaseTool
 from langgraph.prebuilt import create_react_agent
@@ -64,6 +65,64 @@ _ERR_NO_TERMINATE = "agent_did_not_terminate"
 _TRACE_ARG_MAX_CHARS = 200
 _REASONING_EXCERPT_MAX_CHARS = 240
 _MAX_FINAL_RESULTS = 20
+
+
+# --------------------------------------------------------------------------- #
+# Callback for live tool-call accounting                                       #
+# --------------------------------------------------------------------------- #
+
+
+class _AgentMetricsCallbackHandler(BaseCallbackHandler):
+    """LangChain callback that records tool calls AS THEY HAPPEN.
+
+    The original end-of-run reconciliation in :meth:`AgenticSearchAgent.search`
+    walks the final message list to count tool calls — but when the
+    outer pipeline ``asyncio.wait_for`` cancels the agent mid-flight,
+    that walk never runs and the partial tool calls disappear from
+    Prometheus. This handler fires on each tool's lifecycle so even
+    cancelled runs preserve their partial accounting.
+
+    ``on_tool_end`` introspects the output for the
+    ``{"error": ...}`` envelope our tools use to signal internal
+    failures (vs. ungraceful exceptions, which fire ``on_tool_error``).
+    The ``run_id`` map associates start→end so we recover the tool name
+    on completion (``on_tool_end`` doesn't receive the name directly).
+    """
+
+    def __init__(self) -> None:
+        self._tool_names_by_run: dict[str, str] = {}
+
+    def on_tool_start(
+        self,
+        serialized: dict,
+        input_str: str,
+        *,
+        run_id: Any = None,
+        **kwargs: Any,
+    ) -> None:
+        name = (serialized or {}).get("name") or "unknown"
+        if run_id is not None:
+            self._tool_names_by_run[str(run_id)] = name
+
+    def on_tool_end(self, output: Any, *, run_id: Any = None, **kwargs: Any) -> None:
+        name = self._tool_names_by_run.pop(str(run_id) if run_id is not None else "", "unknown")
+        ok = True
+        # Our tools surface internal failures as JSON envelopes starting
+        # with {"error":...}. Treat those as ok=False so the Prometheus
+        # status label matches the trace-store row.
+        if isinstance(output, str) and output.lstrip().startswith('{"error"'):
+            ok = False
+        record_agent_tool_call(name, ok=ok)
+
+    def on_tool_error(
+        self,
+        error: BaseException,
+        *,
+        run_id: Any = None,
+        **kwargs: Any,
+    ) -> None:
+        name = self._tool_names_by_run.pop(str(run_id) if run_id is not None else "", "unknown")
+        record_agent_tool_call(name, ok=False)
 
 
 # --------------------------------------------------------------------------- #
@@ -412,11 +471,20 @@ class AgenticSearchAgent:
         recursion_limit = self.max_iters * 2 + 2
         total_budget_s = self.max_iters * self.per_iter_timeout_s
 
+        # Live tool-call accounting (survives cancellation, unlike the
+        # end-of-run reconciliation below). The callback fires inside
+        # each tool's lifecycle so partial accounting is preserved when
+        # the outer pipeline wait_for cancels mid-flight.
+        metrics_callback = _AgentMetricsCallbackHandler()
+
         try:
             final_state = await asyncio.wait_for(
                 self._agent.ainvoke(
                     initial_state,
-                    config={"recursion_limit": recursion_limit},
+                    config={
+                        "recursion_limit": recursion_limit,
+                        "callbacks": [metrics_callback],
+                    },
                 ),
                 timeout=total_budget_s,
             )
@@ -486,11 +554,12 @@ class AgenticSearchAgent:
         ) = self._walk_messages(messages)
         trace_entries.extend(tool_call_entries)
 
-        # Fan per-tool status into Prometheus. Done here (not inside the
-        # walk) so the helper call sits at the same termination level as
-        # record_agent_iterations / record_agent_cost.
-        for name, ok in tool_call_status:
-            record_agent_tool_call(name, ok=ok)
+        # Per-tool Prometheus accounting is now handled live by
+        # ``_AgentMetricsCallbackHandler`` (above) so cancelled runs
+        # still preserve their counts. The ``tool_call_status`` walk is
+        # still useful for the trace-store ``agent_tool_calls`` rows
+        # (populated downstream via :func:`pipeline._persist_trace_safely`
+        # using the ``tool_call`` trace entries).
 
         # Cost is recorded on every path that has token info, including
         # the no-terminator path below — the spend has already been
