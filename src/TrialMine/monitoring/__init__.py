@@ -7,7 +7,11 @@ single-file ``monitoring.py`` was split into a package.
 """
 
 from TrialMine.monitoring.metrics import (
+    AGENT_COST_USD,
     AGENT_FAILURES,
+    AGENT_ITERATIONS,
+    AGENT_ROUTING,
+    AGENT_TOOL_CALLS,
     MODEL_INFERENCE,
     REQUEST_COUNT,
     REQUEST_LATENCY,
@@ -16,7 +20,11 @@ from TrialMine.monitoring.metrics import (
     ZERO_RESULTS,
     metrics_app,
     metrics_middleware,
+    record_agent_cost,
     record_agent_failure,
+    record_agent_iterations,
+    record_agent_routing,
+    record_agent_tool_call,
     record_agent_trace,
     record_search_results,
     time_model,
@@ -26,7 +34,11 @@ from TrialMine.monitoring.metrics import (
 )
 
 __all__ = [
+    "AGENT_COST_USD",
     "AGENT_FAILURES",
+    "AGENT_ITERATIONS",
+    "AGENT_ROUTING",
+    "AGENT_TOOL_CALLS",
     "MODEL_INFERENCE",
     "REQUEST_COUNT",
     "REQUEST_LATENCY",
@@ -35,7 +47,11 @@ __all__ = [
     "ZERO_RESULTS",
     "metrics_app",
     "metrics_middleware",
+    "record_agent_cost",
     "record_agent_failure",
+    "record_agent_iterations",
+    "record_agent_routing",
+    "record_agent_tool_call",
     "record_agent_trace",
     "record_search_results",
     "time_model",

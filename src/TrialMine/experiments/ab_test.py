@@ -233,4 +233,56 @@ class ABTestRouter:
         return n / (1 << 64)
 
 
-__all__ = ["ABTestRouter", "Experiment", "ExperimentVariant"]
+# --------------------------------------------------------------------------- #
+# Process-wide singleton — Phase A7                                            #
+# --------------------------------------------------------------------------- #
+
+
+_default_router: ABTestRouter | None = None
+
+
+def get_default_router() -> ABTestRouter:
+    """Return the process-wide :class:`ABTestRouter` for TrialMine.
+
+    Lazy-initialised on first call. The router's catalog lists the
+    experiments TrialMine actively runs; today that's just
+    ``agent_path_v1`` (registered ``enabled=False`` until Phase D flips
+    the toggle), which means every subject lands in the first variant
+    (``"control"``) regardless of hash bucketing. Adding a new experiment
+    is a one-line catalog edit here; no call site changes are needed.
+
+    Tests that need an isolated router can either build one explicitly
+    or reset the module-level ``_default_router`` to ``None`` after the
+    test to force a fresh build on next call.
+    """
+    global _default_router
+    if _default_router is None:
+        _default_router = ABTestRouter(
+            [
+                Experiment(
+                    name="agent_path_v1",
+                    variants=[
+                        ExperimentVariant(name="control", weight=0.5),
+                        ExperimentVariant(name="treatment", weight=0.5),
+                    ],
+                    # Phase D1 — flipped on after the C4 decision gate
+                    # cleared the SHIP criteria (Decision 43). 50/50 split
+                    # gates the agent path to roughly 21 % of production
+                    # traffic (heuristic eligibility × 50 % treatment).
+                    # Widen only after the no-terminator rate on hard
+                    # slices drops below ~10 % (currently ~50 % on
+                    # complex / vague — bubble fix catches them but
+                    # agent contribution = 0 on those queries).
+                    enabled=True,
+                ),
+            ]
+        )
+    return _default_router
+
+
+__all__ = [
+    "ABTestRouter",
+    "Experiment",
+    "ExperimentVariant",
+    "get_default_router",
+]

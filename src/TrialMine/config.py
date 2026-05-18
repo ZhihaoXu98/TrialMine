@@ -111,13 +111,94 @@ class DegradationConfig(BaseModel):
         ),
     )
     skip_agent_if_slow_s: float = Field(
-        default=10.0,
+        default=25.0,
         gt=0.0,
         description=(
-            "Outer agent-pipeline wall-clock budget in seconds. Replaces "
-            "the legacy 15s default. On timeout the pipeline returns a "
-            "structured degraded response with empty results and "
-            "``error='timeout'``."
+            "Outer agent-pipeline wall-clock budget in seconds. Phase D1 "
+            "bumped from 10.0 to 25.0 so a real agent run (5×6s inner "
+            "budget = 30s worst case with CE rerank latency) isn't "
+            "prematurely cancelled by the outer wait_for. The rule path "
+            "is unaffected — rule-arm wall-clock typically finishes under "
+            "10s so the outer cap is a safety net, not the common case. "
+            "On timeout the pipeline returns a structured degraded "
+            "response with empty results and ``error='timeout'``."
+        ),
+    )
+    agentic_path_enabled: bool = Field(
+        default=True,
+        description=(
+            "Hard toggle for the Haiku 4.5 ReAct agent path. When False, "
+            "the pipeline always routes to the rule-based "
+            "SearchOrchestrator; the agent code is wired but inert. "
+            "Phase D1 flipped this to True after the C4 decision gate "
+            "(Decision 43) cleared all three SHIP criteria: production "
+            "NDCG@5 +0.046 [+0.009, +0.079] CI excludes 0; complex-slice "
+            "lift +0.226 absolute; cost $0.0066/query under the $0.012 "
+            "envelope. The AB router's ``agent_path_v1`` experiment "
+            "gates the actual traffic at 50/50, so the net agent share "
+            "is ~21 % of production queries."
+        ),
+    )
+    agentic_routing_threshold_slots: int = Field(
+        default=2,
+        ge=1,
+        le=8,
+        description=(
+            "Route to the agent when the parsed ``PatientProfile`` has "
+            "FEWER than this many populated slots (condition, stage, age, "
+            "sex, biomarkers, prior_treatments, preferences, location). "
+            "Sparse profiles are typically vague queries that benefit "
+            "from iterative refinement. Range: 1 to 8."
+        ),
+    )
+    agentic_complex_pattern_enabled: bool = Field(
+        default=True,
+        description=(
+            "When True, also route to the agent if the raw query matches "
+            "the complex-pattern heuristic (multi-constraint phrasings "
+            "like 'failed X' + 'after Y', or 3+ medical entities in one "
+            "query) even when the slot count is high. Separate toggle "
+            "from ``agentic_routing_threshold_slots`` so the two signals "
+            "can be A/B'd independently."
+        ),
+    )
+    agentic_max_iters: int = Field(
+        default=6,
+        ge=1,
+        le=10,
+        description=(
+            "Hard cap on the ReAct loop. On reaching the cap, the agent "
+            "must call ``submit_final_results`` with whatever it has — or "
+            "the pipeline falls back to the rule arm. Range: 1 to 10. "
+            "Bumped from 5 to 6 in Phase C3b.2 to absorb parallel-tool-call "
+            "bursts (Haiku frequently fires 3+ tools in one cycle); paired "
+            "with the system-prompt termination-deadline directive so the "
+            "extra cycle is buffer, not a new target. ``recursion_limit`` "
+            "in :mod:`react_agent` scales automatically via "
+            "``max_iters * 2 + 2``."
+        ),
+    )
+    agentic_per_iter_timeout_s: float = Field(
+        default=6.0,
+        gt=0.0,
+        description=(
+            "Per-iteration wall-clock budget for ONE LLM call + tool "
+            "execution. Sized for the worst-case tool — ``search_trials`` "
+            "runs the full retrieval pipeline (BM25 + semantic + ~4s CE "
+            "rerank), so a per-iter under 5s would cancel almost every "
+            "iteration that calls ``search_trials``. 6s leaves 2s slack "
+            "on top of CE's warm p95. WARNING: the multiplied cap "
+            "(``agentic_max_iters * agentic_per_iter_timeout_s`` = 30s "
+            "by default) is HIGHER than the outer pipeline budget "
+            "``skip_agent_if_slow_s`` (10s), which means the outer "
+            "``wait_for`` in ``pipeline.search()`` will cancel the agent "
+            "long before this inner per-iter timeout fires. This is "
+            "intentional for the Phase A–C build (agent is default-OFF, "
+            "so the outer cap never matters in practice). At Phase D "
+            "ship, raise ``skip_agent_if_slow_s`` to ~25s if you want "
+            "the inner timeout to be the binding constraint; otherwise "
+            "accept that the outer budget will be the active cap and "
+            "document it in D1's CLAUDE.md decision entry."
         ),
     )
 

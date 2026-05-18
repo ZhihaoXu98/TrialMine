@@ -1,0 +1,269 @@
+{
+  "uid": "trialmine-agent-obs",
+  "title": "TrialMine — Agent Observability",
+  "tags": ["trialmine", "agent", "observability"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "1m",
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "annotations": {
+    "list": []
+  },
+  "templating": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "piechart",
+      "title": "Routing distribution (last 24h)",
+      "description": "Share of pipeline invocations by routing arm. 'rule' is the default path; 'agent' fires only when DegradationConfig.agentic_path_enabled=True AND the AB router's agent_path_v1 experiment is enabled. 'fallback' is the degraded path triggered by an error in either arm. 'unknown' means the pipeline raised before route_decision ran (timeout / Python exception).",
+      "datasource": {
+        "uid": "agent_traces_sqlite",
+        "type": "frser-sqlite-datasource"
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true,
+          "values": ["value", "percent"]
+        },
+        "pieType": "pie",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "hideFrom": {"legend": false, "tooltip": false, "viz": false}
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "uid": "agent_traces_sqlite",
+            "type": "frser-sqlite-datasource"
+          },
+          "format": "table",
+          "rawQueryText": "SELECT arm AS metric, COUNT(*) AS value FROM agent_runs WHERE ts > (CAST(strftime('%s', 'now') AS INTEGER) - 86400) * 1000 GROUP BY arm",
+          "queryText": "SELECT arm AS metric, COUNT(*) AS value FROM agent_runs WHERE ts > (CAST(strftime('%s', 'now') AS INTEGER) - 86400) * 1000 GROUP BY arm"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Fallback rate (1h bucket)",
+      "description": "Fraction of queries that hit the fallback path, bucketed by hour. A spike here means the rule arm OR the agent arm started failing for a large fraction of traffic — investigate the underlying error in the trace table.",
+      "datasource": {
+        "uid": "agent_traces_sqlite",
+        "type": "frser-sqlite-datasource"
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {"mode": "single", "sort": "none"}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {"legend": false, "tooltip": false, "viz": false},
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {"type": "linear"},
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {"group": "A", "mode": "none"},
+            "thresholdsStyle": {"mode": "off"}
+          },
+          "mappings": [],
+          "min": 0,
+          "max": 1,
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "uid": "agent_traces_sqlite",
+            "type": "frser-sqlite-datasource"
+          },
+          "format": "time series",
+          "rawQueryText": "SELECT datetime(ts/1000, 'unixepoch') AS time, AVG(used_fallback) AS fallback_rate FROM agent_runs WHERE ts > (CAST(strftime('%s','now') AS INTEGER) - 86400) * 1000 GROUP BY strftime('%Y-%m-%d %H', datetime(ts/1000,'unixepoch')) ORDER BY time",
+          "queryText": "SELECT datetime(ts/1000, 'unixepoch') AS time, AVG(used_fallback) AS fallback_rate FROM agent_runs WHERE ts > (CAST(strftime('%s','now') AS INTEGER) - 86400) * 1000 GROUP BY strftime('%Y-%m-%d %H', datetime(ts/1000,'unixepoch')) ORDER BY time"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "table",
+      "title": "Per-stage latency (last 24h, mean + max)",
+      "description": "Mean and max duration per pipeline stage. SQLite has no native percentile function; this v1 ships mean + max instead of p50 + p95 (runbook B5 acceptance allows this fallback). The next iteration can compute true percentiles via a window-function rewrite (PERCENTILE_CONT is in SQLite 3.45+) or via a two-pass query.",
+      "datasource": {
+        "uid": "agent_traces_sqlite",
+        "type": "frser-sqlite-datasource"
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "options": {
+        "showHeader": true,
+        "footer": {
+          "show": false,
+          "reducer": ["sum"],
+          "countRows": false,
+          "fields": ""
+        },
+        "cellHeight": "sm"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {"type": "auto"},
+            "filterable": true,
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 1000},
+              {"color": "red", "value": 5000}
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "stage"},
+            "properties": [{"id": "unit", "value": "string"}]
+          },
+          {
+            "matcher": {"id": "byName", "options": "n"},
+            "properties": [{"id": "unit", "value": "short"}]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "uid": "agent_traces_sqlite",
+            "type": "frser-sqlite-datasource"
+          },
+          "format": "table",
+          "rawQueryText": "SELECT stage, AVG(duration_ms) AS mean_ms, MAX(duration_ms) AS max_ms, COUNT(*) AS n FROM agent_stages WHERE query_id IN (SELECT query_id FROM agent_runs WHERE ts > (CAST(strftime('%s','now') AS INTEGER) - 86400) * 1000) GROUP BY stage ORDER BY mean_ms DESC",
+          "queryText": "SELECT stage, AVG(duration_ms) AS mean_ms, MAX(duration_ms) AS max_ms, COUNT(*) AS n FROM agent_stages WHERE query_id IN (SELECT query_id FROM agent_runs WHERE ts > (CAST(strftime('%s','now') AS INTEGER) - 86400) * 1000) GROUP BY stage ORDER BY mean_ms DESC"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "barchart",
+      "title": "Agent tool calls by name (last 24h)",
+      "description": "Tool-call counts split by ok vs error status. A tool with high error_count is a candidate for prompt-strengthening or argument-validation work.",
+      "datasource": {
+        "uid": "agent_traces_sqlite",
+        "type": "frser-sqlite-datasource"
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.6,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "auto",
+        "showValue": "auto",
+        "stacking": "normal",
+        "tooltip": {"mode": "single", "sort": "none"},
+        "xField": "tool_name",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {"legend": false, "tooltip": false, "viz": false},
+            "lineWidth": 1,
+            "scaleDistribution": {"type": "linear"},
+            "thresholdsStyle": {"mode": "off"}
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "ok_count"},
+            "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "green"}}]
+          },
+          {
+            "matcher": {"id": "byName", "options": "error_count"},
+            "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "red"}}]
+          },
+          {
+            "matcher": {"id": "byName", "options": "total"},
+            "properties": [{"id": "custom.hideFrom", "value": {"legend": true, "tooltip": false, "viz": true}}]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "uid": "agent_traces_sqlite",
+            "type": "frser-sqlite-datasource"
+          },
+          "format": "table",
+          "rawQueryText": "SELECT tool_name, SUM(ok) AS ok_count, SUM(1 - ok) AS error_count, COUNT(*) AS total FROM agent_tool_calls WHERE query_id IN (SELECT query_id FROM agent_runs WHERE ts > (CAST(strftime('%s','now') AS INTEGER) - 86400) * 1000) GROUP BY tool_name ORDER BY total DESC",
+          "queryText": "SELECT tool_name, SUM(ok) AS ok_count, SUM(1 - ok) AS error_count, COUNT(*) AS total FROM agent_tool_calls WHERE query_id IN (SELECT query_id FROM agent_runs WHERE ts > (CAST(strftime('%s','now') AS INTEGER) - 86400) * 1000) GROUP BY tool_name ORDER BY total DESC"
+        }
+      ]
+    }
+  ]
+}

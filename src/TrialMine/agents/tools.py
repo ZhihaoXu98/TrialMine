@@ -52,7 +52,7 @@ _PATHS: dict[str, str] = {
     "faiss_mapping": os.getenv("TRIALMINE_FAISS_MAPPING", "data/faiss_finetuned_v2.json"),
     "embedder": os.getenv("TRIALMINE_EMBEDDER", "models/embeddings/fine-tuned-v2"),
     "cross_encoder": os.getenv("TRIALMINE_CROSS_ENCODER", "models/cross-encoder/fine-tuned-v2"),
-    "ranker": os.getenv("TRIALMINE_RANKER", "models/ranker/v3-regularized/model.lgb"),
+    "ranker": os.getenv("TRIALMINE_RANKER", "models/ranker/v6/model.lgb"),
     "db_path": os.getenv("TRIALMINE_DB_PATH", "data/trials.db"),
 }
 
@@ -847,6 +847,68 @@ def get_trial_details(nct_id: str) -> str:
 
 
 # --------------------------------------------------------------------------- #
+# Tool: submit_final_results (terminator)                                     #
+# --------------------------------------------------------------------------- #
+
+
+class SubmitFinalResultsArgs(BaseModel):
+    """Arguments for :func:`submit_final_results`."""
+
+    results: list[dict] = Field(
+        ...,
+        description=(
+            "Ordered list of trial dicts (highest relevance first). "
+            "Each must include 'nct_id'; optional 'explanation' string."
+        ),
+        min_length=1,
+        max_length=20,
+    )
+    reasoning: str = Field(
+        ...,
+        description="One-paragraph rationale for the final ordering.",
+        min_length=10,
+    )
+
+
+@tool(
+    "submit_final_results",
+    args_schema=SubmitFinalResultsArgs,
+    return_direct=True,
+)
+def submit_final_results(
+    results: list[dict],
+    reasoning: str,
+) -> str:
+    """Terminate the agent loop and return the final ranked trial list.
+
+    The agent MUST call this exactly once to end its turn — and it must
+    be the ONLY tool called in that turn. ``return_direct=True`` is what
+    actually terminates the ``langgraph.prebuilt.create_react_agent``
+    loop; that check fires only when *every* tool call in a single
+    response is ``return_direct``, so mixing this with another tool in
+    the same turn defeats the terminator and the loop keeps running.
+
+    The pipeline parses this tool's args as the agent's final output.
+
+    Args:
+        results: Ordered list of trial dicts (highest relevance first).
+            Each dict must include ``nct_id`` (str) and may include a
+            per-trial ``explanation`` (str). Other fields are looked up
+            from the SQLite trials table by nct_id during synthesis.
+        reasoning: One-paragraph rationale for the final ordering.
+            Used in ``agent_trace``; not shown to the user directly.
+
+    Returns:
+        JSON envelope confirming the submission was received. The
+        return value is informational — the orchestrator extracts
+        the args from the tool call, not the return.
+    """
+    # The tool is a no-op marker — its purpose is to signal terminate.
+    # The orchestrator inspects the tool-call args, not this return.
+    return json.dumps({"submitted": True, "n_results": len(results)})
+
+
+# --------------------------------------------------------------------------- #
 # Tool registry                                                               #
 # --------------------------------------------------------------------------- #
 
@@ -855,6 +917,7 @@ ALL_TOOLS = [
     lookup_medical_concept,
     check_trial_eligibility,
     get_trial_details,
+    submit_final_results,  # NEW — must always be last (terminator tool)
 ]
 
 __all__ = [
@@ -863,9 +926,11 @@ __all__ = [
     "lookup_medical_concept",
     "check_trial_eligibility",
     "get_trial_details",
+    "submit_final_results",
     # Pydantic arg schemas exported for typed callers / tests
     "SearchTrialsArgs",
     "ConceptArgs",
     "EligibilityArgs",
     "TrialDetailsArgs",
+    "SubmitFinalResultsArgs",
 ]
