@@ -111,17 +111,22 @@ class DegradationConfig(BaseModel):
         ),
     )
     skip_agent_if_slow_s: float = Field(
-        default=25.0,
+        default=60.0,
         gt=0.0,
         description=(
             "Outer agent-pipeline wall-clock budget in seconds. Phase D1 "
-            "bumped from 10.0 to 25.0 so a real agent run (5×6s inner "
-            "budget = 30s worst case with CE rerank latency) isn't "
-            "prematurely cancelled by the outer wait_for. The rule path "
-            "is unaffected — rule-arm wall-clock typically finishes under "
-            "10s so the outer cap is a safety net, not the common case. "
-            "On timeout the pipeline returns a structured degraded "
-            "response with empty results and ``error='timeout'``."
+            "bumped from 10.0 to 25.0; post-ship trace-store telemetry "
+            "showed agent p95 = 61.4 s, so 25 s was below the real p95 "
+            "and ~25 % of agent runs hit the outer cap and returned "
+            "empty results. Bumped to 60 s to match measured p95 plus "
+            "small margin. Aligns with ``agentic_max_iters * "
+            "per_iter_timeout_s`` (6 × ~8 s ≈ 48 s real-world). "
+            "The rule path is unaffected — rule-arm wall-clock typically "
+            "finishes under 10 s so the outer cap is still a safety net "
+            "in the common case. On timeout the pipeline now funnels "
+            "into the outer fallback (plain hybrid) rather than "
+            "returning empty results — see :func:`pipeline.search` "
+            "TimeoutError handler."
         ),
     )
     agentic_path_enabled: bool = Field(
@@ -175,7 +180,11 @@ class DegradationConfig(BaseModel):
             "with the system-prompt termination-deadline directive so the "
             "extra cycle is buffer, not a new target. ``recursion_limit`` "
             "in :mod:`react_agent` scales automatically via "
-            "``max_iters * 2 + 2``."
+            "``max_iters * 2 + 2``. NOTE: this cap and "
+            "``skip_agent_if_slow_s`` move together — total inner budget "
+            "(``max_iters * per_iter_timeout_s`` ≈ 36 s, real-world ~48 s "
+            "with CE warmup) must fit under the outer wall-clock cap or "
+            "the agent's last iteration gets cancelled mid-flight."
         ),
     )
     agentic_per_iter_timeout_s: float = Field(
