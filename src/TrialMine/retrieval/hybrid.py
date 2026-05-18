@@ -115,9 +115,13 @@ class HybridRetriever:
 
         Steps:
             1. Get top candidate_k from BM25 (with filters if provided).
-            2. Embed query, get top candidate_k from FAISS.
+            2. Embed query, get top candidate_k from FAISS (no native
+               filter primitive — wrong-status trials land here regardless).
             3. Merge using Reciprocal Rank Fusion (k=60).
-            4. Enrich top_k results with metadata from BM25 results.
+            4. Post-RRF filter: drop semantic-only candidates whose ES
+               doc doesn't match the filter dict. BM25 hits already
+               filtered, so they fast-path.
+            5. Enrich top_k results with metadata.
 
         Args:
             query: Patient or clinical search query.
@@ -151,8 +155,29 @@ class HybridRetriever:
         # Step 3: RRF fusion
         fused = reciprocal_rank_fusion(bm25_results, semantic_results)
 
-        # Step 4: Enrich with metadata from BM25 results
+        # Step 4: Post-RRF filter. FAISS has no native filter primitive,
+        # so well-embedded COMPLETED / TERMINATED / wrong-status trials
+        # land in the semantic top-K regardless of the caller's filter.
+        # Without this step, RRF mixes them in and the legacy non-agent
+        # path returns wrong-status trials even when the caller passed
+        # filters={"status": "RECRUITING"}. Mirror of Decision 28's fix
+        # in ``full_pipeline()`` — kept in lockstep so both retrieval
+        # paths agree.
         bm25_meta = {r["nct_id"]: r for r in bm25_results}
+        if filters:
+            bm25_ids = set(bm25_meta)
+            filtered_fused = []
+            for item in fused:
+                if item["nct_id"] in bm25_ids:
+                    filtered_fused.append(item)
+                    continue
+                doc = self.bm25.get_trial(item["nct_id"])
+                if doc and all(str(doc.get(k) or "") == str(v) for k, v in filters.items()):
+                    bm25_meta[item["nct_id"]] = doc  # cache for enrichment below
+                    filtered_fused.append(item)
+            fused = filtered_fused
+
+        # Step 5: Enrich with metadata from BM25 results
         enriched = []
         for item in fused[:top_k]:
             meta = bm25_meta.get(item["nct_id"], {})
