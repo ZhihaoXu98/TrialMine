@@ -28,17 +28,19 @@ def test_degradation_defaults_match_documented_budgets() -> None:
     """Defaults are part of the contract — pin them so accidental edits
     that loosen the agent budget are caught here.
 
-    Phase D1 bumped ``skip_agent_if_slow_s`` from 10.0 to 25.0 so the
-    real agent path's 5×6s inner budget can complete without the outer
-    wait_for cancelling it. The rule arm typically finishes well under
-    10s so the outer cap remains a safety net, not the common case.
-    Also flipped ``agentic_path_enabled`` to True per Decision 43.
+    Phase D1 bumped ``skip_agent_if_slow_s`` from 10.0 to 25.0; the
+    post-ship PR bumped it again to 60.0 after trace-store telemetry
+    showed agent p95 = 61.4 s (so 25 s was below the real p95 and
+    ~25 % of agent runs hit the outer cap and returned empty results).
+    60 s now matches measured p95 plus a small margin. The rule arm
+    typically finishes well under 10 s so the outer cap remains a
+    safety net, not the common case.
     """
     cfg = DegradationConfig()
     assert cfg.cross_encoder_enabled is True
     assert cfg.eligibility_check_enabled is True
     assert cfg.skip_cross_encoder_if_slow_s == 5.0
-    assert cfg.skip_agent_if_slow_s == 25.0
+    assert cfg.skip_agent_if_slow_s == 60.0
     assert cfg.agentic_path_enabled is True
     assert cfg.agentic_max_iters == 6  # bumped from 5 in Phase C3b.2
 
