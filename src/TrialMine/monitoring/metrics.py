@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import asyncio
 import functools
+import logging
 import time
 from collections.abc import Awaitable, Callable, Iterator
 from contextlib import contextmanager
@@ -42,6 +43,8 @@ from typing import Any, TypeVar
 from prometheus_client import Counter, Histogram, make_asgi_app
 from starlette.requests import Request
 from starlette.responses import Response
+
+logger = logging.getLogger(__name__)
 
 # --------------------------------------------------------------------------- #
 # Metric definitions                                                           #
@@ -91,12 +94,54 @@ AGENT_FAILURES = Counter(
     ["stage"],
 )
 
+# Phase A6 — Haiku ReAct agent observability. Each metric is bumped by a
+# specific helper below; the helpers are also exported from the monitoring
+# package so the agent code can stay decoupled from prometheus_client.
+AGENT_ROUTING = Counter(
+    "trialmine_agent_routing_total",
+    "Routing decisions by arm (Phase A6 — agentic build)",
+    ["arm", "reason"],
+)
+
+AGENT_ITERATIONS = Histogram(
+    "trialmine_agent_iterations",
+    "Number of ReAct tool-call cycles per agent invocation",
+    ["outcome"],  # "submitted" | "capped" | "errored"
+    buckets=(1, 2, 3, 4, 5, 6, 7, 8),
+)
+
+AGENT_TOOL_CALLS = Counter(
+    "trialmine_agent_tool_calls_total",
+    "Tool calls by name and status (Phase A6 — agentic build)",
+    ["tool_name", "status"],  # status: "ok" | "error"
+)
+
+AGENT_COST_USD = Counter(
+    "trialmine_agent_estimated_cost_usd_total",
+    (
+        "Estimated agent USD spend (Anthropic API only, computed from "
+        "token counts + Haiku 4.5 published rates)"
+    ),
+    ["model"],
+)
+
 MODEL_INFERENCE = Histogram(
     "trialmine_model_inference_seconds",
     "Model inference latency in seconds, by model name",
     ["model"],
     buckets=(0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0),
 )
+
+
+# Anthropic API rates as of 2026-05 — USD per single token. Centralised
+# here so a pricing change is a one-line update. Source: Anthropic public
+# pricing page. If a model is not listed, ``record_agent_cost`` logs a
+# warning and skips so the unknown model doesn't crash the agent loop.
+_MODEL_PRICING_USD_PER_TOKEN: dict[str, tuple[float, float]] = {
+    # (input_rate, output_rate)
+    "claude-haiku-4-5": (1.0 / 1_000_000, 5.0 / 1_000_000),
+    "claude-sonnet-4-6": (3.0 / 1_000_000, 15.0 / 1_000_000),
+}
 
 
 # --------------------------------------------------------------------------- #
@@ -307,6 +352,118 @@ def record_agent_failure(stage: str) -> None:
 
 
 # --------------------------------------------------------------------------- #
+# Phase A6 — agent ReAct loop helpers                                         #
+# --------------------------------------------------------------------------- #
+
+
+def record_agent_routing(arm: str, reason: str) -> None:
+    """Increment ``AGENT_ROUTING`` for a single routing decision.
+
+    Called from the LangGraph ``route_decision`` node after the pure
+    routing function returns. ``arm`` is ``"rule"`` or ``"agent"`` and
+    ``reason`` is one of the four pinned strings from
+    :mod:`TrialMine.agents.query_router`
+    (``agentic_path_disabled``, ``sparse_profile``,
+    ``complex_pattern``, ``rule_path_sufficient``) plus any
+    AB-router-specific reasons added in Phase A7.
+    """
+    AGENT_ROUTING.labels(arm=arm, reason=reason).inc()
+
+
+def record_agent_iterations(n: int, outcome: str) -> None:
+    """Observe ``n`` ReAct cycles into ``AGENT_ITERATIONS`` under ``outcome``.
+
+    Called exactly once per agent invocation at termination by
+    :class:`AgenticSearchAgent`.
+
+    Args:
+        n: Number of completed ReAct tool-call cycles. Use ``0`` when
+            the count is unknown (e.g. invocation raised before any
+            cycle completed); the histogram's first bucket already
+            covers that case.
+        outcome: One of ``"submitted"`` (happy path — terminator fired),
+            ``"capped"`` (timeout or no terminator reached within
+            max_iters), ``"errored"`` (LLM call or pipeline exception).
+    """
+    AGENT_ITERATIONS.labels(outcome=outcome).observe(max(0, int(n)))
+
+
+def record_agent_tool_call(tool_name: str, ok: bool) -> None:
+    """Increment ``AGENT_TOOL_CALLS`` for one tool execution.
+
+    ``ok`` is ``True`` when the tool returned a normal JSON payload and
+    ``False`` when it returned the ``{"error": "..."}`` envelope (or
+    when the LangGraph runner caught an exception during the tool call).
+    The label name is ``status``, not ``ok``, so dashboards read
+    cleanly: ``status="ok"`` / ``status="error"``.
+    """
+    AGENT_TOOL_CALLS.labels(tool_name=tool_name, status="ok" if ok else "error").inc()
+
+
+def record_agent_cost(
+    model: str,
+    input_tokens: int,
+    output_tokens: int,
+    cache_read_tokens: int = 0,
+    cache_creation_tokens: int = 0,
+) -> None:
+    """Increment ``AGENT_COST_USD`` with the estimated USD cost.
+
+    Computed from the model's published per-token rates in
+    :data:`_MODEL_PRICING_USD_PER_TOKEN`. When the model is missing from
+    that table the call is logged-and-skipped so unknown models do not
+    crash the agent loop (the production model is the one default —
+    additions should land in the pricing table when introduced).
+
+    Phase C3b.3 — Anthropic prompt-caching pricing:
+
+    * cache READS bill at **10 %** of the input rate (e.g., Haiku 4.5
+      input is $1/M, cache reads are $0.10/M).
+    * cache CREATION bills at **125 %** of the input rate (the prefix
+      pays a premium the first time so subsequent calls can reuse it).
+
+    The ``input_tokens`` figure from langchain_anthropic INCLUDES the
+    cached portion (cache reads + cache creation). We subtract them
+    out before applying the full input rate, then add the discounted
+    rates separately — otherwise the cached tokens would be billed at
+    both the full rate AND the cached rate (~2× cost inflation).
+
+    Args:
+        model: Anthropic model id.
+        input_tokens: Total prompt tokens (incl. cached portion).
+        output_tokens: Completion tokens.
+        cache_read_tokens: Subset of input_tokens that hit the cache.
+        cache_creation_tokens: Subset of input_tokens that were
+            written to the cache for the first time.
+    """
+    rates = _MODEL_PRICING_USD_PER_TOKEN.get(model)
+    if rates is None:
+        logger.warning(
+            "record_agent_cost: no pricing for model %r — skipping cost record; "
+            "add an entry to _MODEL_PRICING_USD_PER_TOKEN in monitoring/metrics.py",
+            model,
+        )
+        return
+    in_rate, out_rate = rates
+    in_tok = max(0, int(input_tokens))
+    out_tok = max(0, int(output_tokens))
+    cache_r = max(0, int(cache_read_tokens))
+    cache_c = max(0, int(cache_creation_tokens))
+    # Subtract the cached portion from the uncached count so we don't
+    # double-charge. ``max(0, ...)`` guards against the rare case where
+    # cache fields exceed input_tokens (provider rounding / metric
+    # drift).
+    uncached_input = max(0, in_tok - cache_r - cache_c)
+    cost = (
+        uncached_input * in_rate
+        + cache_r * (in_rate * 0.10)
+        + cache_c * (in_rate * 1.25)
+        + out_tok * out_rate
+    )
+    AGENT_COST_USD.labels(model=model).inc(cost)
+
+
+# --------------------------------------------------------------------------- #
 # ASGI mount                                                                   #
 # --------------------------------------------------------------------------- #
 
@@ -324,11 +481,20 @@ __all__ = [
     "ZERO_RESULTS",
     "AGENT_FAILURES",
     "MODEL_INFERENCE",
+    # Phase A6 — agent observability
+    "AGENT_ROUTING",
+    "AGENT_ITERATIONS",
+    "AGENT_TOOL_CALLS",
+    "AGENT_COST_USD",
     "metrics_middleware",
     "metrics_app",
     "record_agent_trace",
     "record_search_results",
     "record_agent_failure",
+    "record_agent_routing",
+    "record_agent_iterations",
+    "record_agent_tool_call",
+    "record_agent_cost",
     "time_stage",
     "time_stage_cm",
     "time_model",

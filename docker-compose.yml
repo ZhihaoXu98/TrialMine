@@ -152,11 +152,21 @@ services:
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_AUTH_ANONYMOUS_ENABLED: "false"
       GF_LOG_LEVEL: warn
+      # Phase B4 — SQLite datasource plugin for the agent trace store.
+      # The plugin is downloaded + installed on container start (the
+      # entrypoint reads GF_INSTALL_PLUGINS and shells out to
+      # grafana-cli plugins install). Network required at boot.
+      GF_INSTALL_PLUGINS: frser-sqlite-datasource
     ports:
       - "3000:3000"
     volumes:
       - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./infrastructure/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      # Phase B4 — mount the agent trace DB read-only into the path
+      # that sqlite.yml's jsonData.path points at. Read-only because
+      # Grafana panels query it but nothing on the dashboard side
+      # should ever mutate the production write surface.
+      - ./data/agent_runs.db:/var/lib/grafana/agent_runs.db:ro
       - graf_data:/var/lib/grafana
     depends_on:
       - prometheus

@@ -12,6 +12,12 @@ from TrialMine.experiments.ab_test import (
     ABTestRouter,
     Experiment,
     ExperimentVariant,
+    get_default_router,
 )
 
-__all__ = ["ABTestRouter", "Experiment", "ExperimentVariant"]
+__all__ = [
+    "ABTestRouter",
+    "Experiment",
+    "ExperimentVariant",
+    "get_default_router",
+]

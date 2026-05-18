@@ -27,3 +27,9 @@ __pycache__/
 dist/
 build/
 .venv/
+
+# SQLite write-ahead log / shared-memory / hot-journal sidecars.
+# data/*.db (main DB file) is already ignored higher up.
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm

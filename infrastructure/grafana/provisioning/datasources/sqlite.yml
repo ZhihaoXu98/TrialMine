@@ -1,0 +1,16 @@
+# Grafana datasource — SQLite agent-trace store (Phase B4).
+#
+# Grafana provisioning loads every *.yml in this directory at startup,
+# so dropping this file alongside the existing Prometheus datasource.yml
+# registers both. The DB file is mounted read-only at the path below
+# via docker-compose.yml's grafana volumes block.
+#
+# Panels reference this datasource by ``uid: agent_traces_sqlite`` (see
+# infrastructure/grafana/dashboards/agent_observability.json — Phase B5).
+apiVersion: 1
+datasources:
+  - name: AgentTraces
+    type: frser-sqlite-datasource
+    uid: agent_traces_sqlite
+    jsonData:
+      path: /var/lib/grafana/agent_runs.db
