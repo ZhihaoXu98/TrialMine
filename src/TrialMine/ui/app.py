@@ -25,7 +25,7 @@ EXAMPLE_QUERIES: list[str] = [
     "HER2+ breast cancer immunotherapy",
     "Pediatric leukemia trials",
     "MSI-high colorectal cancer",
-    "Pancreatic cancer new treatments",
+    "Pancreatic cancer, new options",
 ]
 
 # emoji + Streamlit color name + display label
@@ -63,8 +63,284 @@ VERDICT_ICON = {"Met": "✅", "Unmet": "❌", "Unknown": "❓"}
 st.set_page_config(
     page_title="TrialMine — AI Clinical Trial Search",
     page_icon="🔬",
-    layout="wide",
+    layout="centered",  # narrower column reads better for cards
+    initial_sidebar_state="expanded",
 )
+
+
+# ── Visual polish (CSS injection) ────────────────────────────────────────────
+#
+# Streamlit's default styling is functional but cramped; the result list is the
+# load-bearing surface so it gets the most attention. We keep the rules
+# attribute-selector-based and avoid Streamlit's auto-generated class names —
+# the data-testid hooks are stable across releases.
+_CUSTOM_CSS = """
+<style>
+    /* Tighten top padding and constrain content width for readability. */
+    .block-container {
+        padding-top: 2.5rem !important;
+        padding-bottom: 4rem !important;
+        max-width: 880px;
+    }
+
+    /* Hero block */
+    .tm-hero {
+        margin-bottom: 1.5rem;
+    }
+    .tm-hero h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        letter-spacing: -0.025em;
+        margin: 0 0 0.35rem 0;
+        line-height: 1.1;
+    }
+    .tm-hero p {
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 1.02rem;
+        margin: 0;
+    }
+
+    /* Section label (uppercase, muted) */
+    .tm-section-label {
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 0.72rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin: 1.25rem 0 0.5rem 0;
+    }
+
+    /* Suggestion chips — make Streamlit buttons look like pills. */
+    div[data-testid="stHorizontalBlock"] div[data-testid="stButton"] > button {
+        border-radius: 999px !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        background: rgba(255, 255, 255, 0.025) !important;
+        padding: 0.35rem 0.95rem !important;
+        font-size: 0.86rem !important;
+        font-weight: 400 !important;
+        color: rgba(255, 255, 255, 0.82) !important;
+        transition: all 0.12s ease !important;
+        white-space: nowrap;
+    }
+    div[data-testid="stHorizontalBlock"] div[data-testid="stButton"] > button:hover {
+        background: rgba(255, 255, 255, 0.07) !important;
+        border-color: rgba(255, 255, 255, 0.28) !important;
+        color: white !important;
+    }
+
+    /* Primary search button — slightly bigger, weighted */
+    div[data-testid="stFormSubmitButton"] button {
+        border-radius: 10px !important;
+        font-weight: 600 !important;
+        padding: 0.55rem 1.2rem !important;
+    }
+
+    /* Result cards (st.container(border=True)) */
+    div[data-testid="stVerticalBlockBorderWrapper"] {
+        border-radius: 12px !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        background: rgba(255, 255, 255, 0.015);
+        transition: border-color 0.15s ease, background 0.15s ease;
+    }
+    div[data-testid="stVerticalBlockBorderWrapper"]:hover {
+        border-color: rgba(255, 255, 255, 0.18) !important;
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    /* Custom badge styles (rendered inline via st.markdown) */
+    .tm-badge {
+        display: inline-block;
+        padding: 0.18rem 0.6rem;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        margin-right: 0.4rem;
+        white-space: nowrap;
+        letter-spacing: 0.01em;
+    }
+    .tm-badge-recruiting {
+        background: rgba(34, 197, 94, 0.15);
+        color: #4ade80;
+        border: 1px solid rgba(34, 197, 94, 0.25);
+    }
+    .tm-badge-active {
+        background: rgba(234, 179, 8, 0.15);
+        color: #facc15;
+        border: 1px solid rgba(234, 179, 8, 0.25);
+    }
+    .tm-badge-completed {
+        background: rgba(148, 163, 184, 0.12);
+        color: #cbd5e1;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+    }
+    .tm-badge-stopped {
+        background: rgba(239, 68, 68, 0.12);
+        color: #f87171;
+        border: 1px solid rgba(239, 68, 68, 0.25);
+    }
+    .tm-badge-phase {
+        background: rgba(99, 102, 241, 0.12);
+        color: #a5b4fc;
+        border: 1px solid rgba(99, 102, 241, 0.25);
+    }
+    .tm-badge-met {
+        background: rgba(34, 197, 94, 0.15);
+        color: #4ade80;
+        border: 1px solid rgba(34, 197, 94, 0.25);
+    }
+    .tm-badge-unmet {
+        background: rgba(239, 68, 68, 0.12);
+        color: #f87171;
+        border: 1px solid rgba(239, 68, 68, 0.25);
+    }
+    .tm-badge-unknown {
+        background: rgba(148, 163, 184, 0.12);
+        color: #cbd5e1;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+    }
+    .tm-badge-match-top {
+        background: rgba(168, 85, 247, 0.14);
+        color: #d8b4fe;
+        border: 1px solid rgba(168, 85, 247, 0.28);
+    }
+    .tm-badge-match-good {
+        background: rgba(99, 102, 241, 0.12);
+        color: #a5b4fc;
+        border: 1px solid rgba(99, 102, 241, 0.22);
+    }
+    .tm-badge-match-fair {
+        background: rgba(148, 163, 184, 0.12);
+        color: #cbd5e1;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+    }
+
+    /* Condition chips — subtler than the badges */
+    .tm-chip {
+        display: inline-block;
+        padding: 0.15rem 0.55rem;
+        margin: 0.15rem 0.25rem 0.15rem 0;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.07);
+        border-radius: 5px;
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    /* Card title link */
+    .tm-card-title a {
+        color: white;
+        text-decoration: none;
+        font-weight: 600;
+    }
+    .tm-card-title a:hover {
+        text-decoration: underline;
+        text-decoration-color: rgba(255,255,255,0.4);
+    }
+
+    /* Card metadata row (NCT + rank) */
+    .tm-card-meta {
+        color: rgba(255, 255, 255, 0.45);
+        font-size: 0.78rem;
+        font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+        margin: 0.15rem 0 0.6rem 0;
+    }
+
+    /* Patient profile callout */
+    .tm-profile-card {
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(168, 85, 247, 0.05));
+        border: 1px solid rgba(99, 102, 241, 0.18);
+        border-radius: 10px;
+        padding: 0.85rem 1.1rem;
+        margin: 0.5rem 0 1rem 0;
+    }
+    .tm-profile-card .tm-profile-label {
+        color: rgba(255, 255, 255, 0.55);
+        font-size: 0.78rem;
+        margin-bottom: 0.45rem;
+        font-weight: 500;
+    }
+    .tm-profile-card .tm-profile-slot {
+        display: inline-block;
+        margin-right: 1.2rem;
+        font-size: 0.9rem;
+    }
+    .tm-profile-card .tm-profile-slot strong {
+        color: rgba(255, 255, 255, 0.55);
+        font-weight: 500;
+        margin-right: 0.3rem;
+    }
+
+    /* Hide Streamlit's default "Made with Streamlit" footer + main menu */
+    [data-testid="stToolbar"] { display: none; }
+    footer { visibility: hidden; height: 0; }
+    #MainMenu { visibility: hidden; }
+
+    /* Sidebar polish */
+    [data-testid="stSidebar"] {
+        background: rgba(0, 0, 0, 0.15);
+    }
+    [data-testid="stSidebar"] h2 {
+        font-size: 1.0rem;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        margin-bottom: 0.5rem;
+    }
+
+    /* Disclaimer at bottom */
+    .tm-disclaimer {
+        margin-top: 3rem;
+        padding: 0.85rem 1rem;
+        background: rgba(239, 68, 68, 0.04);
+        border-left: 3px solid rgba(239, 68, 68, 0.35);
+        border-radius: 4px;
+        font-size: 0.78rem;
+        color: rgba(255, 255, 255, 0.55);
+        line-height: 1.5;
+    }
+
+    /* Empty state */
+    .tm-empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: rgba(255, 255, 255, 0.55);
+    }
+    .tm-empty-state .tm-empty-icon {
+        font-size: 2.5rem;
+        margin-bottom: 0.6rem;
+        opacity: 0.6;
+    }
+</style>
+"""
+st.markdown(_CUSTOM_CSS, unsafe_allow_html=True)
+
+
+# Map ES status strings → CSS modifier suffix on `.tm-badge-*`.
+_STATUS_BADGE_CLASS: dict[str, str] = {
+    "RECRUITING": "recruiting",
+    "ACTIVE_NOT_RECRUITING": "active",
+    "NOT_YET_RECRUITING": "active",
+    "ENROLLING_BY_INVITATION": "active",
+    "AVAILABLE": "recruiting",
+    "COMPLETED": "completed",
+    "TERMINATED": "stopped",
+    "WITHDRAWN": "stopped",
+    "SUSPENDED": "stopped",
+}
+
+
+def _match_label(idx: int, total: int) -> tuple[str, str]:
+    """Honest rank-based match label. Replaces the misleading 'Match 100%'
+    with semantic tiers — top-3 = 'Top match', next 30 % = 'Strong match',
+    next 40 % = 'Good match', tail = 'Moderate match'. Returns
+    (label_text, css_class_suffix)."""
+    if idx == 0:
+        return ("Top match", "top")
+    pct = (idx + 1) / max(total, 1)
+    if pct <= 0.3:
+        return ("Strong match", "top")
+    if pct <= 0.7:
+        return ("Good match", "good")
+    return ("Moderate match", "fair")
 
 
 # ── Session state ────────────────────────────────────────────────────────────
@@ -248,51 +524,77 @@ def _render_full_details(r: dict) -> None:
 
 def _render_card(r: dict, idx: int, total: int) -> None:
     with st.container(border=True):
-        # Header row: title + match score
-        head_l, head_r = st.columns([4, 1])
-        with head_l:
-            title = r.get("title") or "(untitled)"
-            url = r.get("url")
-            if url:
-                st.markdown(f"#### [{title}]({url})")
-            else:
-                st.markdown(f"#### {title}")
-            st.caption(f"`{r.get('nct_id', '')}` &nbsp; · &nbsp; rank #{idx + 1}")
+        # ── Top badges row: match tier, status, phase, eligibility verdict ──
+        badge_parts: list[str] = []
 
-        with head_r:
-            pct = _match_score(idx, total)
-            st.progress(pct, text=f"Match {pct:.0%}")
+        # Match tier (honest semantic label, not a fake %)
+        match_text, match_class = _match_label(idx, total)
+        badge_parts.append(
+            f'<span class="tm-badge tm-badge-match-{match_class}">{match_text}</span>'
+        )
 
-        # Status + phase badges
-        badges: list[str] = []
-        if r.get("status"):
-            badges.append(_status_pill(r["status"]))
+        # Status — color-coded, glanceable
+        status = (r.get("status") or "").upper()
+        if status:
+            cls = _STATUS_BADGE_CLASS.get(status, "completed")
+            label = STATUS_DISPLAY.get(status, ("⚪", "gray", status.title()))[2]
+            badge_parts.append(f'<span class="tm-badge tm-badge-{cls}">{label}</span>')
+
+        # Phase
         if r.get("phase"):
-            badges.append(_phase_pill(r["phase"]))
-        if badges:
-            st.markdown(" &nbsp;|&nbsp; ".join(badges))
+            badge_parts.append(f'<span class="tm-badge tm-badge-phase">{r["phase"]}</span>')
 
-        # Condition chips
-        chips = _condition_chips(r.get("conditions") or [])
-        if chips:
-            st.markdown(chips)
+        # Eligibility verdict — only when the agent path computed one
+        elig = r.get("eligibility") or {}
+        verdict = elig.get("verdict") if isinstance(elig, dict) else None
+        if verdict in ("Met", "Unmet", "Unknown"):
+            cls = {"Met": "met", "Unmet": "unmet", "Unknown": "unknown"}[verdict]
+            icon = VERDICT_ICON[verdict]
+            badge_parts.append(
+                f'<span class="tm-badge tm-badge-{cls}">{icon} Eligibility: {verdict}</span>'
+            )
 
-        # Warnings (skip "fallback path" — already shown as a top-level banner)
+        st.markdown("".join(badge_parts), unsafe_allow_html=True)
+
+        # ── Title (linked when URL present) + metadata row ──
+        title = r.get("title") or "(untitled)"
+        url = r.get("url")
+        if url:
+            title_html = (
+                f'<div class="tm-card-title"><a href="{url}" target="_blank">{title}</a></div>'
+            )
+        else:
+            title_html = f'<div class="tm-card-title"><span>{title}</span></div>'
+        st.markdown(title_html, unsafe_allow_html=True)
+
+        nct = r.get("nct_id", "")
+        st.markdown(
+            f'<div class="tm-card-meta">{nct} &nbsp;·&nbsp; rank #{idx + 1} of {total}</div>',
+            unsafe_allow_html=True,
+        )
+
+        # ── Condition chips ──
+        conditions = r.get("conditions") or []
+        if conditions:
+            chips_html = "".join(f'<span class="tm-chip">{c}</span>' for c in conditions[:6])
+            st.markdown(chips_html, unsafe_allow_html=True)
+
+        # ── Warnings (skip "fallback path" — already a top-level banner) ──
         for w in r.get("warnings") or []:
             if w == "fallback path":
                 continue
             st.warning(f"⚠️ {w}")
 
-        # Expandables
+        # ── Expandables ──
         if r.get("explanation"):
-            with st.expander("🤖 Why this matches"):
+            with st.expander("Why this matches"):
                 st.write(r["explanation"])
 
         if r.get("eligibility") is not None:
-            with st.expander("📋 Eligibility details"):
+            with st.expander("Eligibility breakdown"):
                 _render_eligibility(r["eligibility"])
 
-        with st.expander("📄 Full details"):
+        with st.expander("Full trial details"):
             _render_full_details(r)
 
 
@@ -396,23 +698,30 @@ def _trace_durations(trace: list[dict]) -> dict[str, float]:
 # ── Sidebar ──────────────────────────────────────────────────────────────────
 
 with st.sidebar:
-    st.markdown("## ⚙️ Settings")
+    st.markdown("## Settings")
+    st.caption("Configure how trials are retrieved and ranked.")
 
     use_agent = st.toggle(
-        "🤖 Use AI Agent",
+        "AI Agent",
         value=True,
         help=(
-            "When **on**, an LLM extracts patient details from natural language and "
-            "the system applies smart filters + per-trial eligibility checking. "
-            "When **off**, runs plain BM25 + semantic hybrid search."
+            "**On**: an LLM extracts patient details from natural language, applies "
+            "smart filters, and runs per-trial eligibility checks. "
+            "**Off**: plain BM25 + semantic hybrid search."
         ),
     )
 
     if use_agent:
-        st.caption("AI agent infers status / phase filters from your query.")
+        st.caption(
+            ":violet[The AI infers status and phase from your query — no manual filtering needed.]"
+        )
         status_filter = "Any"
         phase_filter = "Any"
     else:
+        st.markdown(
+            '<div class="tm-section-label" style="margin-top:1rem;">Manual filters</div>',
+            unsafe_allow_html=True,
+        )
         status_filter = st.selectbox(
             "Status",
             ["Any", "RECRUITING", "ACTIVE_NOT_RECRUITING", "NOT_YET_RECRUITING", "COMPLETED"],
@@ -431,13 +740,22 @@ with st.sidebar:
             ],
         )
 
-    top_k = st.slider("Max results", min_value=5, max_value=50, value=20, step=5)
+    st.markdown(
+        '<div class="tm-section-label" style="margin-top:1rem;">Result count</div>',
+        unsafe_allow_html=True,
+    )
+    top_k = st.slider(
+        "Max results", min_value=5, max_value=50, value=20, step=5, label_visibility="collapsed"
+    )
 
     # Stats — only after a successful search
     if st.session_state.results:
         data = st.session_state.results
         st.markdown("---")
-        st.markdown("## 📊 Stats")
+        st.markdown(
+            '<div class="tm-section-label" style="margin-top:0;">Search statistics</div>',
+            unsafe_allow_html=True,
+        )
 
         n = data.get("total", 0)
         elapsed_s = (data.get("search_time_ms") or 0) / 1000.0
@@ -473,14 +791,22 @@ with st.sidebar:
                 st.caption(" · ".join(parts))
 
         if trace:
-            with st.expander("🔍 Agent reasoning"):
+            with st.expander("Agent reasoning trace"):
                 _render_agent_trace(trace)
 
 
 # ── Main: header ─────────────────────────────────────────────────────────────
 
-st.markdown("# 🔬 TrialMine — Find Clinical Trials With AI")
-st.markdown("##### Describe your situation in plain language")
+st.markdown(
+    """
+    <div class="tm-hero">
+        <h1>🔬 TrialMine</h1>
+        <p>AI-powered clinical trial search for oncology.
+           Describe your situation in plain language.</p>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 
 # ── Main: search bar + examples ──────────────────────────────────────────────
@@ -500,17 +826,19 @@ def _trigger_example(example: str) -> None:
 with st.form("search_form", clear_on_submit=False):
     st.text_input(
         "Your search",
-        placeholder="Example: I'm 55 with stage 3 lung cancer who has tried chemo...",
+        placeholder=(
+            "e.g.  I'm 55 with stage 3 lung cancer who has tried chemo and want a phase 2 trial"
+        ),
         label_visibility="collapsed",
         key="search_input",
     )
     st.form_submit_button(
-        "🔍 Search",
+        "Search trials",
         type="primary",
         on_click=_trigger_form,
     )
 
-st.markdown("**Try an example:**")
+st.markdown('<div class="tm-section-label">Or try an example</div>', unsafe_allow_html=True)
 ex_cols = st.columns(len(EXAMPLE_QUERIES))
 for i, ex in enumerate(EXAMPLE_QUERIES):
     ex_cols[i].button(
@@ -560,13 +888,23 @@ elif st.session_state.results:
     elapsed_s = (data.get("search_time_ms") or 0) / 1000.0
     n = len(results)
     qtext = data.get("query", "")
+    plural = "s" if n != 1 else ""
     st.markdown(
-        f"### {n} trial{'s' if n != 1 else ''} found"
-        f" &nbsp; *for «{qtext}»*"
-        f" &nbsp; · &nbsp; {elapsed_s:.1f} s"
+        f"""
+        <div style="margin: 1.5rem 0 0.25rem 0;">
+            <span style="font-size: 1.3rem; font-weight: 600;">
+                {n} trial{plural} found
+            </span>
+            <span style="color: rgba(255,255,255,0.45); font-size: 0.9rem;
+                         margin-left: 0.6rem;">
+                for &ldquo;{qtext}&rdquo; &nbsp;·&nbsp; {elapsed_s:.1f} s
+            </span>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
-    # Patient profile summary (agent path only)
+    # ── Patient profile callout (agent path only) ──
     profile = data.get("patient_profile") or {}
     profile_keys = (
         "condition",
@@ -579,24 +917,35 @@ elif st.session_state.results:
         "location",
     )
     if any(profile.get(k) for k in profile_keys):
-        with st.container(border=True):
-            st.markdown("**🧠 Here's what I understood from your query:**")
-            chips: list[str] = []
-            if profile.get("condition"):
-                chips.append(f"**Condition:** {profile['condition']}")
-            if profile.get("condition_stage"):
-                chips.append(f"**Stage:** {profile['condition_stage']}")
-            if profile.get("age") is not None:
-                chips.append(f"**Age:** {profile['age']}")
-            if profile.get("sex"):
-                chips.append(f"**Sex:** {profile['sex']}")
-            if profile.get("biomarkers"):
-                chips.append(f"**Biomarkers:** {', '.join(profile['biomarkers'])}")
-            if profile.get("prior_treatments"):
-                chips.append(f"**Prior treatments:** {', '.join(profile['prior_treatments'])}")
-            if profile.get("location"):
-                chips.append(f"**Location:** {profile['location']}")
-            st.markdown(" &nbsp; · &nbsp; ".join(chips))
+        slot_pairs: list[tuple[str, str]] = []
+        if profile.get("condition"):
+            slot_pairs.append(("Condition", str(profile["condition"])))
+        if profile.get("condition_stage"):
+            slot_pairs.append(("Stage", str(profile["condition_stage"])))
+        if profile.get("age") is not None:
+            slot_pairs.append(("Age", str(profile["age"])))
+        if profile.get("sex"):
+            slot_pairs.append(("Sex", str(profile["sex"])))
+        if profile.get("biomarkers"):
+            slot_pairs.append(("Biomarkers", ", ".join(profile["biomarkers"])))
+        if profile.get("prior_treatments"):
+            slot_pairs.append(("Prior treatments", ", ".join(profile["prior_treatments"])))
+        if profile.get("location"):
+            slot_pairs.append(("Location", str(profile["location"])))
+
+        slot_html = "".join(
+            f'<span class="tm-profile-slot"><strong>{label}</strong>{value}</span>'
+            for label, value in slot_pairs
+        )
+        st.markdown(
+            f"""
+            <div class="tm-profile-card">
+                <div class="tm-profile-label">🧠 What I understood from your query</div>
+                <div>{slot_html}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
     # Status banners
     if data.get("used_fallback"):
@@ -619,19 +968,36 @@ elif st.session_state.results:
             _render_card(r, i, n)
 
 else:
-    st.info(
-        "👆 **Type your situation above** or click an example to get started. "
-        "TrialMine searches 140K+ oncology trials and explains why each one might match."
+    st.markdown(
+        """
+        <div class="tm-empty-state">
+            <div class="tm-empty-icon">🩺</div>
+            <div style="font-size: 1.05rem; color: rgba(255,255,255,0.75); margin-bottom: 0.3rem;">
+                Search 140,000+ oncology trials with AI assistance
+            </div>
+            <div style="font-size: 0.88rem;">
+                Type your situation above or pick an example to get started.
+                The AI parses your query, applies smart filters, and explains
+                why each trial might match.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
 
 # ── Footer ───────────────────────────────────────────────────────────────────
 
-st.divider()
-st.caption(
-    "⚠️ **Research tool only — not medical advice.** Results are AI-generated "
-    "and may be incomplete or inaccurate. Always consult your healthcare "
-    "provider or a clinical trial navigator before making medical decisions."
+st.markdown(
+    """
+    <div class="tm-disclaimer">
+        <strong>⚠️ Research tool only — not medical advice.</strong>
+        Results are AI-generated and may be incomplete or inaccurate. Always consult
+        your healthcare provider or a clinical trial navigator before making medical
+        decisions.
+    </div>
+    """,
+    unsafe_allow_html=True,
 )
 
 
