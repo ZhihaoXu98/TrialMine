@@ -61,7 +61,7 @@ VERDICT_ICON = {"Met": "✅", "Unmet": "❌", "Unknown": "❓"}
 
 # ── Page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="TrialMine — AI Clinical Trial Search",
+    page_title="TrialMine — Find oncology trials that fit",
     page_icon="🔬",
     layout="centered",  # narrower column reads better for cards
     initial_sidebar_state="expanded",
@@ -85,19 +85,29 @@ _CUSTOM_CSS = """
 
     /* Hero block */
     .tm-hero {
-        margin-bottom: 1.5rem;
+        margin-bottom: 1.75rem;
+    }
+    .tm-hero-wordmark {
+        font-size: 0.95rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        color: rgba(255, 255, 255, 0.65);
+        margin-bottom: 0.85rem;
     }
     .tm-hero h1 {
-        font-size: 2.5rem;
+        font-size: 2.35rem;
         font-weight: 700;
         letter-spacing: -0.025em;
-        margin: 0 0 0.35rem 0;
-        line-height: 1.1;
+        margin: 0 0 0.55rem 0;
+        line-height: 1.12;
+        color: white;
     }
     .tm-hero p {
-        color: rgba(255, 255, 255, 0.6);
-        font-size: 1.02rem;
+        color: rgba(255, 255, 255, 0.55);
+        font-size: 1.05rem;
         margin: 0;
+        line-height: 1.5;
+        max-width: 38rem;
     }
 
     /* Section label (uppercase, muted) */
@@ -587,14 +597,14 @@ def _render_card(r: dict, idx: int, total: int) -> None:
 
         # ── Expandables ──
         if r.get("explanation"):
-            with st.expander("Why this matches"):
+            with st.expander("Why this trial might fit"):
                 st.write(r["explanation"])
 
         if r.get("eligibility") is not None:
-            with st.expander("Eligibility breakdown"):
+            with st.expander("Eligibility check, line by line"):
                 _render_eligibility(r["eligibility"])
 
-        with st.expander("Full trial details"):
+        with st.expander("All trial details"):
             _render_full_details(r)
 
 
@@ -698,22 +708,23 @@ def _trace_durations(trace: list[dict]) -> dict[str, float]:
 # ── Sidebar ──────────────────────────────────────────────────────────────────
 
 with st.sidebar:
-    st.markdown("## Settings")
-    st.caption("Configure how trials are retrieved and ranked.")
+    st.markdown("## Search controls")
+    st.caption("Tune how trials are retrieved and ranked.")
 
     use_agent = st.toggle(
-        "AI Agent",
+        "Smart matching",
         value=True,
         help=(
-            "**On**: an LLM extracts patient details from natural language, applies "
-            "smart filters, and runs per-trial eligibility checks. "
-            "**Off**: plain BM25 + semantic hybrid search."
+            "**On**: an LLM reads your query, extracts patient details, infers "
+            "filters, and runs per-trial eligibility checks. "
+            "**Off**: plain BM25 + semantic hybrid search with no AI layer."
         ),
     )
 
     if use_agent:
         st.caption(
-            ":violet[The AI infers status and phase from your query — no manual filtering needed.]"
+            ":violet[The AI infers status & phase from your query "
+            "&mdash; no manual filtering needed.]"
         )
         status_filter = "Any"
         phase_filter = "Any"
@@ -800,9 +811,10 @@ with st.sidebar:
 st.markdown(
     """
     <div class="tm-hero">
-        <h1>🔬 TrialMine</h1>
-        <p>AI-powered clinical trial search for oncology.
-           Describe your situation in plain language.</p>
+        <div class="tm-hero-wordmark">🔬 TrialMine</div>
+        <h1>Find oncology trials that fit your situation.</h1>
+        <p>Describe your case in plain language &mdash; we read 140,000 trials
+           so you don't have to.</p>
     </div>
     """,
     unsafe_allow_html=True,
@@ -940,7 +952,9 @@ elif st.session_state.results:
         st.markdown(
             f"""
             <div class="tm-profile-card">
-                <div class="tm-profile-label">🧠 What I understood from your query</div>
+                <div class="tm-profile-label">
+                    🧠 Here's what I pulled from your description
+                </div>
                 <div>{slot_html}</div>
             </div>
             """,
@@ -972,13 +986,14 @@ else:
         """
         <div class="tm-empty-state">
             <div class="tm-empty-icon">🩺</div>
-            <div style="font-size: 1.05rem; color: rgba(255,255,255,0.75); margin-bottom: 0.3rem;">
-                Search 140,000+ oncology trials with AI assistance
+            <div style="font-size: 1.1rem; color: rgba(255,255,255,0.85);
+                        margin-bottom: 0.5rem; font-weight: 500;">
+                Ready when you are.
             </div>
-            <div style="font-size: 0.88rem;">
-                Type your situation above or pick an example to get started.
-                The AI parses your query, applies smart filters, and explains
-                why each trial might match.
+            <div style="font-size: 0.9rem; max-width: 28rem; margin: 0 auto;">
+                The AI reads your description, extracts age, biomarkers,
+                prior treatments &mdash; and surfaces trials that match.
+                Try one of the examples above to see it work.
             </div>
         </div>
         """,
@@ -991,10 +1006,10 @@ else:
 st.markdown(
     """
     <div class="tm-disclaimer">
-        <strong>⚠️ Research tool only — not medical advice.</strong>
-        Results are AI-generated and may be incomplete or inaccurate. Always consult
-        your healthcare provider or a clinical trial navigator before making medical
-        decisions.
+        <strong>Research tool, not medical advice.</strong>
+        Results are AI-generated and may miss or misrank relevant trials.
+        Always confirm with your oncologist or a clinical-trial navigator
+        before acting on anything you see here.
     </div>
     """,
     unsafe_allow_html=True,
