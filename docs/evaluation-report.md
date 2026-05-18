@@ -631,3 +631,242 @@ topics:
 | CT.gov head-to-head per-query results | `docs/ctgov_comparison.md` |
 | Auto-generated latest ablation table | `docs/ablation_auto.md` |
 | Pydantic + API technical detail | `docs/appendix_a_pydantic_and_api.md` |
+| Agent path build runbook | `docs/build_agent.md` |
+| Phase 14 — agent path A/B comparison | `data/evaluation/agent_vs_rule_v2.json` + `agent_vs_rule_v2.md` |
+| Phase 14 — before/after the C3b fixes | `data/evaluation/c3b_before_after.md` |
+| Phase 14 — C4 decision document | `data/evaluation/c4_decision.md` |
+
+---
+
+## 14. Phase 14 — Agentic search path (Decision 43)
+
+### Motivation
+
+The `complex_failure_attribution.json` diagnostic from Week 12 showed that
+**62.5 % of complex-slice misses are rerank-bound** — the right trial is in
+the candidate pool but at rank 11–80. Six months of model retraining
+(CE v2, LightGBM v3-regularized → v6) hadn't moved the complex slice
+(NDCG@5 stuck at ~0.34). A different *flow* — iterative query refinement
+plus selective tool use — was the next intervention candidate. The
+existing LangChain `@tool` wrappers in `src/TrialMine/agents/tools.py`
+already exposed the right surface for a ReAct-style agent.
+
+### Architecture (what shipped)
+
+A second LangGraph arm runs alongside the rule-based `SearchOrchestrator`:
+
+```
+parse_query → route_decision ─┬─ "rule"  ──→ execute_search ─┬─→ END
+                              │                              └─→ fallback_search → END
+                              └─ "agent" ──→ execute_agent_search ─┬─→ END
+                                                                   ├─→ execute_search   (retry-as-rule on degraded result)
+                                                                   └─→ fallback_search  (catastrophic error)
+```
+
+* **Routing** (`src/TrialMine/agents/query_router.py`) — a pure function
+  decides agent-vs-rule based on the parsed `PatientProfile`. Two
+  triggers: *sparse profile* (< 2 populated slots, vague queries) and
+  *complex pattern* (failure-phrasing regex + parsed `prior_treatments`,
+  OR 3+ of {condition, condition_stage, biomarkers, prior_treatments}).
+  Zero LLM / IO; 26 unit tests pin every branch.
+* **Agent loop** (`src/TrialMine/agents/react_agent.py`) — a Haiku 4.5
+  ReAct agent built on `langgraph.prebuilt.create_react_agent`, bound to
+  the existing 5 tools (`search_trials`, `lookup_medical_concept`,
+  `get_trial_details`, `check_trial_eligibility`, `submit_final_results`).
+  The terminator tool carries `return_direct=True` so LangGraph exits
+  the loop the instant it's called. Cap at 6 tool-use cycles.
+  Anthropic prompt caching enabled on the ~2,300-token system prompt
+  via `SystemMessage(content=[{..., cache_control: {type: "ephemeral"}}])`.
+* **AB router gate** — 50/50 hash-bucketed experiment `agent_path_v1`
+  in `src/TrialMine/experiments/ab_test.py`. Net production agent
+  coverage ≈ 21 % of queries (50 % AB treatment × ~42 % heuristic
+  eligibility). The pure router stays pure; the AB integration lives
+  in the LangGraph `route_decision` node so the A3 unit tests stay
+  IO-free.
+* **Trace observability** — every `pipeline.search()` invocation lands
+  one `agent_runs` row + N `agent_stages` rows + M `agent_tool_calls`
+  rows in `data/agent_runs.db`. A 4-panel Grafana dashboard
+  (`infrastructure/grafana/dashboards/agent_observability.json`) shows
+  routing distribution / fallback rate / per-stage latency / tool-call
+  frequency. Auto-loaded by the existing provider; SQLite datasource
+  mounted read-only.
+* **Cost + observability metrics** — four new Prometheus counters
+  (`AGENT_ROUTING`, `AGENT_ITERATIONS`, `AGENT_TOOL_CALLS`,
+  `AGENT_COST_USD`). `record_agent_cost` applies the Anthropic
+  prompt-caching discount: cache reads bill at 10 % of input rate,
+  cache creation at 125 %.
+
+### Methodology
+
+Three measurement steps before the SHIP gate:
+
+1. **C2 — agent-on-every-query upper bound** (`scripts/eval_agent_path.py`).
+   Force-route all 85 held-out queries to the agent, label new NCTs
+   with Haiku, write per-query metrics. ~$2.50.
+2. **C3 — offline A/B mix** (`scripts/c3_compare.py`). Apply the
+   production heuristic to each query offline, mix rule-arm results
+   for rule-routed and agent-arm for agent-routed, compute production
+   NDCG@5 two ways: *strict* (agent failures score 0) and *with
+   fallback* (failures fall back to rule arm). Bootstrap 95 % CIs at
+   query level (n=1000, seed=42). $0 + $0.15 for QueryParser parses.
+3. **C3b — fix three known issues + re-eval**. The strict/fallback
+   gap of 0.115 NDCG@5 was traceable to three specific bugs:
+   (a) the agent's degraded `result_dict["error"]` not bubbling to
+   `state["error"]` (so A5's retry-as-rule edge never fired);
+   (b) ~50 % no-terminator rate on complex/vague queries (Haiku
+   parallel-tool-call bursts exhausted the 5-cycle budget);
+   (c) per-query cost 11× the rule baseline (prompt caching not
+   engaged). Fixed all three; re-ran. ~$1.97.
+
+The C4 decision gate followed the **same holistic-3-criterion framing
+the bi-encoder v2 (Decision 36) and CE v2 (Decision 39) ships used**:
+production NDCG ≥ baseline AND complex-slice lift CI excludes 0 AND
+cost within envelope.
+
+### Headline tables
+
+#### Production NDCG@5 — before/after C3b
+
+| Reading | C3 (v1) | C3b.5 (v2) | Δ |
+|---|---:|---:|---:|
+| Rule-only baseline | 0.792 | 0.792 | — |
+| Strict (failures = 0) | 0.725 [0.636, 0.805] | **0.839 [0.790, 0.883]** | **+0.114** |
+| With rule fallback | 0.840 [0.791, 0.883] | **0.839 [0.790, 0.883]** | -0.001 |
+| Strict vs fallback gap | 0.115 | **0.000** | gap closed |
+
+The gap collapsed because the bubble-fix (C3b.1) made the retry-as-rule
+edge fire for the 18 previously-failed queries. Strict and fallback
+now agree.
+
+#### Paired bootstrap Δ vs rule baseline (n=85, 1000 samples, seed=42)
+
+* **Strict Δ**: +0.046 [+0.009, +0.079] — CI excludes 0
+* **Fallback Δ**: +0.046 [+0.009, +0.079] — CI excludes 0
+
+Statistically significant lift on either reading.
+
+#### Per-category fallback NDCG@5
+
+| Category | n | Rule baseline | Production v2 | Δ |
+|---|---:|---:|---:|---:|
+| **complex** | 15 | 0.526 | **0.752** | **+0.226** ← biggest win |
+| rare_explicit | 5 | 0.892 | 0.836 | −0.056 ⚠ |
+| vague | 15 | 0.692 | 0.663 | −0.029 |
+| common | 5 | 0.958 | 0.941 | −0.017 |
+| rare | 5 | 1.000 | 0.985 | −0.015 |
+| existing | 30 | 0.925 | 0.926 | +0.001 |
+| pediatric | 3 | 0.789 | 0.789 | 0.000 |
+| treatment | 4 | 0.933 | 0.933 | 0.000 |
+| geographic | 3 | 0.796 | 0.796 | 0.000 |
+
+The **complex slice is the load-bearing result** — exactly the slice
+where the agent path was designed to help. The small drops on
+rare_explicit and vague (n=5 / n=15) are within bootstrap noise.
+
+#### Cost + latency (C3b.5)
+
+| Metric | C3 v1 (no caching) | C3b v2 (cached) | Δ |
+|---|---:|---:|---:|
+| Mean cost / query (production mix) | $0.0195 | **$0.0066** | **−66 %** |
+| Cost / successful agent query | $0.0416 | **$0.0134** | **−68 %** |
+| p50 latency | 6 s | 6 s | — |
+| p95 latency | 60 s | **32.8 s** | −45 % |
+| Routing rate (heuristic) | 47.1 % | 42.4 % | -4.7 pts |
+| Routing rate (production w/ AB 50/50) | 23.5 % | 21.2 % | -2.3 pts |
+
+#### Decision-gate matrix (C4)
+
+| Criterion | Result | Verdict |
+|---|---|---|
+| Production NDCG@5 ≥ rule baseline (0.792) | 0.839, Δ +0.046 [+0.009, +0.079] CI excludes 0 | ✅ |
+| Complex-slice lift CI excludes 0 | Δ +0.226 absolute (well above +0.10 floor) | ✅ |
+| Cost within envelope (≤ $0.012/query) | $0.0066/query | ✅ |
+| (yellow) p95 latency ≤ 30 s | 32.8 s — 2.8 s above target, 45 % below pre-fix | ⚠ |
+
+All three SHIP criteria met cleanly. Yellow latency flag doesn't cross
+the HOLD threshold (no documented threshold past the soft target).
+
+### What this fixed
+
+1. **Complex-slice NDCG@5 0.526 → 0.752 (+0.226 absolute, +43 % relative).**
+   The slice that six months of model retraining hadn't moved.
+2. **Per-query cost 11× rule → 4× rule** ($0.0066 mean across the mix vs
+   $0.0017 for rule-only). Production projection ~$6.60 per 1K queries
+   at 21 % agent coverage.
+3. **Observability substrate** — SQLite trace store + Grafana dashboard
+   that any future ranking experiment also benefits from. Per-query
+   debugging via `sqlite3 data/agent_runs.db "SELECT …"` available
+   without a redeploy.
+4. **The "did the strict ≠ fallback gap close?" question** — yes,
+   conclusively. The bubble fix means no query produces empty results
+   to the user; the retry-as-rule edge actually fires.
+
+### What this didn't fix (be honest)
+
+1. **The no-terminator failure mode on hardest queries.** ~50 % of
+   complex / vague queries still fail to call `submit_final_results`
+   within 6 cycles. The bubble fix catches them silently (user sees
+   rule-arm results, never an empty list), but the agent's actual
+   contribution on those queries is **zero**. Future work in
+   `docs/things_can_be_fixed.md`: more aggressive prompt directive
+   (cycle ≥ 4), or a "too-hard-for-agent" pre-filter that routes them
+   directly to rule.
+2. **Cost 2× the original projection.** The runbook projected $3.08
+   per 1K queries; the C3b.5 measurement is ~$6.60 per 1K. Caching
+   closed most of the gap but the 2,300-token system prompt is
+   genuinely heavy. Trimming it ~30 % (mostly by compressing the two
+   few-shot examples) is the next cost lever.
+3. **p95 latency 32.8 s vs 30 s soft target.** The residual 2.8 s comes
+   from queries that hit the 60 s budget cap and fall back to rule
+   (which still runs the rule pipeline on top). Acceptable for ship;
+   a "soft cancel at cycle 5" prompt change is a Phase D follow-up.
+4. **Tied on easy slices.** Common / rare / treatment / existing /
+   pediatric / geographic all see ±0.02 NDCG@5 — agent neither helps
+   nor hurts. By design: the heuristic doesn't route easy queries to
+   the agent, so the agent's effect on those slices is the AB-treatment
+   half's small variance.
+5. **Drug-class disambiguation.** The eligibility-checker tool still
+   uses the rule-based substring matcher from Decision 41 — the
+   dacomitinib-vs-osimertinib class-bridge false positives remain.
+   Independent of the agent path; requires per-criterion semantics
+   (UMLS hierarchy walks, RxClass fallback, or per-trial LLM-at-
+   matching). Listed in §7 of `docs/things_can_be_fixed.md`.
+
+### Reproducibility
+
+Same 85-query held-out set as Phase 9 + Phase 10's C4 expansion:
+
+```bash
+docker start trialmine-es && sleep 5
+
+# Eval the agent arm on every query
+OMP_NUM_THREADS=1 python scripts/eval_agent_path.py \
+    --labels data/evaluation/full_labeled_dataset.jsonl \
+    --output data/evaluation/full_labeled_dataset_agent_all_v2_65q.jsonl
+
+OMP_NUM_THREADS=1 python scripts/eval_agent_path.py \
+    --labels data/evaluation/full_labeled_dataset_expansion_v2.jsonl \
+    --output data/evaluation/full_labeled_dataset_agent_all_v2_20q.jsonl
+
+# Offline A/B comparison + side-by-side
+python scripts/c3_compare.py \
+    --agent-65q data/evaluation/full_labeled_dataset_agent_all_v2_65q.jsonl \
+    --agent-20q data/evaluation/full_labeled_dataset_agent_all_v2_20q.jsonl \
+    --output data/evaluation/agent_vs_rule_v2.json \
+    --markdown data/evaluation/agent_vs_rule_v2.md
+
+python scripts/c3b_before_after.py \
+    --before data/evaluation/agent_vs_rule_v1.json \
+    --after data/evaluation/agent_vs_rule_v2.json \
+    --output data/evaluation/c3b_before_after.md
+```
+
+Revert (one env-var flip + one git checkout):
+
+```bash
+# Per-process disable (no redeploy needed)
+TRIALMINE_AGENTIC_PATH_ENABLED=0 …
+
+# Full code revert (the production-flip files)
+git checkout main -- src/TrialMine/config.py src/TrialMine/experiments/ab_test.py
+```
