@@ -22,6 +22,8 @@ Three invariants pinned:
 
 from __future__ import annotations
 
+import asyncio
+
 import pytest
 
 import TrialMine.config as cfg_mod
@@ -310,9 +312,15 @@ async def test_degraded_agent_result_dict_routes_to_rule_retry() -> None:
         "expected rule-arm retry result, not "
         f"{results[0]['nct_id']!r} — bubble fix did not route correctly"
     )
-    assert final.get("used_fallback") is False, (
-        "fallback_search should NOT fire for degraded agent results — "
-        "retry-as-rule is the intended path"
+    # PR-3 update: bubble-fix now sets used_fallback=True so the trace
+    # store row honestly reflects that the agent failed and the rule
+    # arm became the fallback. The fallback_search NODE still doesn't
+    # fire (verified by trace_steps below) — the flag is broader than
+    # "fallback_search ran" now; it means "some recovery path engaged".
+    assert final.get("used_fallback") is True, (
+        "bubble-fix retry must mark used_fallback=True so the trace "
+        "store distinguishes agent-failed-rule-recovered runs from "
+        "clean agent successes"
     )
 
     # 2. The agent's no-terminator trace + the bubble-fix's
@@ -333,3 +341,125 @@ async def test_degraded_agent_result_dict_routes_to_rule_retry() -> None:
     assert final.get("error") is None, (
         f"state.error should be cleared after rule retry; got {final.get('error')!r}"
     )
+
+
+# --------------------------------------------------------------------------- #
+# PR — outer-timeout + outer-exception recovery (asymmetry fix)               #
+# --------------------------------------------------------------------------- #
+
+
+async def test_outer_timeout_returns_fallback_results_not_empty() -> None:
+    """When the outer ``asyncio.wait_for`` cap fires in pipeline.search(),
+    the handler must call the outer fallback helper so the user gets
+    rule-arm results instead of ``results=[]``. Pins the asymmetry-fix
+    delivered alongside the bubble-fix ``used_fallback`` change.
+
+    Before the fix, the timeout handler short-circuited to an empty
+    result list with ``error: 'pipeline exceeded ...s budget'``, which
+    matched the on-paper UX promise but never honored it — the inner
+    bubble-fix path retried-as-rule, the outer-timeout path didn't.
+    """
+    from unittest.mock import patch
+
+    import TrialMine.agents.pipeline as pl
+
+    # Stub the fallback helper so we don't need ES/FAISS. The real
+    # helper is exercised in production tests; here we pin the wiring.
+    async def _stub_fallback(raw_query: str, reason: str) -> dict:
+        return {
+            "search_results": {
+                "results": [{"nct_id": "NCT-OUTER-TIMEOUT-FALLBACK"}],
+                "query_used": raw_query,
+                "filters": {},
+                "normalized_condition": None,
+            },
+            "used_fallback": True,
+            "agent_trace": [
+                {
+                    "step": "fallback_search",
+                    "duration_ms": 1.0,
+                    "decisions": {"reason": reason, "n_results": 1},
+                }
+            ],
+        }
+
+    # Build a fake pipeline object whose ainvoke just hangs past the cap.
+    class _HangingPipeline:
+        async def ainvoke(self, state, config=None):
+            await asyncio.sleep(10)  # well past the 0.05s test cap
+            return state
+
+    with patch.object(pl, "_run_fallback_search_for_query", _stub_fallback):
+        result = await pl.search(
+            "test outer timeout falls back",
+            _HangingPipeline(),
+            timeout=0.05,  # forces TimeoutError quickly
+        )
+
+    results = (result.get("search_results") or {}).get("results") or []
+    assert len(results) == 1, f"expected 1 fallback result, got {len(results)}: {results}"
+    assert results[0]["nct_id"] == "NCT-OUTER-TIMEOUT-FALLBACK", (
+        f"outer-timeout handler must call the fallback helper; got {results[0]!r}"
+    )
+    assert result.get("used_fallback") is True
+    assert "pipeline exceeded" in (result.get("error") or ""), (
+        f"error should preserve the timeout reason; got {result.get('error')!r}"
+    )
+    # The outer-fallback fingerprint in the trace stream.
+    trace_steps = [e.get("step") for e in (result.get("agent_trace") or [])]
+    assert "timeout" in trace_steps
+    assert "fallback_search" in trace_steps, (
+        f"fallback trace must be stitched onto outer-timeout trace; got {trace_steps}"
+    )
+
+
+async def test_outer_exception_returns_fallback_results_not_empty() -> None:
+    """Mirror of the outer-timeout test for the generic-Exception branch.
+    Same recovery contract: an unexpected error escaping the LangGraph
+    must funnel into the outer fallback helper so the user still gets
+    rule-arm results.
+    """
+    from unittest.mock import patch
+
+    import TrialMine.agents.pipeline as pl
+
+    async def _stub_fallback(raw_query: str, reason: str) -> dict:
+        return {
+            "search_results": {
+                "results": [{"nct_id": "NCT-OUTER-EXCEPTION-FALLBACK"}],
+                "query_used": raw_query,
+                "filters": {},
+                "normalized_condition": None,
+            },
+            "used_fallback": True,
+            "agent_trace": [
+                {
+                    "step": "fallback_search",
+                    "duration_ms": 1.0,
+                    "decisions": {"reason": reason, "n_results": 1},
+                }
+            ],
+        }
+
+    class _ExplodingPipeline:
+        async def ainvoke(self, state, config=None):
+            raise RuntimeError("synthetic pipeline blow-up")
+
+    with patch.object(pl, "_run_fallback_search_for_query", _stub_fallback):
+        result = await pl.search(
+            "test outer exception falls back",
+            _ExplodingPipeline(),
+            timeout=5.0,
+        )
+
+    results = (result.get("search_results") or {}).get("results") or []
+    assert len(results) == 1
+    assert results[0]["nct_id"] == "NCT-OUTER-EXCEPTION-FALLBACK"
+    assert result.get("used_fallback") is True
+    err = result.get("error") or ""
+    assert "synthetic pipeline blow-up" in err, (
+        f"error should preserve the inner exception message; got {err!r}"
+    )
+    trace_steps = [e.get("step") for e in (result.get("agent_trace") or [])]
+    assert "pipeline_error" in trace_steps
+    assert "fallback_search" in trace_steps
