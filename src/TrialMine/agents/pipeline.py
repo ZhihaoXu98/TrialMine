@@ -314,8 +314,12 @@ async def execute_agent_search(state: SearchState) -> dict:
         elapsed_ms = (time.perf_counter() - t0) * 1000
         logger.exception("execute_agent_search failed; will retry as rule")
         record_agent_failure("execute_agent_search")
+        # Same rationale as the degraded path below — the rule arm is
+        # about to retry, so flag the fallback in state for the trace
+        # store.
         return {
             "error": f"agent_arm_failed: {type(exc).__name__}: {exc}",
+            "used_fallback": True,
             "agent_trace": [
                 {
                     "step": "execute_agent_search_error",
@@ -350,8 +354,13 @@ async def execute_agent_search(state: SearchState) -> dict:
             inner_error,
         )
         record_agent_failure("execute_agent_search_degraded")
+        # ``used_fallback=True`` here is honest: the agent didn't produce
+        # a usable result, the rule arm is about to retry, and the
+        # trace-store row should reflect that a fallback occurred (was
+        # silently 0 for the first 231 agent runs before this fix).
         return {
             "error": f"agent_arm_failed: {inner_error}",
+            "used_fallback": True,
             "agent_trace": trace_entries
             + [
                 {
@@ -426,18 +435,21 @@ async def execute_search(state: SearchState) -> dict:
     }
 
 
-async def fallback_search(state: SearchState) -> dict:
-    """Degraded path: plain hybrid search via :meth:`HybridRetriever.search`.
+async def _run_fallback_search_for_query(raw_query: str, reason: str) -> dict:
+    """Pure async helper — runs the fallback hybrid search.
 
-    No re-ranking, no eligibility check, no template explanations — just
-    BM25 + semantic + RRF. Itself wrapped in try/except so even an ES
-    outage doesn't propagate; the caller gets ``results=[]`` plus a clear
-    ``error`` reason.
+    Extracted from the ``fallback_search`` LangGraph node so the outer
+    ``search()`` exit handlers (TimeoutError, generic Exception) can
+    invoke the same recovery path the inner bubble-fix already uses via
+    LangGraph's conditional edge. Without this helper, outer failures
+    short-circuit to ``results=[]`` while inner failures get rule-arm
+    retry — same conceptual event, asymmetric user experience.
+
+    Returns the same state-merge dict shape ``fallback_search`` returns:
+    ``search_results``, ``used_fallback`` (always True), ``agent_trace``,
+    and ``error`` on the second-level failure branch.
     """
     t0 = time.perf_counter()
-    raw_query = state["raw_query"]
-    reason = state.get("error") or "execute_search failed"
-
     try:
         from TrialMine.agents.tools import _get_hybrid
 
@@ -509,6 +521,19 @@ async def fallback_search(state: SearchState) -> dict:
                 }
             ],
         }
+
+
+async def fallback_search(state: SearchState) -> dict:
+    """Degraded path: plain hybrid search via :meth:`HybridRetriever.search`.
+
+    No re-ranking, no eligibility check, no template explanations — just
+    BM25 + semantic + RRF. Wraps :func:`_run_fallback_search_for_query`
+    so the same recovery logic is reachable from outside the LangGraph
+    state machine (e.g. the outer wall-clock timeout handler).
+    """
+    raw_query = state["raw_query"]
+    reason = state.get("error") or "execute_search failed"
+    return await _run_fallback_search_for_query(raw_query, reason)
 
 
 # --------------------------------------------------------------------------- #
@@ -691,15 +716,25 @@ async def search(
         final = await asyncio.wait_for(pipeline.ainvoke(initial), timeout=timeout)
     except TimeoutError:
         elapsed_ms = (time.perf_counter() - t0) * 1000
-        logger.warning("Pipeline exceeded %.1fs budget — returning degraded response", timeout)
+        timeout_reason = f"pipeline exceeded {timeout}s budget"
+        logger.warning("%s — invoking outer fallback", timeout_reason)
         record_agent_failure("timeout")
+
+        # Funnel into the same recovery the inner bubble-fix uses. The
+        # outer wait_for has cancelled the LangGraph task, so we can't
+        # re-enter the graph — invoke the fallback helper directly. If
+        # the fallback itself fails, ``_run_fallback_search_for_query``
+        # already returns a graceful ``results=[]`` + error envelope.
+        fb = await _run_fallback_search_for_query(patient_description, timeout_reason)
+        n_results = len((fb.get("search_results") or {}).get("results") or [])
         timeout_trace = [
             {
                 "step": "timeout",
                 "duration_ms": round(elapsed_ms, 2),
                 "decisions": {"timeout_s": timeout},
             }
-        ]
+        ] + (fb.get("agent_trace") or [])
+
         _persist_trace_safely(
             query_id=str(uuid.uuid4()),
             raw_query=patient_description,
@@ -708,24 +743,19 @@ async def search(
             arm="unknown",
             route_reason=None,
             route_signals=None,
-            pipeline_kind=None,
+            pipeline_kind="outer_timeout_fallback",
             used_fallback=True,
             total_ms=round(elapsed_ms, 2),
-            n_results=0,
-            error=f"pipeline exceeded {timeout}s budget",
+            n_results=n_results,
+            error=timeout_reason,
             stages=timeout_trace,
         )
         return {
             "patient_profile": None,
-            "search_results": {
-                "results": [],
-                "query_used": patient_description,
-                "filters": {},
-                "normalized_condition": None,
-            },
+            "search_results": fb["search_results"],
             "agent_trace": timeout_trace,
             "used_fallback": True,
-            "error": f"pipeline exceeded {timeout}s budget",
+            "error": timeout_reason,
             "elapsed_ms": round(elapsed_ms, 2),
             "route": None,
         }
@@ -733,6 +763,13 @@ async def search(
         elapsed_ms = (time.perf_counter() - t0) * 1000
         logger.exception("Pipeline raised unexpectedly")
         record_agent_failure("pipeline")
+        error_str = f"{type(exc).__name__}: {exc}"
+
+        # Mirror the timeout path: try the outer fallback so the user
+        # still gets results when an unexpected exception escapes the
+        # LangGraph. Same rationale, same helper.
+        fb = await _run_fallback_search_for_query(patient_description, error_str)
+        n_results = len((fb.get("search_results") or {}).get("results") or [])
         error_trace = [
             {
                 "step": "pipeline_error",
@@ -742,29 +779,24 @@ async def search(
                     "error": str(exc),
                 },
             }
-        ]
-        error_str = f"{type(exc).__name__}: {exc}"
+        ] + (fb.get("agent_trace") or [])
+
         _persist_trace_safely(
             query_id=str(uuid.uuid4()),
             raw_query=patient_description,
             arm="unknown",
             route_reason=None,
             route_signals=None,
-            pipeline_kind=None,
+            pipeline_kind="outer_exception_fallback",
             used_fallback=True,
             total_ms=round(elapsed_ms, 2),
-            n_results=0,
+            n_results=n_results,
             error=error_str,
             stages=error_trace,
         )
         return {
             "patient_profile": None,
-            "search_results": {
-                "results": [],
-                "query_used": patient_description,
-                "filters": {},
-                "normalized_condition": None,
-            },
+            "search_results": fb["search_results"],
             "agent_trace": error_trace,
             "used_fallback": True,
             "error": error_str,
